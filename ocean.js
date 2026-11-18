@@ -182,6 +182,6 @@
       ctx.globalAlpha=1;
     }
   }
-  window.AllAboardOcean=OceanField;
+  if(typeof window!=="undefined")window.AllAboardOcean=OceanField;
   if(typeof module!=="undefined"&&module.exports)module.exports=OceanField;
 })();
