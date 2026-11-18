@@ -48,12 +48,14 @@
     anchor: { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0 },
     vortex: { active: false, x: 155, y: -190 },
     chest: { x: 85, y: -265, collected: false },
-    enemy: { x: -135, y: -275, hp: 50, reload: 0 },
+    enemy: { x: -135, y: -275, vx: 0, vy: 0, hp: 50, reload: 0, modules: { sails:100,cannons:100,rudder:100,hull:100 } },
+    modules: { sails:100,cannons:100,rudder:100,hull:100 },
+    flag: { text:"AA", color:"#243b70", image:null },
     waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60, sailVisual: .72,
     upgrades: { hull: "classic", sails: "cream", cannons: "balanced" },
     shipParts: { hull: true, sail_front: true, sail_rear: true, cannon_left_front: true, cannon_left_rear: true, cannon_right_front: true, cannon_right_rear: true, anchor: true },
     ideasSelected: new Set(),
-    damage: { model: "grid", level: 1, weapon: "cannon", cells: [] },
+    damage: { model: "grid", level: 1, weapon: "cannon", cells: [], turn:0, flooding:0 },
     encounter: { kind: "friendly", index: 0, trust: 30, hp: 100, chosen: false, disabled: [], }
   };
 
@@ -350,16 +352,19 @@
   const iconForType = { hull: "", sails: "⛵", cannon: "✹", rudder: "☸", core: "◆", powder: "✴" };
   function resetDamage() {
     const d = state.damage;
+    d.turn=0; d.flooding=0;
     d.cells = Array.from({ length: 25 }, (_, i) => {
       const type = d.model === "chain" && [6,8,16,18].includes(i) ? "powder" : typeForIndex(i);
       const hp = d.model === "modules" && type === "hull" ? 0 : d.model === "core" && type === "core" ? 3 + 2 * d.level : 2 + d.level + (type === "core" ? 1 : 0);
-      return { type, hp, max: hp, fire: false };
+      return { type, hp, max: hp, fire: false, leaking:false };
     });
+    state.enemy.modules={sails:100,cannons:100,rudder:100,hull:100}; state.enemy.hp=50;
     $("damageStatus").textContent = "Select an attack, then tap a tile.";
-    renderDamage();
+    syncEnemyModules(); renderDamage();
   }
   function objectiveSatisfied() {
     const d = state.damage;
+    if (d.flooding >= 100) return true;
     if (d.model === "core") return d.cells[12].hp <= 0;
     if (d.model === "modules") return d.cells.filter(c => c.type !== "hull").every(c => c.hp === 0);
     return d.cells.every(c => c.hp === 0);
@@ -380,7 +385,8 @@
     const names = { grid: "Destroy all durability cells", modules: "Disable every ship module", core: "Breach and destroy the core ◆", chain: "Trigger cascading powder-cell combos ✴" };
     $("damageObjective").textContent = names[d.model];
     $("enemyLevelValue").textContent = "Lv. " + d.level;
-    $("damageHealth").textContent = remainingDamage() + " / " + maxDamage();
+    $("damageHealth").textContent = remainingDamage() + " / " + maxDamage() + " · Flood " + Math.round(d.flooding) + "%";
+    $("damageTurn").textContent = d.turn;
     $("damageHealthFill").style.width = (maxDamage() ? remainingDamage() / maxDamage() * 100 : 0) + "%";
     $("damageBoard").innerHTML = "";
     d.cells.forEach((cell, i) => {
@@ -391,7 +397,7 @@
       b.disabled = cell.max === 0;
       b.setAttribute("aria-label", "Cell " + (i + 1) + ": " + cell.type + ", " + cell.hp + " HP");
       const ic = document.createElement("span"); ic.className = "cell-icon";
-      ic.textContent = cell.fire ? "🔥" : iconForType[cell.type];
+      ic.textContent = cell.fire ? "🔥" : cell.leaking ? "💧" : iconForType[cell.type];
       const num = document.createElement("span"); num.className = "cell-hp";
       num.textContent = cell.max === 0 ? "·" : cell.hp ? String(cell.hp) : "×";
       b.append(ic, num);
@@ -620,13 +626,18 @@
     state.waves = state.waves.filter(w => w.age < 4);
     state.ripples.forEach(r => r.age += dt);
     state.ripples = state.ripples.filter(r => r.age < 3.2);
+    const enemy=state.enemy;
+    // NPC loses propulsion after its sails break; it coasts to a stop.
+    const enemyThrust=(enemy.modules.sails/100)*settings.windStrength*5.5;
+    enemy.vy=enemy.vy*Math.exp(-1.35*dt)+enemyThrust*dt;
+    enemy.y+=enemy.vy*dt;
     state.enemy.reload = Math.max(0, state.enemy.reload - dt);
-    if (state.mode === "aggressive" && state.enemy.hp > 0 && state.enemy.reload === 0) {
+    if (state.mode === "aggressive" && state.modules.cannons > 0 && state.enemy.hp > 0 && state.enemy.reload === 0) {
       const dx = state.enemy.x - s.x, dy = state.enemy.y - s.y;
       const dist = Math.hypot(dx, dy);
       const broadside = Math.abs(fwdY * dx - fwdX * dy) / Math.max(1, dist);
       if (dist < 165 && broadside > 0.58) {
-        const cannonDamage = state.upgrades.cannons === "heavy" ? 24 : 16;
+        const cannonDamage = (state.upgrades.cannons === "heavy" ? 24 : 16)*state.modules.cannons/100;
         state.enemy.hp = Math.max(0, state.enemy.hp - cannonDamage);
         state.enemy.reload = state.upgrades.cannons === "rapid" ? 1.0 : 1.7;
         state.ripples.push({ x: state.enemy.x, y: state.enemy.y, age: 0 });
@@ -637,7 +648,8 @@
           message("Automatic broadside victory! A new opponent is approaching.");
           state.enemy.x = s.x + random(-240, 240);
           state.enemy.y = s.y - 320;
-          state.enemy.hp = 50;
+          state.enemy.hp = 50; state.enemy.vy=0;
+          state.enemy.modules={sails:100,cannons:100,rudder:100,hull:100};
         }
       }
     }
@@ -774,7 +786,17 @@
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(-.3);
     ctx.fillStyle = "#4d2732"; ctx.strokeStyle = "#e8b5ab"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(0, -23); ctx.bezierCurveTo(15, -15, 17, 15, 0, 24); ctx.bezierCurveTo(-17, 15, -15, -15, 0, -23); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#e0c2b9"; ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(-10, 13); ctx.lineTo(10, 13); ctx.closePath(); ctx.fill();
+    if(state.enemy.modules.sails>0){
+      ctx.fillStyle="#e0c2b9";ctx.beginPath();ctx.moveTo(0,-16);
+      ctx.lineTo(-10*(state.enemy.modules.sails/100),13);
+      ctx.lineTo(10*(state.enemy.modules.sails/100),13);
+      ctx.closePath();ctx.fill();
+    }else{
+      ctx.strokeStyle="#ff9788";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(-11,4);ctx.lineTo(11,4);ctx.stroke();
+      ctx.font="bold 9px Arial";ctx.textAlign="center";ctx.fillStyle="#fff3db";
+      ctx.fillText("SAILS OUT",0,37);
+    }
     ctx.fillStyle = "#ffbeb3"; ctx.fillRect(-19, -32, 38 * state.enemy.hp / 50, 4);
     ctx.restore();
   }
@@ -974,7 +996,8 @@
     state.wheel = { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 };
     state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0 };
     state.chest = { x: 85, y: -265, collected: false };
-    state.enemy = { x: -135, y: -275, hp: 50, reload: 0 };
+    state.enemy = { x: -135, y: -275, vx:0,vy:0,hp:50,reload:0,modules:{sails:100,cannons:100,rudder:100,hull:100} };
+    state.modules = { sails:100,cannons:100,rudder:100,hull:100 };
     state.waves = []; state.ripples = []; state.sailVisual = .72;
     if(ocean) ocean.reset();
     state.paused = false; $("pauseButton").textContent = "⏸ Pause simulation";
