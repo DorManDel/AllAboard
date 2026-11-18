@@ -20,6 +20,27 @@
     currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
   });
   let settings = { ...defaultSettings };
+  const ocean = typeof window.AllAboardOcean === "function" ? new window.AllAboardOcean() : null;
+  // Original Unity ship artwork, copied as SVGs with their original viewBox coordinates.
+  // Each is an independently selectable part in the Shipyard tab.
+  const shipPartDefinitions = [
+    ["hull","Hull",239,95,322,1019],
+    ["sail_front","Fore sail",165,349,470,144],
+    ["sail_rear","Rear sail",132,612,536,159],
+    ["cannon_left_front","Port forward",169,528,121,54],
+    ["cannon_right_front","Starboard forward",510,528,121,54],
+    ["cannon_left_rear","Port aft",169,805,121,54],
+    ["cannon_right_rear","Starboard aft",510,805,121,54],
+    ["anchor","Anchor",340,910,120,150]
+  ];
+  const shipImages = {};
+  if (typeof Image === "function") {
+    for (const part of shipPartDefinitions) {
+      const img = new Image();
+      img.src = "./assets/ship-parts/" + part[0] + ".svg";
+      shipImages[part[0]] = img;
+    }
+  }
   const state = {
     activeTab: "live", scenario: "open", paused: false, haptics: true, mode: "friendly",
     wheel: { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 },
@@ -36,6 +57,84 @@
     encounter: { kind: "friendly", index: 0, trust: 30, hp: 100, chosen: false, disabled: [], }
   };
 
+
+  const ideasCatalog = [
+    { id:"wind-shadow", name:"Wind shadow", icon:"🏝", level:"Low controls · Medium engineering",
+      concept:"Sail behind an island or another ship and suddenly lose wind. Read the environment and choose a route.",
+      test:"Does the player notice and recover without a tutorial?" },
+    { id:"anchor-sling", name:"Anchor slingshot", icon:"⚓", level:"No new buttons · Medium engineering",
+      concept:"Use an anchored line as a pivot to swing around rocks or slingshot out of a vortex. Timing matters.",
+      test:"Can players make a sharp turn using one anchor tap plus steering?" },
+    { id:"perfect-broadside", name:"Perfect broadside", icon:"💥", level:"No new buttons · Low engineering",
+      concept:"Automatic cannons reward an accurate broadside angle with synchronized fire, not faster tapping.",
+      test:"Can a skilled helmsman land a better volley than a beginner?" },
+    { id:"wake-surfing", name:"Wake surfing", icon:"🌊", level:"No new buttons · Medium engineering",
+      concept:"Sail across another vessel's wake for a small speed boost or turbulence. Teach momentum visually.",
+      test:"Does reading the wake create a fun, discoverable shortcut?" },
+    { id:"ally-escort", name:"Rescue & escort", icon:"♡", level:"One contextual action · Medium engineering",
+      concept:"Help a ship escape a hazard instead of attacking it. A rescued ally provides cover or supplies.",
+      test:"Can a friendly encounter feel as exciting as a battle?" },
+    { id:"treasure-hook", name:"Treasure on a line", icon:"💎", level:"One contextual action · Medium engineering",
+      concept:"Throw a short hook at floating loot and pull it toward the ship without stopping the run.",
+      test:"Is it satisfying without overlapping the anchor's role?" }
+  ];
+  function renderIdeas() {
+    const box = $("ideasList");
+    box.innerHTML = "";
+    for (const idea of ideasCatalog) {
+      const row = document.createElement("article"); row.className = "idea-card";
+      const content = document.createElement("div"); content.className = "idea-card-content";
+      const title = document.createElement("h3"); title.textContent = idea.icon + " " + idea.name;
+      const description = document.createElement("p"); description.textContent = idea.concept;
+      const test = document.createElement("small"); test.textContent = "TEST: " + idea.test + " · " + idea.level;
+      content.append(title, description, test);
+      const button = document.createElement("button");
+      const isSelected = state.ideasSelected.has(idea.id);
+      button.classList.toggle("selected", isSelected);
+      button.setAttribute("aria-pressed", String(isSelected));
+      button.setAttribute("aria-label", "Shortlist " + idea.name);
+      button.textContent = isSelected ? "✓" : "+";
+      button.addEventListener("click", () => {
+        if (state.ideasSelected.has(idea.id)) state.ideasSelected.delete(idea.id);
+        else state.ideasSelected.add(idea.id);
+        renderIdeas();
+      });
+      row.append(content, button); box.append(row);
+    }
+    $("ideaCount").textContent = state.ideasSelected.size + " shortlisted";
+  }
+  $("exportIdeas").addEventListener("click", () => {
+    const selected = ideasCatalog.filter(idea => state.ideasSelected.has(idea.id));
+    const lines = ["# All Aboard - ideas to review with Eilon", "", "Selected " + selected.length + " of " + ideasCatalog.length + " concepts.", ""];
+    selected.forEach(idea => lines.push("## " + idea.name, "- Concept: " + idea.concept, "- Test: " + idea.test, "- Scope: " + idea.level, ""));
+    if (!selected.length) lines.push("No ideas shortlisted yet.");
+    const blob = new Blob([lines.join("\n")], {type:"text/markdown"});
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href=url;anchor.download="all-aboard-ideas-review.md";
+    document.body.append(anchor);anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),300);
+  });
+  function renderPartsGallery() {
+    const gallery=$("shipPartsGallery");
+    gallery.innerHTML="";
+    for(const part of shipPartDefinitions){
+      const id=part[0];
+      const button=document.createElement("button");
+      button.className="part-card";
+      const visible=state.shipParts[id];
+      button.classList.toggle("is-hidden",!visible);
+      button.setAttribute("aria-pressed",String(visible));
+      const image=document.createElement("img");
+      image.src="./assets/ship-parts/"+id+".svg";
+      image.alt="";
+      const title=document.createElement("span");title.textContent=part[1];
+      const status=document.createElement("small");status.textContent=visible?"Visible":"Hidden";
+      button.append(image,title,status);
+      button.addEventListener("click",()=>{state.shipParts[id]=!state.shipParts[id];renderPartsGallery();});
+      gallery.append(button);
+    }
+  }
   const titleMap = {
     live: ["Sailing playground", "Live Playground", "Tune the whole vessel. Every change propagates to the other experiments."],
     helm: ["Steer & feel", "Helm Lab", "One wheel, three turns either way, and an adjustable return-to-center feel."],
@@ -627,6 +726,33 @@
     ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(3, -15); ctx.lineTo(10, -12); ctx.lineTo(3, -9); ctx.lineTo(0, -2); ctx.lineTo(-3, -9); ctx.lineTo(-10, -12); ctx.lineTo(-3, -15); ctx.closePath();
     ctx.fillStyle = "#ffefa6"; ctx.fill(); ctx.restore();
   }
+
+  function drawNativeShip(){
+    if (!shipImages.hull || !shipImages.hull.complete || !shipImages.hull.naturalWidth) return false;
+    const scale=.108;
+    for (const part of shipPartDefinitions) {
+      const name=part[0], image=shipImages[name];
+      if (!state.shipParts[name] || !image || !image.complete || !image.naturalWidth) continue;
+      if (name==="anchor" && state.anchor.down) continue;
+      ctx.save();
+      if(name.startsWith("sail_")){
+        if (settings.sail<3){ctx.restore();continue;}
+        ctx.globalAlpha=clamp(settings.sail/100,.05,1);
+        const tint=state.upgrades.sails;
+        ctx.filter=tint==="scarlet"?"sepia(1) saturate(4) hue-rotate(310deg) brightness(1.8)":
+                   tint==="azure"?"sepia(1) saturate(3) hue-rotate(145deg) brightness(1.8)":
+                   "brightness(1.25)";
+      }
+      if(name==="hull"){
+        ctx.filter=state.upgrades.hull==="light"?"brightness(1.16) saturate(1.05)":
+                   state.upgrades.hull==="armored"?"grayscale(.45) contrast(1.1)":"none";
+      }
+      ctx.drawImage(image,(part[2]-400)*scale,(part[3]-605)*scale,part[4]*scale,part[5]*scale);
+      ctx.restore();
+    }
+    return true;
+  }
+
   function sailColor() {
     return { cream: "#f6e9c6", scarlet: "#e28e89", azure: "#9de2ee" }[state.upgrades.sails];
   }
@@ -642,7 +768,11 @@
   }
   function drawShip() {
     const p = project(state.ship.x, state.ship.y);
-    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(rad(state.ship.heading));
+    ctx.save(); ctx.translate(p.x, p.y);
+    const bob=Math.sin(state.time*2.1+state.ship.x*.008)*settings.waveHeight*.7;
+    ctx.translate(0,bob);
+    ctx.rotate(rad(state.ship.heading)+Math.sin(state.time*1.3)*settings.waveHeight*.008);
+    if(drawNativeShip()){ctx.restore();return;}
     ctx.shadowColor = "#06213e"; ctx.shadowBlur = 17; ctx.shadowOffsetY = 8;
     const hullColor = state.upgrades.hull === "armored" ? "#6a7181" : state.upgrades.hull === "light" ? "#d09a52" : "#ac5d25";
     ctx.fillStyle = hullColor; ctx.strokeStyle = "#4d311b"; ctx.lineWidth = 4;
@@ -665,40 +795,115 @@
     if (state.anchor.down) { ctx.fillStyle = "#fff0c8"; ctx.font = "20px sans-serif"; ctx.textAlign = "center"; ctx.fillText("⚓", 0, 66); }
     ctx.restore();
   }
+
+  function drawAnchorChain(){
+    const a=state.anchor;
+    if(!a.down || !state.shipParts.anchor)return;
+    const ship=state.ship;
+    const sternX=ship.x-Math.sin(rad(ship.heading))*38;
+    const sternY=ship.y+Math.cos(rad(ship.heading))*38;
+    const p1=project(sternX,sternY),p2=project(a.point.x,a.point.y);
+    const dx=p2.x-p1.x,dy=p2.y-p1.y,dist=Math.max(.01,Math.hypot(dx,dy));
+    const slack=Math.max(0,settings.anchorLine-dist);
+    const sag=Math.min(23,6+slack*.35);
+    const ctrl={x:(p1.x+p2.x)/2-dy/dist*sag,y:(p1.y+p2.y)/2+dx/dist*sag};
+    const fall=clamp(a.fallTime/.75,0,1);
+    ctx.save();ctx.strokeStyle="#263c47";ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.quadraticCurveTo(ctrl.x,ctrl.y,p2.x,p2.y);ctx.stroke();
+    ctx.strokeStyle=a.status==="Dragging"?"#ffd179":"#a4bcc1";ctx.lineWidth=2.2;
+    ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(p1.x,p1.y);
+    ctx.quadraticCurveTo(ctrl.x,ctrl.y,p2.x,p2.y);ctx.stroke();ctx.setLineDash([]);
+    // A readable link chain rather than a static single line.
+    const steps=Math.max(2,Math.min(21,Math.round(dist/9)));
+    ctx.strokeStyle="#cfdbcf";ctx.lineWidth=1.4;
+    for(let i=1;i<steps;i++){
+      const t=i/steps,u=1-t;
+      const x=u*u*p1.x+2*u*t*ctrl.x+t*t*p2.x;
+      const y=u*u*p1.y+2*u*t*ctrl.y+t*t*p2.y;
+      ctx.beginPath();ctx.ellipse(x,y,2.8,1.8,t*.3,0,Math.PI*2);ctx.stroke();
+    }
+    const anchorPoint={
+      x:p1.x+(p2.x-p1.x)*fall,
+      y:p1.y+(p2.y-p1.y)*fall-(1-fall)*12*Math.sin(Math.PI*fall)
+    };
+    ctx.translate(anchorPoint.x,anchorPoint.y);
+    ctx.fillStyle=a.phase==="falling"?"#f7d28b":"#c7d4d7";
+    ctx.strokeStyle="#273c42";ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(0,-9,3,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(0,9);ctx.moveTo(-7,-2);ctx.lineTo(7,-2);
+    ctx.moveTo(-11,4);ctx.quadraticCurveTo(-9,14,0,14);ctx.quadraticCurveTo(9,14,11,4);
+    ctx.stroke();
+    if(a.status==="Dragging"){
+      ctx.strokeStyle="#f7ca79";ctx.beginPath();ctx.arc(0,0,19,0,Math.PI*1.2);ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawWorld() {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = viewWidth, h = viewHeight;
-    const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, "#135b8b"); bg.addColorStop(.55, "#196b9d"); bg.addColorStop(1, "#0e487b");
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
-    const waveCount = Math.round(settings.waveDetail);
-    const step = h / waveCount;
-    const wx = Math.sin(rad(settings.windDirection)), wy = -Math.cos(rad(settings.windDirection));
-    for (let i = -2; i < waveCount + 3; i++) {
-      let y = i * step + ((state.time * (3 + settings.windStrength * 2) + state.ship.y * .22) % step);
-      ctx.beginPath();
-      const phase = state.time * .5 + state.ship.x * .008 + i * 1.7;
-      for (let x = -8; x <= w + 12; x += 12) {
-        const yy = y + Math.sin(x * .026 + phase) * (3 + settings.waveHeight * 7) + Math.sin(x * .055 + phase * 1.3) * settings.waveHeight * 3;
-        if (x === -8) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
-      }
-      ctx.strokeStyle = i % 3 === 0 ? "rgba(207,252,250," + (.12 + settings.waveHeight * .035) + ")" : "rgba(153,226,237,.10)";
-      ctx.lineWidth = (i % 3 === 0 ? 2.4 : 1.2) + settings.waveHeight * .3; ctx.stroke();
-    }
-    // Dynamic flecks move along wind direction, reinforcing direction without UI clutter.
-    for (let i = 0; i < 38; i++) {
-      const x = (i * 73.71 + state.time * wx * 9 - state.ship.x * .23) % (w + 40);
-      const y = (i * 48.73 + state.time * wy * 8 - state.ship.y * .23) % (h + 40);
-      ctx.fillStyle = "rgba(196,248,242,.15)";
-      ctx.fillRect((x + w + 40) % (w + 40), (y + h + 40) % (h + 40), 3, 1);
+    if (ocean) {
+      ocean.drawBackground(ctx,{w,h,project},settings,state.ship);
+    } else {
+      const bg=ctx.createLinearGradient(0,0,w,h);
+      bg.addColorStop(0,"#164d7c");bg.addColorStop(1,"#0f4b78");
+      ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
     }
     drawVortex();
     drawWakes();
+    if(ocean)ocean.drawEffects(ctx,{project});
     drawRipples();
+    drawAnchorChain();
     drawChest();
     drawSmallEnemy();
     drawShip();
+  }
+
+
+  function renderHeadingTape(heading){
+    const marks=$("headingMarks");
+    const step=15;
+    const nearest=Math.round(heading/step)*step;
+    const cardinals={0:"N",90:"E",180:"S",270:"W"};
+    const ticks=[];
+    for(let delta=-7;delta<=7;delta++){
+      const degrees=nearest+delta*step;
+      const absolute=wrapDegrees(degrees);
+      const dx=(degrees-heading)*1.55;
+      const isCardinal=Object.prototype.hasOwnProperty.call(cardinals,absolute);
+      const label=isCardinal?cardinals[absolute]:(degrees%30===0?String(absolute):"·");
+      ticks.push('<span class="tape-tick'+(isCardinal?' cardinal':'')+'" style="left:calc(50% + '+dx.toFixed(1)+'px)">'+label+'</span>');
+    }
+    marks.innerHTML=ticks.join("");
+  }
+  function drawMiniMap(){
+    const map=$("miniMapCanvas");
+    if(!map)return;
+    const c=map.getContext("2d");
+    if(!c||typeof c.fillRect!=="function")return;
+    if(map.width!==90)map.width=90;
+    if(map.height!==90)map.height=90;
+    c.clearRect(0,0,90,90);
+    c.fillStyle="#0b4362";c.fillRect(0,0,90,90);
+    c.strokeStyle="#6eb4cf37";c.lineWidth=1;
+    for(let v=15;v<90;v+=15){c.beginPath();c.moveTo(v,0);c.lineTo(v,90);c.moveTo(0,v);c.lineTo(90,v);c.stroke();}
+    c.strokeStyle="#abdfe477";c.beginPath();c.arc(45,45,35,0,Math.PI*2);c.stroke();
+    const things=[
+      {x:state.chest.x,y:state.chest.y,color:"#ffda78",r:3},
+      {x:state.enemy.x,y:state.enemy.y,color:"#f09889",r:4},
+      ...(state.vortex.active?[{x:state.vortex.x,y:state.vortex.y,color:"#85dcea",r:6}]:[])
+    ];
+    for(const t of things){
+      const x=45+(t.x-state.ship.x)*.18,y=45+(t.y-state.ship.y)*.18;
+      if(x<4||x>86||y<4||y>86)continue;
+      c.beginPath();c.arc(x,y,t.r,0,Math.PI*2);
+      c.fillStyle=t.color;c.fill();
+    }
+    c.save();c.translate(45,45);c.rotate(rad(state.ship.heading));
+    c.beginPath();c.moveTo(0,-9);c.lineTo(-6,7);c.lineTo(0,3);c.lineTo(6,7);c.closePath();
+    c.fillStyle="#eafafa";c.fill();c.restore();
+    c.font="bold 8px Arial";c.fillStyle="#cfedee";c.fillText("N",79,9);
   }
 
   function updateUI() {
