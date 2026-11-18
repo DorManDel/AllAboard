@@ -11,3 +11,78 @@
 @media(max-width:790px){.app-shell{padding:0 12px 20px}.topbar{padding:12px 0;flex-wrap:wrap}.brand strong{font-size:12px}.brand small{font-size:10px}.brand-mark{width:39px;height:39px}.build-tag{display:none}.top-actions{gap:6px}.subtle-button{font-size:11px;padding:9px 11px}.tabbar{margin:0 -12px;padding:0 12px 12px}.tab{font-size:11px;padding:9px 11px}.workspace{grid-template-columns:1fr;gap:13px}.stage{padding:12px;min-height:unset}.stage-heading h1{font-size:17px}.stage-body{gap:14px}.phone{width:min(350px,100%)}.telemetry-grid{grid-template-columns:repeat(2,1fr)}.inspector{height:auto;max-height:none}.inspector-header{padding:17px}.inspector-header h2{font-size:21px}.panel{padding:17px}.footer{flex-direction:column;gap:5px}}
 @media(max-width:390px){.phone{width:min(330px,100%)}.helm-control{width:143px;height:143px}.side-controls{right:7px}.game-btn{width:62px;height:56px}.stage{padding:9px}.top-actions{width:100%;justify-content:flex-end}.play-hint{font-size:9px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+
+
+/* V0.2: gameplay-first portrait HUD and a proper centered helm */
+.helm-control{left:50%;bottom:36px;width:148px;height:148px}
+.helm-control .wheel-art{transition:none}
+.helm-control:active .wheel-art{filter:drop-shadow(0 0 6px #ffe4a280)}
+.side-controls{bottom:46px;right:10px;gap:8px}
+.game-btn{width:80px;height:54px}
+.anchor-btn{font-size:19px;background:#103950d9}
+.anchor-btn span:last-child{font-size:9px}
+.anchor-btn.pressed{background:#d99a47;color:#1b2a2d}
+.anchor-btn.throwing{animation:anchor-pulse .38s ease-in-out 2}
+@keyframes anchor-pulse{50%{transform:translateY(4px);filter:brightness(1.2)}}
+.mode-btn{height:61px;display:flex;gap:4px;justify-content:center;padding:6px 3px}
+.mode-btn .mode-main{font-size:9px;letter-spacing:.04em;white-space:nowrap}
+.mode-btn .mode-alternative{font-size:8px;letter-spacing:0;font-weight:550;opacity:.78}
+.mode-btn.friendly .mode-main{color:#c9ffe9}
+.mode-btn.aggressive .mode-main{color:#ffe6c9}
+.sail-control{right:15px;bottom:190px;border-radius:15px;padding:8px 6px;gap:3px;background:#07283ccf}
+.sail-control input{height:64px;width:22px}
+.sail-control .control-caption{font-size:8px}
+.sail-control .sail-percent{font-size:10px}
+.heading-hud{position:absolute;top:91px;left:50%;width:min(225px,78%);transform:translateX(-50%);z-index:4;display:flex;align-items:center;flex-direction:column;pointer-events:none}
+.heading-tape{width:100%;height:32px;border-radius:9px;position:relative;overflow:hidden;background:linear-gradient(90deg,#0929409e,#07293ce8,#0929409e);border:1px solid #bde8e15c;box-shadow:0 6px 14px #052b48aa;mask-image:linear-gradient(90deg,transparent 0,black 15%,black 85%,transparent 100%)}
+.heading-marks{position:absolute;inset:0}
+.tape-tick{position:absolute;bottom:5px;transform:translateX(-50%);font-size:10px;color:#d0f1eb;display:flex;flex-direction:column;align-items:center;min-width:17px;gap:1px;white-space:nowrap}
+.tape-tick::after{content:"";height:5px;width:1px;background:#b4eeeb99}
+.tape-tick.cardinal{color:#f9d992;font-weight:900;font-size:12px;bottom:3px}
+.tape-tick.cardinal::after{height:4px;background:#ffdfb1}
+.heading-indicator{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:23px;color:#ffda93;z-index:2;text-shadow:0 0 7px #ffe29a}
+.heading-wind{margin-top:4px;white-space:nowrap;color:#e2f2eb;font-size:9px;font-weight:750;background:#0c3440ce;padding:4px 11px;border:1px solid #a4e6db55;border-radius:16px;letter-spacing:.03em}
+.wind-direction-arrow{display:inline-block;color:#ffdf8b;font-size:12px;transform-origin:center;margin-right:3px}
+.heading-wind strong{font-variant-numeric:tabular-nums}
+.heading-separator{margin:0 5px;color:#badbdb}
+.minimap{position:absolute;top:160px;left:10px;z-index:3;width:74px;height:74px;border-radius:14px;border:1px solid #addfe97c;overflow:hidden;background:#0b3c5799;box-shadow:0 7px 20px #051b3e8a;pointer-events:none;backdrop-filter:blur(4px)}
+.minimap canvas{position:relative;display:block;width:100%;height:100%}
+.minimap span{position:absolute;bottom:2px;left:5px;font-size:7px;font-weight:900;color:#c4edeb;letter-spacing:.13em}
+.hud-bottom{margin-top:9px}
+.play-hint{top:145px;width:max-content;max-width:90%;text-align:center;font-size:8.5px;white-space:normal;line-height:1.3}
+.phone-bottomline{bottom:15px}
+.anchor-rope-hud{position:absolute;right:12px;bottom:291px;z-index:4;padding:7px 9px;background:#122d3dd9;border:1px solid #d3d2ae99;border-radius:10px;color:#ebf4f7;font-size:9px;min-width:111px;box-shadow:0 5px 12px #0b21365e;pointer-events:none}
+.anchor-rope-hud[hidden]{display:none}
+.anchor-rope-hud>span{font-weight:850;color:#ffcd79}
+.anchor-rope-hud>strong{float:right;font-size:10px}
+.anchor-rope-hud small{display:block;color:#d5e4de;margin-top:3px;font-size:8px}
+.chain-meter{height:4px;background:#345268;overflow:hidden;clear:both;margin-top:7px;border-radius:5px}
+.chain-meter i{display:block;height:100%;background:#f5c073;width:0%;transition:width .1s linear}
+.rope-live{font-size:12px;color:#b8dce2;line-height:1.6;background:#0a2937;padding:10px 13px;border-radius:12px;margin-bottom:14px}
+.rope-live strong{color:#f4d089}
+.chain-explainer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:11px;margin:-6px 0 14px;color:#e5d8aa}
+.chain-explainer span{border:1px solid #34556a;background:#0a2b3a;padding:7px 8px;border-radius:8px}
+.ship-parts-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:6px 0 12px}
+.part-card{border:1px solid #335469;border-radius:12px;padding:9px 4px 7px;background:#102c3b;display:flex;align-items:center;flex-direction:column;gap:7px;min-width:0;text-align:center}
+.part-card img{height:48px;width:85%;object-fit:contain;filter:drop-shadow(0 2px 4px #061923)}
+.part-card span{font-size:10px;font-weight:800;line-height:1.2;color:#d8edf1}
+.part-card small{font-size:9px;color:#b3d5de}
+.part-card.is-hidden{opacity:.42;border-style:dashed}
+.part-card.is-hidden img{filter:grayscale(1)}
+.part-card:not(.is-hidden){border-color:#8de8d5}
+.idea-list{display:grid;gap:11px}
+.idea-card{border:1px solid var(--border);border-radius:15px;background:#0b2b3c;padding:15px;display:flex;gap:10px}
+.idea-card-content{flex:1;min-width:0}
+.idea-card h3{font-size:14px;margin:3px 0 8px;color:#eafbf7}
+.idea-card p{font-size:12px;color:#b2d2db;line-height:1.55;margin:0 0 9px}
+.idea-card small{display:block;color:#edc992;font-size:10px;line-height:1.4}
+.idea-card button{height:36px;flex:0 0 35px;border:1px solid #698e9b;background:#12384a;border-radius:10px;font-size:17px;color:#8bcfd0}
+.idea-card button.selected{background:#3c6856;border-color:#8fdeb4;color:#e9ffef}
+.idea-summary{margin-top:16px;padding-top:15px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:9px}
+.idea-summary strong{font-size:12px;color:#a6eacb}
+.idea-summary .wide-button{margin-top:0}
+.segmented[aria-label="Damage model"]{display:grid;grid-template-columns:repeat(4,1fr)}
+.segmented[aria-label="Damage model"] button{padding:10px 2px;font-size:11px}
+@media(max-width:790px){.helm-control{width:146px;height:146px}.heading-hud{top:92px}.ship-parts-gallery{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:390px){.helm-control{width:130px;height:130px;bottom:41px}.side-controls{right:8px}.game-btn{width:72px}.sail-control{right:12px}.heading-hud{width:75%}.anchor-rope-hud{bottom:270px}}
+@media(prefers-reduced-motion:reduce){.anchor-btn.throwing{animation:none}}
