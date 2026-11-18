@@ -120,7 +120,7 @@ assert.equal(byId.get("modeLabel").textContent, "♡ FRIENDLY");
 // Exercise both procedural sea and phone UI frames; don't stop at a successful constructor.
 for (let i=0;i<100;i++) step((i+1)*16.667);
 assert(byId.get("statHeading").textContent.endsWith("°"));
-assert(byId.get("headingMarks").innerHTML.includes("cardinal"));
+assert.equal(byId.get("headingMarks").children.length,17,"Compass should reuse 17 stable markers");
 const anchorBefore=byId.get("anchorButton").attributes["aria-pressed"];
 fire("anchorButton","click");
 for(let i=100;i<180;i++) step((i+1)*16.667);
