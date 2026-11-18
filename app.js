@@ -1125,9 +1125,13 @@
     drawMiniMap();
     $("windArrow").style.transform = "rotate(" + (settings.windDirection - 90) + "deg)";
     $("windValue").textContent = settings.windStrength.toFixed(1);
-    $("windRelation").textContent = alignment > .65 ? "TAILWIND" : alignment < -.55 ? "HEADWIND" : "CROSSWIND";
+    const offWind=ship.windAngle===undefined?180:ship.windAngle;
+    $("windRelation").textContent=offWind<35?"NO-GO":offWind<75?"CLOSE REACH":offWind<145?"BEAM REACH":offWind<170?"BROAD REACH":"RUNNING";
     $("alignmentReading").textContent = (alignment >= 0 ? "+" : "") + alignment.toFixed(2);
-    $("alignmentDescription").textContent = alignment > .75 ? "Tailwind! Strong sail propulsion." : alignment < -.5 ? "Headwind. Very little forward sail thrust." : "Crosswind. Turn to get a better angle.";
+    $("alignmentDescription").textContent=offWind<35?"No-go zone: little thrust in direct headwind.":
+      offWind<75?"Close reach: partial wind efficiency.":
+      offWind<145?"Beam/broad reach: highest sail efficiency.":
+      "Downwind: steady sail drive, slower than a reach.";
     $("coinValue").textContent = ship.coins.toLocaleString("en-US");
     $("scoreValue").textContent = String(ship.score).padStart(3, "0");
     $("hpFill").style.width = ship.hull + "%";
