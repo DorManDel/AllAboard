@@ -136,10 +136,13 @@
           <div class="attack-buttons" role="group" aria-label="Attack pattern"><button class="active" data-weapon="cannon">💣 Cannon</button><button data-weapon="broadside">💥 Broadside</button><button data-weapon="fire">🔥 Fire</button><button data-weapon="repair">🔧 Repair</button></div>
           <div class="damage-head"><strong id="damageObjective">Destroy all cells</strong><span id="damageHealth">75 / 75</span></div>
           <div class="damage-turn">TURN <strong id="damageTurn">0</strong> <span>· every repair spends a turn</span></div>
-          <div class="damage-modules">⛵ ENEMY SAILS <strong id="enemySailsStatus">100%</strong> · ✹ CANNONS <strong id="enemyCannonsStatus">100%</strong> · ☸ RUDDER <strong id="enemyRudderStatus">100%</strong></div><div class="damage-progress"><i id="damageHealthFill"></i></div>
+          <div class="damage-modules">⛵ ENEMY SAILS <strong id="enemySailsStatus">100%</strong> · ✹ CANNONS <strong id="enemyCannonsStatus">100%</strong> · ☸ RUDDER <strong id="enemyRudderStatus">100%</strong></div>
+          <div class="mini-heading">TEST SHIP COMPONENT FAILURE</div>
+          <div class="module-test-controls"><button data-test-module="sails">⛵ Hit OUR sails</button><button data-test-module="cannons">✹ Hit OUR guns</button><button data-test-module="rudder">☸ Hit OUR rudder</button><button id="repairOwn" class="outline-button">🔧 Repair our ship</button></div>
+          <p class="tipline">These tests affect the main gameplay preview: sails lose propulsion, rudder loses authority, and damaged guns cannot fire.</p><div class="damage-progress"><i id="damageHealthFill"></i></div>
           <div class="damage-board" id="damageBoard" aria-label="Interactive damage cells"></div>
           <div class="damage-status" id="damageStatus" aria-live="polite">Tap a tile to test an attack pattern.</div>
-          <div class="button-pair"><button id="fireTick" class="outline-button">↻ Advance turn</button><button id="damageReset" class="outline-button">↺ New enemy</button></div>
+          <div class="button-pair"><button id="fireTick" class="outline-button">↻ Advance turn</button><button id="damageReset" class="outline-button">↺ New enemy</button><button id="enemyRepair" class="outline-button">🔧 Enemy repairs (1 turn)</button></div>
         </section>
 
         <section class="panel" data-panel="encounter">
@@ -163,7 +166,7 @@
           <div class="flag-editor">
             <label for="flagCaption">Flag monogram</label><input id="flagCaption" type="text" maxlength="3" placeholder="⚓ / initials" value="AA">
             <label for="flagColor">Flag color</label><input id="flagColor" type="color" value="#243b70">
-            <label for="flagUpload">Upload flag picture</label><input id="flagUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+            <label for="flagUpload">Upload flag picture</label><input id="flagUpload" type="file" accept="image/png,image/jpeg,image/webp">
             <button id="flagClear" class="outline-button">↺ Reset flag</button>
             <p class="tipline">Local only, no server upload or persistent inventory. Keep uploaded art yours to use.</p>
           </div>
