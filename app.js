@@ -323,7 +323,8 @@
   });
   $("clearVortex").addEventListener("click", () => { state.vortex.active = false; message("Vortex cleared."); });
   $("rippleButton").addEventListener("click", () => {
-    state.ripples.push({ x: state.ship.x + random(-60, 60), y: state.ship.y - random(40, 145), age: 0 });
+    const x=state.ship.x+random(-60,60),y=state.ship.y-random(40,145);
+    if(ocean)ocean.splash(x,y,1,"test");else state.ripples.push({x,y,age:0});
     vibrate(8);
   });
   $("stormButton").addEventListener("click", () => {
@@ -338,6 +339,7 @@
   $("collectChest").addEventListener("click", () => {
     state.ship.coins += 75; state.ship.score += 50;
     state.ripples.push({ x: state.chest.x, y: state.chest.y, age: 0 });
+    if(ocean)ocean.splash(state.chest.x,state.chest.y,1.1,"treasure");
     state.chest.x = state.ship.x + random(-180, 180);
     state.chest.y = state.ship.y - random(180, 380);
     vibrate([20, 30, 30]); message("Treasure collected: +75 coins. Now try approaching another vessel!");
@@ -345,11 +347,11 @@
 
   // Damage Lab: three genuinely different win conditions, sharing cell data.
   const typeForIndex = (i) => ({ 2: "sails", 5: "cannon", 9: "cannon", 12: "core", 17: "rudder", 22: "sails" })[i] || "hull";
-  const iconForType = { hull: "", sails: "⛵", cannon: "✹", rudder: "☸", core: "◆" };
+  const iconForType = { hull: "", sails: "⛵", cannon: "✹", rudder: "☸", core: "◆", powder: "✴" };
   function resetDamage() {
     const d = state.damage;
     d.cells = Array.from({ length: 25 }, (_, i) => {
-      const type = typeForIndex(i);
+      const type = d.model === "chain" && [6,8,16,18].includes(i) ? "powder" : typeForIndex(i);
       const hp = d.model === "modules" && type === "hull" ? 0 : d.model === "core" && type === "core" ? 3 + 2 * d.level : 2 + d.level + (type === "core" ? 1 : 0);
       return { type, hp, max: hp, fire: false };
     });
@@ -375,7 +377,7 @@
   function renderDamage() {
     const d = state.damage;
     if (!d.cells.length) return;
-    const names = { grid: "Destroy all durability cells", modules: "Disable every ship module", core: "Breach and destroy the core ◆" };
+    const names = { grid: "Destroy all durability cells", modules: "Disable every ship module", core: "Breach and destroy the core ◆", chain: "Trigger cascading powder-cell combos ✴" };
     $("damageObjective").textContent = names[d.model];
     $("enemyLevelValue").textContent = "Lv. " + d.level;
     $("damageHealth").textContent = remainingDamage() + " / " + maxDamage();
@@ -385,6 +387,7 @@
       const b = document.createElement("button");
       b.className = "damage-cell targetable" + (cell.type === "core" ? " core" : "");
       b.dataset.hp = Math.min(cell.hp, 2);
+      if (cell.type === "powder") b.classList.add("powder");
       b.disabled = cell.max === 0;
       b.setAttribute("aria-label", "Cell " + (i + 1) + ": " + cell.type + ", " + cell.hp + " HP");
       const ic = document.createElement("span"); ic.className = "cell-icon";
@@ -408,14 +411,37 @@
       }
     }
     const indices = d.weapon === "broadside" ? [index - 1, index, index + 1].filter(i => i >= 0 && i < 25 && Math.floor(i / 5) === Math.floor(index / 5)) : [index];
+    const chainQueue = [];
     for (const i of indices) {
       const cell = d.cells[i];
       if (cell.max === 0) continue;
       if (d.weapon === "repair") { cell.hp = Math.min(cell.max, cell.hp + 2); cell.fire = false; }
       else if (d.weapon === "fire") { if (cell.hp > 0) cell.fire = true; }
-      else cell.hp = Math.max(0, cell.hp - (d.weapon === "cannon" ? 2 : 1));
+      else {
+        const before=cell.hp;
+        cell.hp=Math.max(0,cell.hp-(d.weapon==="cannon"?2:1));
+        if(d.model==="chain"&&cell.type==="powder"&&before>0&&cell.hp===0)chainQueue.push(i);
+      }
     }
-    $("damageStatus").textContent = objectiveSatisfied() ? "Ship disabled! Try another damage model." : "Direct hit! " + remainingDamage() + " durability remaining.";
+    let cascades=0;
+    const popped=new Set();
+    while(chainQueue.length && cascades<25) {
+      const i=chainQueue.shift();
+      if(popped.has(i))continue;
+      popped.add(i);cascades++;
+      const y=Math.floor(i/5),x=i%5;
+      for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]) {
+        const nx=x+dx,ny=y+dy;
+        if(nx<0||nx>=5||ny<0||ny>=5)continue;
+        const j=ny*5+nx,c=d.cells[j],before=c.hp;
+        if(before<=0)continue;
+        c.hp=Math.max(0,before-2);
+        if(c.type==="powder"&&c.hp===0)chainQueue.push(j);
+      }
+    }
+    $("damageStatus").textContent = objectiveSatisfied() ? "Ship disabled! Try another damage model." :
+      cascades>0 ? cascades+" powder explosions! Cascading damage across adjacent tiles." :
+      "Direct hit! " + remainingDamage() + " durability remaining.";
     vibrate(d.weapon === "repair" ? 7 : [12, 15, 7]);
     renderDamage();
   }
@@ -645,6 +671,7 @@
         state.enemy.hp = Math.max(0, state.enemy.hp - cannonDamage);
         state.enemy.reload = state.upgrades.cannons === "rapid" ? 1.0 : 1.7;
         state.ripples.push({ x: state.enemy.x, y: state.enemy.y, age: 0 });
+        if(ocean)ocean.splash(state.enemy.x,state.enemy.y,1,"cannon");
         vibrate(10);
         if (state.enemy.hp === 0) {
           s.coins += 65; s.score += 100;
