@@ -1,8 +1,57 @@
 # All Aboard — Gameplay Mechanics Lab design notes
 
-**Status:** Concept V0.1, standalone browser prototype. Not production Unity code.
+**Status:** Concept V0.2, standalone browser prototype. Not production Unity code.
 **Project:** [Unity game](https://github.com/Eilon343/AllAboard) — separate repository.
 **Design promise:** Easy to control, hard to master, on a portrait phone, in short 1–3 minute runs.
+
+
+## V0.2 - feedback-driven iteration (2026-11-18)
+
+The critique was about **feel and legibility**, not adding complexity for its own sake.
+
+### Helm / control feedback
+- Wooden wheel stays at bottom-center, independently from the right-hand anchor and mode toggle.
+- The wheel visual is updated **every requestAnimationFrame**, not through the ~70ms HUD refresh that had made steering look stuttery.
+- Pointer input is unwrapped across revolutions and clamped to ±1080°. A nonlinear wheel-to-rudder curve provides usable control well before reaching 1080°, so normal sailing does not require spinning the wheel many times.
+- Rudder response, self-centering and hull yaw response are independently tunable. **Releasing the wheel centers the rudder, not the ship's position or heading.**
+- Vibration cues exist where the browser supports them; they are not evidence of an Android production haptic test.
+
+### Anchor as a rope/chain, not a pause
+- On drop, the anchor appears to fall with a short animation and creates a local water splash.
+- The anchor point is fixed near the stern at release; the line can be slack while the hull drifts under wind/current.
+- Once the ship reaches the configured **max line length**, outward movement is constrained by projecting the ship back onto the circle and canceling outward radial velocity, while retaining tangential motion for a potential pivot.
+- When modeled force exceeds anchor grip, the anchor point may slowly drag, and the constraint remains relative to the moving point.
+- **Known simplification:** no depth, seabed geology, scope ratio, chain mass, rope collision, or true catenary physics. Rope art is a sagging quadratic line with individual chain-link accents.
+
+### Compact HUD and world cues
+- Horizontal N/E/S/W heading tape with live centered pointer; wind direction is placed immediately below it.
+- Mini-map below the coins, with chest, enemy, vortex and player direction.
+- HP remains near the top while sails become a much shorter vertical control; anchor above two-state Friendly/Aggressive button with current and alternative visible.
+- Original Unity SVG ship pieces (hull, two sails, four cannons, anchor) are copied into assets/ship-parts, rendered with correct common coordinates, and individually shown/hidden in Shipyard.
+- The preview still uses a stylized canvas renderer and is **not** a Unity build.
+
+### OceanField as independent engine
+- ocean.js is a separate, lightweight shared Canvas 2D procedural field. It renders multiple blue wave-band layers, foam streaks and wind glints.
+- It supplies local vector forces from ambient current and vortex to the vessel simulation, rather than purely drawing a swirl.
+- Dropping/retrieving an anchor, collecting treasure and cannon hits produce local ripple/foam events. Movement emits wake trails.
+- This provides *shared environmental reactions*, but is **not** two-way coupled real fluid dynamics or measured buoyancy.
+
+### Damage and ideas
+- A fourth Damage Lab model adds powder cells (✴) that damage adjacent cells when destroyed and may trigger limited cascades.
+- The Ideas Board is a voting-free shortlist for Eilon/Dor to discuss: wind shadow, anchor slingshot, perfect broadside, wake surfing, rescue/escort, treasure hook.
+- Shortlisted ideas export to a Markdown brief; no ideas are implemented in the Unity project.
+
+### V0.2 acceptance tests to run on a real phone
+1. Can the wheel make a noticeable ship turn after ~60–120° of drag, without forcing three full revolutions?
+2. Is the wheel animation smooth on a 60Hz phone? Does it spring to center without a snapping discontinuity?
+3. During anchoring, does the chain visibly start slack and then become taut at the selected length? Can the ship still pivot?
+4. When a vortex drags the anchor, is the dragging status legible and is the visual chain still connected?
+5. Is the small sail control still comfortable to grab? Does it overlap the anchor, mode toggle, or right thumb?
+6. Can the player read the heading and wind strip quickly without confusing wind TO with wind FROM?
+7. Do original ship pieces remain visually aligned at different phone resolutions and sail settings?
+8. Does enabling high wave density or strong splash activity significantly affect median/p95 frame time on Android?
+
+**Do not claim this version has passed real-device or screenshot-based visual QA merely because the Node smoke checks pass.**
 
 ## Intended labs
 
