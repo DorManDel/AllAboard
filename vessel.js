@@ -56,11 +56,20 @@
     const wind=pointOfSail(ship.heading,settings.windDirection);
     const sailArea=limit(settings.sail/100,0,1)*
       (modifiers.sailFactor===undefined?1:modifiers.sailFactor);
+    let rigEfficiency=wind.efficiency;
+    if(modifiers.rig==="lateen"){
+      // Higher windward efficiency; a less effective dead-downwind runner.
+      rigEfficiency=limit(wind.efficiency*(wind.offWind<80?1.35:
+        wind.offWind>145?.72:1),0,1);
+    }else if(modifiers.rig==="storm"){
+      // Shorter storm canvas: lower maximum thrust, improved control.
+      rigEfficiency=wind.efficiency*.87;
+    }
     const hullFactor=modifiers.hullFactor===undefined?1:modifiers.hullFactor;
     // The same wind angle is used for gameplay and any displayed sail feedback.
     const thrust=(settings.baseThrust*7+settings.windStrength*24*
-      sailArea*wind.efficiency)*hullFactor;
-    const windLateral=settings.windStrength*sailArea*.8*
+      sailArea*rigEfficiency)*hullFactor;
+    const windLateral=settings.windStrength*sailArea*(modifiers.rig==="storm"?.4:.8)*
       Math.sin(rad(ship.heading-settings.windDirection));
     const ax=fx*thrust+rx*windLateral+flow.x;
     const ay=fy*thrust+ry*windLateral+flow.y;
@@ -128,11 +137,11 @@
     }
     ship.forwardSpeed=ship.vx*fx+ship.vy*fy;
     ship.sideSpeed=ship.vx*rx+ship.vy*ry;
-    ship.sailEfficiency=wind.efficiency;
+    ship.sailEfficiency=rigEfficiency;
     ship.windAngle=wind.offWind;
     ship.turnSlip=Math.abs(ship.angularVelocity)*Math.max(0,ship.forwardSpeed)*.015;
     return {speed:length(ship.vx,ship.vy),forwardSpeed:ship.forwardSpeed,
-      sideSpeed:ship.sideSpeed,sailEfficiency:wind.efficiency,
+      sideSpeed:ship.sideSpeed,sailEfficiency:rigEfficiency,
       windAngle:wind.offWind,tension,heading:ship.heading};
   }
   const api={step,pointOfSail,polarEfficiency};
