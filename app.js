@@ -1148,13 +1148,22 @@
     $("chestAction").style.display = distToChest < 64 ? "block" : "none";
     $("fpsValue").textContent = Math.round(state.frameRate) + " FPS";
   }
-  let lastFrame = 0, lastHud = 0;
+  let lastFrame = 0, lastHud = 0, physicsAccumulator = 0;
+  const physicsStep = 1 / 60;
   function frame(timestamp) {
     if (!lastFrame) lastFrame = timestamp;
-    const dt = Math.min(.05, Math.max(0, (timestamp - lastFrame) / 1000));
+    const dt = Math.min(.06, Math.max(0, (timestamp - lastFrame) / 1000));
     lastFrame = timestamp;
     if (dt > 0) state.frameRate = state.frameRate * .93 + (1 / dt) * .07;
-    if (!state.paused && !document.hidden) simulate(dt);
+    if (!state.paused && !document.hidden) {
+      physicsAccumulator = Math.min(.12, physicsAccumulator + dt);
+      let ticks = 0;
+      while (physicsAccumulator >= physicsStep && ticks < 5) {
+        simulate(physicsStep);
+        physicsAccumulator -= physicsStep;
+        ticks++;
+      }
+    } else physicsAccumulator = 0;
     drawWorld();
     // Wheel and rudder visuals MUST update every animation frame, not at 14 FPS HUD cadence.
     $("helmWheel").style.transform = "rotate(" + state.wheel.angle.toFixed(2) + "deg)";
@@ -1172,7 +1181,7 @@
     state.modules = { sails:100,cannons:100,rudder:100,hull:100 };
     state.waves = []; state.ripples = []; state.sailVisual = .72;
     if(ocean) ocean.reset();
-    state.paused = false; $("pauseButton").textContent = "⏸ Pause simulation";
+    state.paused = false; physicsAccumulator = 0; $("pauseButton").textContent = "⏸ Pause simulation";
     $("anchorButton").classList.remove("pressed"); $("anchorButton").setAttribute("aria-pressed", "false");
     $("anchorInspector").textContent = "⚓ Drop anchor"; $("anchorLabel").textContent = "DROP"; $("anchorRopeHud").hidden = true;
     state.mode = "friendly";
