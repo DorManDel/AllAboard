@@ -15,21 +15,23 @@
 
   const defaultSettings = Object.freeze({
     sail: 72, windStrength: 2.7, windDirection: 35, baseThrust: 0.1,
-    steerSensitivity: 1, wheelReturn: 2.8, rudderResponse: 3, deadzone: 2,
+    steerSensitivity: 1, wheelReturn: 4.8, rudderResponse: 6, yawResponse: 5, deadzone: 2,
     anchorGrip: 105, anchorLine: 24, vortexStrength: 1,
     currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
   });
   let settings = { ...defaultSettings };
   const state = {
     activeTab: "live", scenario: "open", paused: false, haptics: true, mode: "friendly",
-    wheel: { angle: 0, dragging: false, pointerAngle: 0, rudder: 0 },
-    ship: { x: 0, y: 0, vx: 0, vy: 0, heading: 0, hull: 100, score: 0, coins: 1250 },
-    anchor: { down: false, point: { x: 0, y: 0 }, status: "Raised" },
+    wheel: { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 },
+    ship: { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, hull: 100, score: 0, coins: 1250 },
+    anchor: { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, tension: 0, length: 0 },
     vortex: { active: false, x: 155, y: -190 },
     chest: { x: 85, y: -265, collected: false },
     enemy: { x: -135, y: -275, hp: 50, reload: 0 },
     waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60,
     upgrades: { hull: "classic", sails: "cream", cannons: "balanced" },
+    shipParts: { hull: true, sail_front: true, sail_rear: true, cannon_left_front: true, cannon_left_rear: true, cannon_right_front: true, cannon_right_rear: true, anchor: true },
+    ideasSelected: new Set(),
     damage: { model: "grid", level: 1, weapon: "cannon", cells: [] },
     encounter: { kind: "friendly", index: 0, trust: 30, hp: 100, chosen: false, disabled: [], }
   };
@@ -42,7 +44,8 @@
     ocean: ["The living ocean", "Ocean Lab", "Procedural waves, wake trails and ripples powered by the same simulated water."],
     damage: ["Spatial damage", "Damage Lab", "Test three ways to turn ship damage into a tiny tactical puzzle."],
     encounter: ["Meet another vessel", "Encounter Lab", "Befriend or battle using short, meaningful interactions."],
-    shipyard: ["Pimp my ship", "Shipyard", "Swap prototype ship parts and watch the shared preview respond."]
+    shipyard: ["Pimp my ship", "Shipyard", "Toggle the original Unity ship pieces and experiment with upgrades."],
+    ideas: ["The ideas workshop", "Ideas Board", "Shortlist small mechanics that create interesting player decisions."]
   };
 
   function message(text) {
@@ -66,6 +69,8 @@
     $("inspectorSubtitle").textContent = titleMap[name][2];
     if (name === "damage") renderDamage();
     if (name === "encounter") renderEncounter();
+    if (name === "shipyard") renderPartsGallery();
+    if (name === "ideas") renderIdeas();
   }
   all(".tab").forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
 
@@ -114,19 +119,27 @@
 
   function toggleAnchor() {
     state.anchor.down = !state.anchor.down;
-    if (state.anchor.down) {
-      state.anchor.point = { x: state.ship.x, y: state.ship.y };
-      state.anchor.status = "Holding";
-      vibrate([15, 35, 24]);
-      message("Anchor dropped. The ship can pivot, but may drag if currents get too strong.");
+    const a = state.anchor, ship = state.ship;
+    if (a.down) {
+      const fwdX = Math.sin(rad(ship.heading)), fwdY = -Math.cos(rad(ship.heading));
+      // The line starts from the stern and the dropped anchor sinks close behind the hull.
+      a.point = { x: ship.x - fwdX * 20, y: ship.y - fwdY * 20 };
+      a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0;
+      a.tension = 0; a.length = 20;
+      vibrate([18, 45, 26]);
+      message("Anchor thrown! Watch the splash, then the ship can drift until the chain is taut.");
     } else {
-      state.anchor.status = "Raised";
-      vibrate(12);
-      message("Anchor raised. You can build speed again.");
+      a.status = "Raised"; a.phase = "raised"; a.tension = 0; a.length = 0;
+      if (ocean) ocean.splash(a.point.x, a.point.y, .6, "raise");
+      vibrate(14);
+      message("Anchor raised. The ship can accelerate and turn freely.");
     }
-    $("anchorButton").classList.toggle("pressed", state.anchor.down);
-    $("anchorButton").setAttribute("aria-pressed", String(state.anchor.down));
-    $("anchorInspector").textContent = state.anchor.down ? "⚓ Raise anchor" : "⚓ Drop anchor";
+    $("anchorButton").classList.toggle("pressed", a.down);
+    $("anchorButton").setAttribute("aria-pressed", String(a.down));
+    $("anchorButton").classList.toggle("throwing", a.down);
+    $("anchorLabel").textContent = a.down ? "RAISE" : "DROP";
+    $("anchorInspector").textContent = a.down ? "⚓ Raise anchor" : "⚓ Drop anchor";
+    $("anchorRopeHud").hidden = !a.down;
   }
   $("anchorButton").addEventListener("click", toggleAnchor);
   $("anchorInspector").addEventListener("click", toggleAnchor);
@@ -136,8 +149,8 @@
     const btn = $("modeButton");
     btn.classList.toggle("friendly", state.mode === "friendly");
     btn.classList.toggle("aggressive", state.mode === "aggressive");
-    btn.firstChild.textContent = state.mode === "friendly" ? "♡" : "✹";
-    $("modeLabel").textContent = state.mode.toUpperCase();
+    $("modeLabel").textContent = state.mode === "friendly" ? "♡ FRIENDLY" : "✹ AGGRESSIVE";
+    $("modeNextLabel").textContent = state.mode === "friendly" ? "✹ Aggressive ↔" : "♡ Friendly ↔";
     state.encounter.kind = state.mode;
     state.encounter.hp = 100; state.encounter.trust = 30;
     state.encounter.chosen = false; state.encounter.disabled = [];
@@ -175,7 +188,9 @@
     let delta = next - state.wheel.pointerAngle;
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
+    const previousBucket = Math.round(state.wheel.angle / 90);
     state.wheel.angle = clamp(state.wheel.angle + delta, -1080, 1080);
+    if (previousBucket !== Math.round(state.wheel.angle / 90)) vibrate(4);
     state.wheel.pointerAngle = next;
     e.preventDefault();
   });
@@ -432,17 +447,22 @@
   }
   function simulate(dt) {
     state.time += dt;
+    if (ocean) ocean.step(dt);
     const s = state.ship;
     const wheel = state.wheel;
     if (!wheel.dragging) wheel.angle *= Math.exp(-settings.wheelReturn * dt);
     if (Math.abs(wheel.angle) < 0.2 && !wheel.dragging) wheel.angle = 0;
     const input = wheel.angle / 1080;
-    const target = Math.abs(input) <= settings.deadzone / 100 ? 0 : Math.sign(input) * (1 - Math.exp(-5 * Math.abs(input))) / (1 - Math.exp(-5));
+    // Full useful rudder well before three wheel revolutions; 1080° is a visual maximum.
+    const target = Math.abs(input) <= settings.deadzone / 100
+      ? 0 : Math.sign(input) * (1 - Math.exp(-9 * Math.abs(input))) / (1 - Math.exp(-9));
     wheel.rudder += (target - wheel.rudder) * (1 - Math.exp(-settings.rudderResponse * dt));
     let speed = speedOfShip();
     // Even when anchored, a limited rudder-induced turn is allowed for tactical play.
-    const turning = (9 + 1.2 * Math.min(speed, 45)) * settings.steerSensitivity;
-    s.heading = wrapDegrees(s.heading + wheel.rudder * turning * dt * (state.anchor.down ? 0.45 : 1));
+    const turning = (35 + 1.25 * Math.min(speed, 65)) * settings.steerSensitivity;
+    const yawTarget = wheel.rudder * turning * (state.anchor.down ? 0.65 : 1);
+    s.angularVelocity += (yawTarget - s.angularVelocity) * (1 - Math.exp(-settings.yawResponse * dt));
+    s.heading = wrapDegrees(s.heading + s.angularVelocity * dt);
     const fwdX = Math.sin(rad(s.heading)), fwdY = -Math.cos(rad(s.heading));
     const windX = Math.sin(rad(settings.windDirection)), windY = -Math.cos(rad(settings.windDirection));
     const align = windAlignment();
@@ -450,38 +470,61 @@
     const efficiency = state.upgrades.hull === "light" ? 1.2 : state.upgrades.hull === "armored" ? 0.8 : 1;
     const thrust = (settings.baseThrust * 14 + settings.windStrength * 20 * (settings.sail / 100) * tailwind) * efficiency;
     const sideways = settings.windStrength * (settings.sail / 100) * 2.3;
-    const vortex = vortexAcceleration();
-    let ax = fwdX * thrust + windX * sideways + windX * settings.currentStrength * 6 + vortex.x;
-    let ay = fwdY * thrust + windY * sideways + windY * settings.currentStrength * 6 + vortex.y;
-    if (state.anchor.down) {
-      const dx = s.x - state.anchor.point.x, dy = s.y - state.anchor.point.y;
-      const distance = Math.hypot(dx, dy);
-      const force = Math.hypot(ax, ay) + distance * 1.5;
-      const gripping = settings.anchorGrip;
-      const dragging = force > gripping;
-      state.anchor.status = dragging ? "Dragging" : "Holding";
-      const ropeLength = settings.anchorLine;
-      const ropeStretch = Math.max(0, distance - ropeLength);
-      if (distance > 0.001 && ropeStretch > 0) {
-        const ropePull = Math.min(270, ropeStretch * (dragging ? 2.6 : 12));
-        ax -= dx / distance * ropePull;
-        ay -= dy / distance * ropePull;
+    const flow = ocean ? ocean.sampleFlow(s.x, s.y, settings, state.vortex) : vortexAcceleration();
+    let ax = fwdX * thrust + windX * sideways + flow.x;
+    let ay = fwdY * thrust + windY * sideways + flow.y;
+    const a = state.anchor;
+    if (a.down && a.phase === "falling") {
+      a.fallTime += dt;
+      a.status = "Dropping";
+      if (a.fallTime >= .75) {
+        a.phase = "set";
+        a.status = "Slack";
+        if (ocean) ocean.splash(a.point.x, a.point.y, 1.5, "anchor");
+        state.ripples.push({x:a.point.x,y:a.point.y,age:0});
+        $("anchorButton").classList.remove("throwing");
+        vibrate([11,28,18]);
       }
-      if (!dragging) { ax *= 0.1; ay *= 0.1; }
-      else {
-        // Seabed grip is imperfect: drag the anchor slowly with the vessel.
-        state.anchor.point.x += s.vx * dt * 0.45;
-        state.anchor.point.y += s.vy * dt * 0.45;
-      }
-    } else state.anchor.status = "Raised";
-    const friction = state.anchor.down ? (state.anchor.status === "Holding" ? 9 : 2.3) : 1.35;
+    }
+    // Water and sails still move the hull even if the anchor is down.
+    // Rope constraints are positional: while the anchor holds, max distance is a hard limit.
+    const friction = a.down ? 1.75 : 1.35;
     s.vx = s.vx * Math.exp(-friction * dt) + ax * dt;
     s.vy = s.vy * Math.exp(-friction * dt) + ay * dt;
     const speedCap = 100 * efficiency;
     const vmag = speedOfShip();
     if (vmag > speedCap) { s.vx *= speedCap / vmag; s.vy *= speedCap / vmag; }
     s.x += s.vx * dt; s.y += s.vy * dt;
-
+    if (a.down && a.phase === "set") {
+      const dx=s.x-a.point.x,dy=s.y-a.point.y;
+      const distance=Math.max(.00001,Math.hypot(dx,dy));
+      const ux=dx/distance,uy=dy/distance;
+      const outward=Math.max(0,s.vx*ux+s.vy*uy);
+      const limit=settings.anchorLine;
+      const over=Math.max(0,distance-limit);
+      const externalForce=Math.hypot(ax,ay);
+      a.length=distance;
+      a.tension=clamp((over*32+Math.max(0,externalForce-15)) / Math.max(1,settings.anchorGrip),0,2);
+      const dragging=over>0 && (externalForce+over*42)>settings.anchorGrip;
+      if(dragging){
+        // The point moves slowly across the seabed; the chain stays bounded relative to it.
+        const dragSpeed=clamp(((externalForce+over*42)-settings.anchorGrip)*.11,0,35);
+        a.point.x+=ux*dragSpeed*dt;
+        a.point.y+=uy*dragSpeed*dt;
+        a.status="Dragging";
+      }else a.status=distance>=limit-1?"Taut":"Slack";
+      const rx=s.x-a.point.x,ry=s.y-a.point.y;
+      const constrainedDist=Math.max(.00001,Math.hypot(rx,ry));
+      if(constrainedDist>limit){
+        const nx=rx/constrainedDist,ny=ry/constrainedDist;
+        s.x=a.point.x+nx*limit;
+        s.y=a.point.y+ny*limit;
+        const radialVelocity=s.vx*nx+s.vy*ny;
+        if(radialVelocity>0){s.vx-=nx*radialVelocity;s.vy-=ny*radialVelocity;}
+        // Tangential velocity is kept so the vessel can swing around the anchor.
+        a.length=limit;
+      }
+    } else if(!a.down) a.status="Raised";
     // Environmental reactions persist briefly at the same world coordinate.
     state.wakeTimer += dt;
     if (state.wakeTimer > 0.12 && speedOfShip() > 5 && settings.wakeStrength > 0) {
@@ -674,10 +717,19 @@
     $("speedValue").textContent = speed.toFixed(1);
     $("rudderValue").textContent = Math.round(state.wheel.rudder * 100) + "%";
     $("statAnchor").textContent = state.anchor.status;
-    $("statAnchorInfo").textContent = state.anchor.down ? "Line " + settings.anchorLine + " lab units" : "Free to sail";
-    $("compassNeedle").style.transform = "rotate(" + -ship.heading + "deg)";
+    $("statAnchorInfo").textContent = state.anchor.down
+      ? "Chain " + Math.round(state.anchor.length) + " / " + settings.anchorLine + " · Tension " + Math.round(state.anchor.tension*100) + "%"
+      : "Free to sail";
+    $("anchorDistance").textContent = Math.round(state.anchor.length) + " / " + settings.anchorLine;
+    $("anchorDistanceInspector").textContent = Math.round(state.anchor.length) + " / " + settings.anchorLine;
+    $("anchorTension").textContent = Math.round(state.anchor.tension*100) + "%";
+    $("anchorCondition").textContent = state.anchor.status;
+    $("chainFill").style.width = Math.min(100, state.anchor.length/settings.anchorLine*100) + "%";
+    renderHeadingTape(ship.heading);
+    drawMiniMap();
     $("windArrow").style.transform = "rotate(" + (settings.windDirection - 90) + "deg)";
     $("windValue").textContent = settings.windStrength.toFixed(1);
+    $("windRelation").textContent = alignment > .65 ? "TAILWIND" : alignment < -.55 ? "HEADWIND" : "CROSSWIND";
     $("alignmentReading").textContent = (alignment >= 0 ? "+" : "") + alignment.toFixed(2);
     $("alignmentDescription").textContent = alignment > .75 ? "Tailwind! Strong sail propulsion." : alignment < -.5 ? "Headwind. Very little forward sail thrust." : "Crosswind. Turn to get a better angle.";
     $("coinValue").textContent = ship.coins.toLocaleString("en-US");
@@ -695,23 +747,26 @@
     if (dt > 0) state.frameRate = state.frameRate * .93 + (1 / dt) * .07;
     if (!state.paused && !document.hidden) simulate(dt);
     drawWorld();
+    // Wheel and rudder visuals MUST update every animation frame, not at 14 FPS HUD cadence.
+    $("helmWheel").style.transform = "rotate(" + state.wheel.angle.toFixed(2) + "deg)";
     if (timestamp - lastHud > 70) { updateUI(); lastHud = timestamp; }
     requestAnimationFrame(frame);
   }
   function resetEverything() {
     settings = { ...defaultSettings };
-    state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, hull: 100, score: 0, coins: 1250 };
-    state.wheel = { angle: 0, dragging: false, pointerAngle: 0, rudder: 0 };
-    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised" };
+    state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, hull: 100, score: 0, coins: 1250 };
+    state.wheel = { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 };
+    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, tension: 0, length: 0 };
     state.chest = { x: 85, y: -265, collected: false };
     state.enemy = { x: -135, y: -275, hp: 50, reload: 0 };
     state.waves = []; state.ripples = [];
+    if(ocean) ocean.reset();
     state.paused = false; $("pauseButton").textContent = "⏸ Pause simulation";
     $("anchorButton").classList.remove("pressed"); $("anchorButton").setAttribute("aria-pressed", "false");
-    $("anchorInspector").textContent = "⚓ Drop anchor";
+    $("anchorInspector").textContent = "⚓ Drop anchor"; $("anchorLabel").textContent = "DROP"; $("anchorRopeHud").hidden = true;
     state.mode = "friendly";
     $("modeButton").className = "game-btn mode-btn friendly";
-    $("modeButton").firstChild.textContent = "♡"; $("modeLabel").textContent = "FRIENDLY";
+    $("modeLabel").textContent = "♡ FRIENDLY"; $("modeNextLabel").textContent = "✹ Aggressive ↔";
     setScenario("open"); resetDamage(); syncSettings(); updateUI();
     message("Reset! All experiments are ready to be tested again.");
   }
