@@ -11,10 +11,13 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
 const oceanJs = fs.readFileSync(path.join(root, "ocean.js"), "utf8");
+const vesselJs = fs.readFileSync(path.join(root,"vessel.js"),"utf8");
 
 assert.doesNotThrow(() => new vm.Script(js), "JavaScript must parse");
 assert.doesNotThrow(() => new vm.Script(oceanJs), "Ocean engine must parse");
+assert.doesNotThrow(() => new vm.Script(vesselJs), "Vessel physics must parse");
 assert.match(html, /<script src="\.\/ocean\.js" defer>/);
+assert.match(html, /<script src="\.\/vessel\.js" defer>/);
 for (const part of ["hull","sail_front","sail_rear","anchor","cannon_left_front","cannon_left_rear","cannon_right_front","cannon_right_rear"]) assert(fs.existsSync(path.join(root,"assets","ship-parts",part+".svg")), "Missing ship part "+part);
 assert.match(html, /<meta name="viewport"/);
 assert.match(html, /<canvas id="seaCanvas"/);
@@ -89,6 +92,7 @@ const document = {
 };
 const window = { devicePixelRatio: 1, addEventListener() {} };
 new Function("window",oceanJs)(window);
+new Function("window",vesselJs)(window);
 const navigator = { vibrate() { return true; } };
 class ResizeObserver { observe() {} }
 const frameCallbacks = [];
@@ -116,7 +120,7 @@ assert.equal(byId.get("modeLabel").textContent, "♡ FRIENDLY");
 // Exercise both procedural sea and phone UI frames; don't stop at a successful constructor.
 for (let i=0;i<100;i++) step((i+1)*16.667);
 assert(byId.get("statHeading").textContent.endsWith("°"));
-assert(byId.get("headingMarks").innerHTML.includes("cardinal"));
+assert.equal(byId.get("headingMarks").children.length,17,"Compass should reuse 17 stable markers");
 const anchorBefore=byId.get("anchorButton").attributes["aria-pressed"];
 fire("anchorButton","click");
 for(let i=100;i<180;i++) step((i+1)*16.667);

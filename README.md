@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.2** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.3 (experimental)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -19,13 +19,13 @@ The web lab lives in this repository. The **real Unity project** remains in [Eil
 | Tab | Try it |
 |---|---|
 | Live Playground | Steer while adjusting sails, anchor, wind and Friendly/Aggressive mode |
-| Helm | **Centered** ±1080° wheel, smoother every-frame animation, rudder / yaw response, spring-back and dead zone |
+| Helm | Centered ±1080° wheel, responsive controls, separate rudder/yaw response, **adjustable keel drag** and live forward/side speeds |
 | Sails & Wind | Tune wind TO-direction, sail area and headwind/tailwind effects |
-| Anchor | Throw with splash, **slack vs taut** chain, a hard line-length limit, pivot and dragging in strong currents |
-| Ocean | Separate OceanField engine: layered stylized sea, wake, splashes, current and vortex force |
-| Damage | Compare 5×5 HP grid, disabled modules, core-target puzzle and **chain-reaction cells** |
+| Anchor | Throw with splash, soft spring-damper rope, adjustable **chain stiffness/damping**, anchoring radius and delayed dragging on sustained force |
+| Ocean | **Procedural advected water-height interference field**, speed/turn wake foam, bubbles/splashes, wave-gradient force and vortex/current |
+| Damage | Cannon center + splash radius, chain combos, turn-based fire/flood progression, enemy repair cost and functional disabled sails/cannons/rudder |
 | Encounters | Offer what an NPC actually needs, or choose enemy sections to disable |
-| Pimp My Ship | Toggle **eight original SVG ship pieces** from the team Unity repo; choose hull, sails and cannon variants |
+| Pimp My Ship | Original SVG ship parts, animated furling instead of disappearance, square/lateen/storm sail rigs with different stats, and local monogram/image flag |
 
 | Ideas Board | Shortlist 6 testable smart-play concepts and export a Markdown review for Eilon |
 
@@ -43,19 +43,32 @@ The web lab lives in this repository. The **real Unity project** remains in [Eil
 - index.html — layout and lab controls
 - style.css — portrait preview and responsive glass UI
 - app.js — shared ship motion, controls, HUD, damage, encounters, shipyard and ideas
-- ocean.js — reusable procedural sea field, local flow sampling and environmental splash effects
+- ocean.js — low-cost water interference field, wind/current sampling, foam, wake and splashes
+- vessel.js — isolated arcade sailing physics with point-of-sail polar, hull forward/lateral drag and soft anchor tension
 - assets/ship-wheel.svg — vector tracing of the supplied wooden wheel silhouette
 - assets/ship-parts/*.svg — original hull, sails, cannon pieces and anchor copied from the team's Unity repository
 - DESIGN.md — specifications, test questions, limits and Unity implementation plan
 - tests/smoke.cjs — basic initialization, markup and controller tests
-- .github/workflows/lab-checks.yml — CI checking syntax and controls
+- tests/vessel.cjs — deterministic sailing/anchor/water behavior tests
+- .github/workflows/lab-checks.yml — CI checking syntax, controls, vessel physics and ocean
 
 ## Limits and next steps
 
 - The ship now renders from the **original team-authored Unity SVG components** whenever the browser loads them; a canvas illustration remains as fallback.
-- OceanField uses 2D procedural visuals and local arcade currents/vortex forces. It is **not** a full shallow-water solver; no two-way height-field feedback yet.
-- The rope's distance constraint is implemented, but the anchoring model does not simulate actual depth, anchor-setting, catenary mass, or seabed classification. Sailing, damage and upgrade stats are not balanced.
+- OceanField samples low-resolution moving wave interference patterns and generates localized wake/splash foam. It is **not** a full shallow-water or buoyancy solver; waves only provide a simplified force.
+- The rope now applies a spring-damper load before a rare safety projection, allowing the ship to oscillate in its tether radius. It still does not model seabed depth, chain mass/catenary or actual rope collisions. All values are experimental LAB UNITS.
 - Haptics use the browser Vibration API where available (mainly supported Android browsers), with silent fallback.
 - A real phone playtest is still required to validate readability, latency, battery use and interaction feel.
 
 See [DESIGN.md](./DESIGN.md) for a more detailed spec and a proposed migration plan to Unity C# once a mechanic feels right.
+
+## V0.3 playtest order
+
+1. **Helm first:** open Helm; compare side slip against forward speed. Turn with and without sails, try low/high keel resistance.
+2. **Ocean:** observe water surface gradients, stern foam at slow/fast speed, turning bubbles, anchor throw and cannon splash. Tune Wave Height and Wave Push separately.
+3. **Anchor:** change stiffness, damping and chain length. Test slack → taut → holding/dragging beside the vortex; note whether oscillation feels better.
+4. **Sails:** change course relative to wind; a beam/broad reach should outperform direct downwind. Closing sails visibly folds the cloth.
+5. **Damage:** hit sail tiles; watch enemy vessel lose propulsion and coast to a stop. Fire, flood, repair and repair our own disabled modules.
+6. **Shipyard:** compare sail shapes (square / lateen / storm). Customize a **local-only** flag with initials/color or your own image.
+
+**Inspired by, not copied from:** [TinyWind sailing manual](https://tinywind.io/wiki/sailing), [The Physics of Sailing](https://physicstoday.aip.org/features/the-physics-of-sailing), [2D top-down boat physics](https://medium.com/@van_aaron/simple-top-down-2d-boat-physics-for-games-8e43b50552e9). Our prototype does not contain or claim access to TinyWind's implementation.

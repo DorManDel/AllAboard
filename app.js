@@ -16,7 +16,7 @@
   const defaultSettings = Object.freeze({
     sail: 72, windStrength: 2.7, windDirection: 35, baseThrust: 0.1,
     steerSensitivity: 1, wheelReturn: 4.8, rudderResponse: 6, yawResponse: 5, deadzone: 2,
-    anchorGrip: 105, anchorLine: 24, vortexStrength: 1,
+    anchorGrip: 185, anchorLine: 70, ropeStiffness: 9, ropeDamping: 6, lateralDrag: 5.5, wavePush: .65, vortexStrength: 1,
     currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
   });
   let settings = { ...defaultSettings };
@@ -44,16 +44,18 @@
   const state = {
     activeTab: "live", scenario: "open", paused: false, haptics: true, mode: "friendly",
     wheel: { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 },
-    ship: { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, hull: 100, score: 0, coins: 1250 },
-    anchor: { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, tension: 0, length: 0 },
+    ship: { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, forwardSpeed: 0, sideSpeed: 0, sailEfficiency: 0, hull: 100, score: 0, coins: 1250 },
+    anchor: { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0 },
     vortex: { active: false, x: 155, y: -190 },
     chest: { x: 85, y: -265, collected: false },
-    enemy: { x: -135, y: -275, hp: 50, reload: 0 },
-    waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60,
-    upgrades: { hull: "classic", sails: "cream", cannons: "balanced" },
+    enemy: { x: -135, y: -275, vx: 0, vy: 0, hp: 50, reload: 0, modules: { sails:100,cannons:100,rudder:100,hull:100 } },
+    modules: { sails:100,cannons:100,rudder:100,hull:100 },
+    flag: { text:"AA", color:"#243b70", image:null },
+    waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60, sailVisual: .72,
+    upgrades: { hull: "classic", sails: "cream", rig:"square", cannons: "balanced" },
     shipParts: { hull: true, sail_front: true, sail_rear: true, cannon_left_front: true, cannon_left_rear: true, cannon_right_front: true, cannon_right_rear: true, anchor: true },
     ideasSelected: new Set(),
-    damage: { model: "grid", level: 1, weapon: "cannon", cells: [] },
+    damage: { model: "grid", level: 1, weapon: "cannon", cells: [], turn:0, flooding:0 },
     encounter: { kind: "friendly", index: 0, trust: 30, hp: 100, chosen: false, disabled: [], }
   };
 
@@ -223,7 +225,7 @@
       const fwdX = Math.sin(rad(ship.heading)), fwdY = -Math.cos(rad(ship.heading));
       // The line starts from the stern and the dropped anchor sinks close behind the hull.
       a.point = { x: ship.x - fwdX * 20, y: ship.y - fwdY * 20 };
-      a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0;
+      a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0; a.overload = 0;
       a.tension = 0; a.length = 20;
       vibrate([18, 45, 26]);
       message("Anchor thrown! Watch the splash, then the ship can drift until the chain is taut.");
@@ -350,16 +352,19 @@
   const iconForType = { hull: "", sails: "⛵", cannon: "✹", rudder: "☸", core: "◆", powder: "✴" };
   function resetDamage() {
     const d = state.damage;
+    d.turn=0; d.flooding=0;
     d.cells = Array.from({ length: 25 }, (_, i) => {
       const type = d.model === "chain" && [6,8,16,18].includes(i) ? "powder" : typeForIndex(i);
       const hp = d.model === "modules" && type === "hull" ? 0 : d.model === "core" && type === "core" ? 3 + 2 * d.level : 2 + d.level + (type === "core" ? 1 : 0);
-      return { type, hp, max: hp, fire: false };
+      return { type, hp, max: hp, fire: false, leaking:false };
     });
+    state.enemy.modules={sails:100,cannons:100,rudder:100,hull:100}; state.enemy.hp=50;
     $("damageStatus").textContent = "Select an attack, then tap a tile.";
-    renderDamage();
+    syncEnemyModules(); renderDamage();
   }
   function objectiveSatisfied() {
     const d = state.damage;
+    if (d.flooding >= 100) return true;
     if (d.model === "core") return d.cells[12].hp <= 0;
     if (d.model === "modules") return d.cells.filter(c => c.type !== "hull").every(c => c.hp === 0);
     return d.cells.every(c => c.hp === 0);
@@ -380,7 +385,8 @@
     const names = { grid: "Destroy all durability cells", modules: "Disable every ship module", core: "Breach and destroy the core ◆", chain: "Trigger cascading powder-cell combos ✴" };
     $("damageObjective").textContent = names[d.model];
     $("enemyLevelValue").textContent = "Lv. " + d.level;
-    $("damageHealth").textContent = remainingDamage() + " / " + maxDamage();
+    $("damageHealth").textContent = remainingDamage() + " / " + maxDamage() + " · Flood " + Math.round(d.flooding) + "%";
+    $("damageTurn").textContent = d.turn;
     $("damageHealthFill").style.width = (maxDamage() ? remainingDamage() / maxDamage() * 100 : 0) + "%";
     $("damageBoard").innerHTML = "";
     d.cells.forEach((cell, i) => {
@@ -391,7 +397,7 @@
       b.disabled = cell.max === 0;
       b.setAttribute("aria-label", "Cell " + (i + 1) + ": " + cell.type + ", " + cell.hp + " HP");
       const ic = document.createElement("span"); ic.className = "cell-icon";
-      ic.textContent = cell.fire ? "🔥" : iconForType[cell.type];
+      ic.textContent = cell.fire ? "🔥" : cell.leaking ? "💧" : iconForType[cell.type];
       const num = document.createElement("span"); num.className = "cell-hp";
       num.textContent = cell.max === 0 ? "·" : cell.hp ? String(cell.hp) : "×";
       b.append(ic, num);
@@ -399,67 +405,132 @@
       $("damageBoard").append(b);
     });
   }
-  function hitDamage(index) {
-    if (objectiveSatisfied()) return;
-    const d = state.damage;
-    const target = d.cells[index];
-    if (d.model === "core" && index === 12 && d.weapon !== "repair") {
-      const adjacent = [7, 11, 13, 17].filter(i => d.cells[i].hp === 0);
-      if (adjacent.length < 2) {
-        $("damageStatus").textContent = "Core shielded! Break 2 neighboring tiles first.";
-        vibrate(8); return;
+  function syncEnemyModules(){
+    const d=state.damage;
+    const percent=type=>{
+      const cells=d.cells.filter(c=>c.type===type&&c.max>0);
+      if(!cells.length)return 100;
+      const max=cells.reduce((n,c)=>n+c.max,0);
+      return Math.round(100*cells.reduce((n,c)=>n+c.hp,0)/max);
+    };
+    state.enemy.modules.sails=percent("sails");
+    state.enemy.modules.cannons=percent("cannon");
+    state.enemy.modules.rudder=percent("rudder");
+    state.enemy.modules.hull=percent("hull");
+    $("enemySailsStatus").textContent=state.enemy.modules.sails===0?"DISABLED":state.enemy.modules.sails+"%";
+    $("enemyCannonsStatus").textContent=state.enemy.modules.cannons===0?"DISABLED":state.enemy.modules.cannons+"%";
+    $("enemyRudderStatus").textContent=state.enemy.modules.rudder===0?"DISABLED":state.enemy.modules.rudder+"%";
+  }
+  function evolveDamageTurn(){
+    const d=state.damage;
+    d.turn++;
+    const ignited=[];
+    for(let i=0;i<d.cells.length;i++){
+      const c=d.cells[i];
+      if(c.fire&&c.hp>0){
+        c.hp=Math.max(0,c.hp-1);
+        if(c.hp===0)c.fire=false;
+        const adjacent=[i-5,i%5<4?i+1:-1,i+5,i%5>0?i-1:-1];
+        const candidate=adjacent.find(j=>j>=0&&j<25&&d.cells[j].hp>0&&!d.cells[j].fire);
+        if(candidate!==undefined)ignited.push(candidate);
+      }
+      if(c.hp===0&&c.type==="hull")c.leaking=true;
+    }
+    for(const i of ignited)d.cells[i].fire=true;
+    const leaks=d.cells.filter(c=>c.leaking).length;
+    d.flooding=clamp(d.flooding+leaks*4.5-(leaks===0?3:0),0,100);
+    syncEnemyModules();
+  }
+  function hitDamage(index){
+    const d=state.damage;
+    if(objectiveSatisfied())return;
+    const tile=d.cells[index];
+    if(tile.max===0)return;
+    if(d.model==="core"&&index===12&&d.weapon!=="repair"){
+      const breached=[7,11,13,17].filter(i=>d.cells[i].hp===0).length;
+      if(breached<2){
+        $("damageStatus").textContent="Core shielded! Destroy 2 neighbors first.";
+        return;
       }
     }
-    const indices = d.weapon === "broadside" ? [index - 1, index, index + 1].filter(i => i >= 0 && i < 25 && Math.floor(i / 5) === Math.floor(index / 5)) : [index];
-    const chainQueue = [];
-    for (const i of indices) {
-      const cell = d.cells[i];
-      if (cell.max === 0) continue;
-      if (d.weapon === "repair") { cell.hp = Math.min(cell.max, cell.hp + 2); cell.fire = false; }
-      else if (d.weapon === "fire") { if (cell.hp > 0) cell.fire = true; }
-      else {
-        const before=cell.hp;
-        cell.hp=Math.max(0,cell.hp-(d.weapon==="cannon"?2:1));
-        if(d.model==="chain"&&cell.type==="powder"&&before>0&&cell.hp===0)chainQueue.push(i);
+    const adjacent=i=>{
+      const x=i%5,y=Math.floor(i/5);
+      return [[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[x+dx,y+dy])
+        .filter(([nx,ny])=>nx>=0&&nx<5&&ny>=0&&ny<5)
+        .map(([nx,ny])=>ny*5+nx);
+    };
+    if(d.weapon==="repair"){
+      tile.hp=Math.min(tile.max,tile.hp+2);
+      tile.fire=false;tile.leaking=false;
+    }else if(d.weapon==="fire"){
+      if(tile.hp>0)tile.fire=true;
+    }else{
+      // Impact center damages several cells. The surrounding ring takes splash damage.
+      const hitCells=new Map();
+      const mark=(i,amount)=>{
+        if(i<0||i>=25||d.cells[i].max===0)return;
+        hitCells.set(i,Math.max(amount,hitCells.get(i)||0));
+      };
+      const centers=d.weapon==="broadside"?[index-1,index,index+1]
+        .filter(i=>i>=0&&i<25&&Math.floor(i/5)===Math.floor(index/5)):[index];
+      for(const i of centers){
+        mark(i,2);for(const j of adjacent(i))mark(j,1);
       }
-    }
-    let cascades=0;
-    const popped=new Set();
-    while(chainQueue.length && cascades<25) {
-      const i=chainQueue.shift();
-      if(popped.has(i))continue;
-      popped.add(i);cascades++;
-      const y=Math.floor(i/5),x=i%5;
-      for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]) {
-        const nx=x+dx,ny=y+dy;
-        if(nx<0||nx>=5||ny<0||ny>=5)continue;
-        const j=ny*5+nx,c=d.cells[j],before=c.hp;
-        if(before<=0)continue;
-        c.hp=Math.max(0,before-2);
-        if(c.type==="powder"&&c.hp===0)chainQueue.push(j);
+      const queue=[];
+      for(const [i,amount] of hitCells){
+        const c=d.cells[i],previous=c.hp;
+        c.hp=Math.max(0,c.hp-amount);
+        if(d.model==="chain"&&c.type==="powder"&&previous>0&&c.hp===0)queue.push(i);
       }
+      const exploded=new Set();
+      while(queue.length&&exploded.size<25){
+        const i=queue.shift();if(exploded.has(i))continue;
+        exploded.add(i);
+        for(const j of adjacent(i)){
+          const c=d.cells[j],previous=c.hp;
+          c.hp=Math.max(0,c.hp-2);
+          if(d.model==="chain"&&c.type==="powder"&&previous>0&&c.hp===0)queue.push(j);
+        }
+      }
+      if(exploded.size)message(exploded.size+" powder tiles detonated in a chain reaction!");
     }
-    $("damageStatus").textContent = objectiveSatisfied() ? "Ship disabled! Try another damage model." :
-      cascades>0 ? cascades+" powder explosions! Cascading damage across adjacent tiles." :
-      "Direct hit! " + remainingDamage() + " durability remaining.";
-    vibrate(d.weapon === "repair" ? 7 : [12, 15, 7]);
+    evolveDamageTurn();
+    $("damageStatus").textContent=objectiveSatisfied()?
+      (d.flooding>=100?"Enemy ship sank from flooding!":"Enemy ship disabled!")
+      :"Turn "+d.turn+" · "+remainingDamage()+" HP · Flood "+Math.round(d.flooding)+"% · Sails "+state.enemy.modules.sails+"%.";
+    vibrate(d.weapon==="repair"?7:[12,18,10]);
     renderDamage();
   }
-  function advanceFire() {
-    const d = state.damage;
-    const spread = [];
-    d.cells.forEach((cell, i) => {
-      if (!cell.fire || cell.hp <= 0) return;
-      cell.hp -= 1;
-      if (cell.hp <= 0) { cell.fire = false; return; }
-      const adj = [i - 5, i + 5, i % 5 ? i - 1 : -1, i % 5 < 4 ? i + 1 : -1];
-      const next = adj.find(j => j >= 0 && j < 25 && d.cells[j].hp > 0 && !d.cells[j].fire);
-      if (next !== undefined) spread.push(next);
-    });
-    spread.forEach(i => d.cells[i].fire = true);
-    $("damageStatus").textContent = objectiveSatisfied() ? "Fire disabled the ship!" : "Fire spreads to adjacent intact cells.";
+  function advanceFire(){
+    evolveDamageTurn();
+    const d=state.damage;
+    $("damageStatus").textContent="Turn "+d.turn+": fire and leaks progress. Flood "+Math.round(d.flooding)+"%.";
     renderDamage();
   }
+  $("enemyRepair").addEventListener("click",()=>{
+    const d=state.damage;
+    const candidates=d.cells.filter(c=>c.hp<c.max&&c.max>0);
+    const priority={sails:0,rudder:1,cannon:2,hull:3,core:4,powder:5};
+    candidates.sort((a,b)=>(priority[a.type]??6)-(priority[b.type]??6));
+    if(!candidates.length){$("damageStatus").textContent="The enemy is already repaired.";return;}
+    const c=candidates[0];
+    c.hp=Math.min(c.max,c.hp+2);c.fire=false;c.leaking=false;
+    evolveDamageTurn();
+    $("damageStatus").textContent="The enemy spent turn "+d.turn+" repairing "+c.type+".";
+    renderDamage();
+  });
+  all("[data-test-module]").forEach(button=>button.addEventListener("click",()=>{
+    const key=button.dataset.testModule;
+    state.modules[key]=Math.max(0,state.modules[key]-50);
+    message("Our "+key+" condition: "+state.modules[key]+"%. The preview uses the damaged system.");
+    if(ocean)ocean.splash(state.ship.x,state.ship.y,1.2,"hit");
+    vibrate([15,20,20]);
+  }));
+  $("repairOwn").addEventListener("click",()=>{
+    for(const key of ["sails","cannons","rudder"])
+      state.modules[key]=Math.min(100,state.modules[key]+50);
+    message("Our ship repaired by 50%. A future encounter can charge a turn or resources.");
+  });
   all("[data-damage-model]").forEach(btn => btn.addEventListener("click", () => {
     state.damage.model = btn.dataset.damageModel;
     all("[data-damage-model]").forEach(b => b.classList.toggle("active", b === btn));
@@ -541,6 +612,45 @@
     renderEncounter();
   });
 
+
+  $("flagCaption").addEventListener("input",e=>{
+    state.flag.text=String(e.target.value).slice(0,3);
+  });
+  $("flagColor").addEventListener("input",e=>{state.flag.color=e.target.value;});
+  $("flagClear").addEventListener("click",()=>{
+    state.flag={text:"AA",color:"#243b70",image:null};
+    $("flagCaption").value="AA";$("flagColor").value="#243b70";$("flagUpload").value="";
+  });
+  $("flagUpload").addEventListener("change",e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024){
+      message("Flag must be a PNG/JPEG/WebP smaller than 2 MB.");return;
+    }
+    if(typeof Image!=="function"||!URL.createObjectURL)return;
+    const url=URL.createObjectURL(file);
+    const image=new Image();
+    image.onload=()=>{state.flag.image=image;URL.revokeObjectURL(url);};
+    image.onerror=()=>{URL.revokeObjectURL(url);message("Could not load flag image.");};
+    image.src=url;
+  });
+  function drawFlag(ctx){
+    const flag=state.flag;
+    ctx.save();
+    ctx.strokeStyle="#3a2620";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,-51);ctx.lineTo(0,-85);ctx.stroke();
+    ctx.fillStyle=flag.color;
+    ctx.beginPath();ctx.moveTo(0,-84);ctx.lineTo(22,-81);ctx.lineTo(20,-65);ctx.lineTo(0,-69);ctx.closePath();ctx.fill();
+    if(flag.image&&flag.image.complete&&flag.image.naturalWidth){
+      ctx.save();ctx.beginPath();ctx.moveTo(0,-84);ctx.lineTo(22,-81);ctx.lineTo(20,-65);ctx.lineTo(0,-69);ctx.closePath();ctx.clip();
+      ctx.drawImage(flag.image,0,-84,22,20);ctx.restore();
+    }else{
+      ctx.fillStyle="#fff4d4";ctx.font="bold 7px Arial";ctx.textAlign="center";
+      ctx.fillText(flag.text||"⚓",11,-73);
+    }
+    ctx.restore();
+  }
+
   // Ship customization: visible color and simple deterministic gameplay modifiers.
   function selectPart(kind, choice) {
     state.upgrades[kind] = choice;
@@ -550,13 +660,19 @@
   function stars(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
   function updateUpgradeStats() {
     const u = state.upgrades;
-    $("upgradeSpeed").textContent = stars(u.hull === "light" ? 5 : u.hull === "armored" ? 2 : 3);
+    $("upgradeSpeed").textContent = stars(u.hull === "light" ? 5 : u.hull === "armored" ? 2 : u.rig==="lateen"?4:3);
     $("upgradeHull").textContent = stars(u.hull === "armored" ? 5 : u.hull === "light" ? 2 : 3);
     $("upgradePower").textContent = stars(u.cannons === "heavy" ? 5 : u.cannons === "rapid" ? 4 : 3);
   }
   all("[data-part]").forEach(btn => btn.addEventListener("click", () => selectPart(btn.dataset.part, btn.dataset.choice)));
+  all("[data-rig]").forEach(button=>button.addEventListener("click",()=>{
+    state.upgrades.rig=button.dataset.rig;
+    all("[data-rig]").forEach(b=>b.classList.toggle("active",b===button));
+    updateUpgradeStats();
+  }));
   $("resetUpgrades").addEventListener("click", () => {
     selectPart("hull", "classic"); selectPart("sails", "cream"); selectPart("cannons", "balanced");
+    state.upgrades.rig="square";all("[data-rig]").forEach(b=>b.classList.toggle("active",b.dataset.rig==="square"));
   });
 
   // Sailing simulation: time-step based, tuned for feel. World coordinates are abstract pixels.
@@ -573,6 +689,7 @@
   function simulate(dt) {
     state.time += dt;
     if (ocean) ocean.step(dt);
+    state.sailVisual += ((settings.sail/100)-state.sailVisual)*(1-Math.exp(-2.3*dt));
     const s = state.ship;
     const wheel = state.wheel;
     if (!wheel.dragging) wheel.angle *= Math.exp(-settings.wheelReturn * dt);
@@ -582,74 +699,33 @@
     const target = Math.abs(input) <= settings.deadzone / 100
       ? 0 : Math.sign(input) * (1 - Math.exp(-9 * Math.abs(input))) / (1 - Math.exp(-9));
     wheel.rudder += (target - wheel.rudder) * (1 - Math.exp(-settings.rudderResponse * dt));
-    let speed = speedOfShip();
-    // Even when anchored, a limited rudder-induced turn is allowed for tactical play.
-    const turning = (35 + 1.25 * Math.min(speed, 65)) * settings.steerSensitivity;
-    const yawTarget = wheel.rudder * turning * (state.anchor.down ? 0.65 : 1);
-    s.angularVelocity += (yawTarget - s.angularVelocity) * (1 - Math.exp(-settings.yawResponse * dt));
-    s.heading = wrapDegrees(s.heading + s.angularVelocity * dt);
-    const fwdX = Math.sin(rad(s.heading)), fwdY = -Math.cos(rad(s.heading));
-    const windX = Math.sin(rad(settings.windDirection)), windY = -Math.cos(rad(settings.windDirection));
-    const align = windAlignment();
-    const tailwind = Math.pow(clamp((align + 0.2) / 1.2, 0, 1), 1.5);
-    const efficiency = state.upgrades.hull === "light" ? 1.2 : state.upgrades.hull === "armored" ? 0.8 : 1;
-    const thrust = (settings.baseThrust * 14 + settings.windStrength * 20 * (settings.sail / 100) * tailwind) * efficiency;
-    const sideways = settings.windStrength * (settings.sail / 100) * 2.3;
-    const flow = ocean ? ocean.sampleFlow(s.x, s.y, settings, state.vortex) : vortexAcceleration();
-    let ax = fwdX * thrust + windX * sideways + flow.x;
-    let ay = fwdY * thrust + windY * sideways + flow.y;
-    const a = state.anchor;
-    if (a.down && a.phase === "falling") {
-      a.fallTime += dt;
-      a.status = "Dropping";
-      if (a.fallTime >= .75) {
-        a.phase = "set";
-        a.status = "Slack";
-        if (ocean) ocean.splash(a.point.x, a.point.y, 1.5, "anchor");
-        state.ripples.push({x:a.point.x,y:a.point.y,age:0});
+    // Ship forces come from one isolated physics model.
+    // No position teleporting when the anchor is set: the chain can be slack,
+    // gradually tensioned, or drag its fixed point under sustained overload.
+    const a=state.anchor;
+    if(a.down && a.phase==="falling"){
+      a.fallTime+=dt;
+      a.status="Dropping";
+      if(a.fallTime>=.75){
+        a.phase="set";
+        a.status="Slack";
+        if(ocean)ocean.splash(a.point.x,a.point.y,1.45,"anchor");
         $("anchorButton").classList.remove("throwing");
-        vibrate([11,28,18]);
+        vibrate([11,30,19]);
       }
     }
-    // Water and sails still move the hull even if the anchor is down.
-    // Rope constraints are positional: while the anchor holds, max distance is a hard limit.
-    const friction = a.down ? 1.75 : 1.35;
-    s.vx = s.vx * Math.exp(-friction * dt) + ax * dt;
-    s.vy = s.vy * Math.exp(-friction * dt) + ay * dt;
-    const speedCap = 100 * efficiency;
-    const vmag = speedOfShip();
-    if (vmag > speedCap) { s.vx *= speedCap / vmag; s.vy *= speedCap / vmag; }
-    s.x += s.vx * dt; s.y += s.vy * dt;
-    if (a.down && a.phase === "set") {
-      const dx=s.x-a.point.x,dy=s.y-a.point.y;
-      const distance=Math.max(.00001,Math.hypot(dx,dy));
-      const ux=dx/distance,uy=dy/distance;
-      const outward=Math.max(0,s.vx*ux+s.vy*uy);
-      const limit=settings.anchorLine;
-      const over=Math.max(0,distance-limit);
-      const externalForce=Math.hypot(ax,ay);
-      a.length=distance;
-      a.tension=clamp((over*32+Math.max(0,externalForce-15)) / Math.max(1,settings.anchorGrip),0,2);
-      const dragging=over>0 && (externalForce+over*42)>settings.anchorGrip;
-      if(dragging){
-        // The point moves slowly across the seabed; the chain stays bounded relative to it.
-        const dragSpeed=clamp(((externalForce+over*42)-settings.anchorGrip)*.11,0,35);
-        a.point.x+=ux*dragSpeed*dt;
-        a.point.y+=uy*dragSpeed*dt;
-        a.status="Dragging";
-      }else a.status=distance>=limit-1?"Taut":"Slack";
-      const rx=s.x-a.point.x,ry=s.y-a.point.y;
-      const constrainedDist=Math.max(.00001,Math.hypot(rx,ry));
-      if(constrainedDist>limit){
-        const nx=rx/constrainedDist,ny=ry/constrainedDist;
-        s.x=a.point.x+nx*limit;
-        s.y=a.point.y+ny*limit;
-        const radialVelocity=s.vx*nx+s.vy*ny;
-        if(radialVelocity>0){s.vx-=nx*radialVelocity;s.vy-=ny*radialVelocity;}
-        // Tangential velocity is kept so the vessel can swing around the anchor.
-        a.length=limit;
-      }
-    } else if(!a.down) a.status="Raised";
+    const flow=ocean?ocean.sampleFlow(s.x,s.y,settings,state.vortex):vortexAcceleration();
+    const hullEfficiency=state.upgrades.hull==="light"?1.12:state.upgrades.hull==="armored"?.83:1;
+    const modules=state.modules;
+    const modifier={
+      hullFactor:hullEfficiency,
+      sailFactor:modules.sails/100*(state.upgrades.rig==="storm"?.78:1),
+      rig:state.upgrades.rig,
+      rudderFactor:modules.rudder/100
+    };
+    if(window.AllAboardVessel)window.AllAboardVessel.step(s,a,wheel,settings,flow,dt,modifier);
+    if(ocean)ocean.emitWake(s,settings,dt);
+    const fwdX=Math.sin(rad(s.heading)),fwdY=-Math.cos(rad(s.heading));
     // Environmental reactions persist briefly at the same world coordinate.
     state.wakeTimer += dt;
     if (state.wakeTimer > 0.12 && speedOfShip() > 5 && settings.wakeStrength > 0) {
@@ -661,13 +737,18 @@
     state.waves = state.waves.filter(w => w.age < 4);
     state.ripples.forEach(r => r.age += dt);
     state.ripples = state.ripples.filter(r => r.age < 3.2);
+    const enemy=state.enemy;
+    // NPC loses propulsion after its sails break; it coasts to a stop.
+    const enemyThrust=(enemy.modules.sails/100)*settings.windStrength*5.5;
+    enemy.vy=enemy.vy*Math.exp(-1.35*dt)+enemyThrust*dt;
+    enemy.y+=enemy.vy*dt;
     state.enemy.reload = Math.max(0, state.enemy.reload - dt);
-    if (state.mode === "aggressive" && state.enemy.hp > 0 && state.enemy.reload === 0) {
+    if (state.mode === "aggressive" && state.modules.cannons > 0 && state.enemy.hp > 0 && state.enemy.reload === 0) {
       const dx = state.enemy.x - s.x, dy = state.enemy.y - s.y;
       const dist = Math.hypot(dx, dy);
       const broadside = Math.abs(fwdY * dx - fwdX * dy) / Math.max(1, dist);
       if (dist < 165 && broadside > 0.58) {
-        const cannonDamage = state.upgrades.cannons === "heavy" ? 24 : 16;
+        const cannonDamage = (state.upgrades.cannons === "heavy" ? 24 : 16)*state.modules.cannons/100;
         state.enemy.hp = Math.max(0, state.enemy.hp - cannonDamage);
         state.enemy.reload = state.upgrades.cannons === "rapid" ? 1.0 : 1.7;
         state.ripples.push({ x: state.enemy.x, y: state.enemy.y, age: 0 });
@@ -678,7 +759,8 @@
           message("Automatic broadside victory! A new opponent is approaching.");
           state.enemy.x = s.x + random(-240, 240);
           state.enemy.y = s.y - 320;
-          state.enemy.hp = 50;
+          state.enemy.hp = 50; state.enemy.vy=0;
+          state.enemy.modules={sails:100,cannons:100,rudder:100,hull:100};
         }
       }
     }
@@ -763,8 +845,13 @@
       if (name==="anchor" && state.anchor.down) continue;
       ctx.save();
       if(name.startsWith("sail_")){
-        if (settings.sail<3){ctx.restore();continue;}
-        ctx.globalAlpha=clamp(settings.sail/100,.05,1);
+        // Fold/retract the cloth toward the yard instead of fading it away.
+        // The full-width yard remains visible even when the sail is furled.
+        const open=clamp(state.sailVisual,0,1);
+        const x=(part[2]-400)*scale, y=(part[3]-605)*scale, w=part[4]*scale, h=part[5]*scale;
+        const unfurled=.1+.9*(open*open*(3-2*open));
+        ctx.globalAlpha=1;
+        ctx.filter="none";
         const tint=state.upgrades.sails;
         ctx.filter=tint==="scarlet"?"sepia(1) saturate(4) hue-rotate(310deg) brightness(1.8)":
                    tint==="azure"?"sepia(1) saturate(3) hue-rotate(145deg) brightness(1.8)":
@@ -774,7 +861,57 @@
         ctx.filter=state.upgrades.hull==="light"?"brightness(1.16) saturate(1.05)":
                    state.upgrades.hull==="armored"?"grayscale(.45) contrast(1.1)":"none";
       }
-      ctx.drawImage(image,(part[2]-400)*scale,(part[3]-605)*scale,part[4]*scale,part[5]*scale);
+      if(name.startsWith("cannon_")&&state.modules.cannons<100){
+        ctx.globalAlpha=.22+.78*(state.modules.cannons/100);
+        ctx.filter=state.modules.cannons===0?"grayscale(1) brightness(.6)":"sepia(.6)";
+      }
+      if(name.startsWith("sail_")){
+        // The sourced sail SVG includes a horizontal yard at its bottom edge.
+        // Compressing the sail upward/downward around that yard creates a
+        // visibly tied, folded sail — without simply hiding the original art.
+        const x=(part[2]-400)*scale,y=(part[3]-605)*scale;
+        const w=part[4]*scale,h=part[5]*scale;
+        const damage=clamp(state.modules.sails/100,0,1);
+        const open=clamp(state.sailVisual,0,1)*damage;
+        const fold=.10+.90*(open*open*(3-2*open));
+        if(state.upgrades.rig==="square"){
+          ctx.drawImage(image,x,y+h*(1-fold),w,h*fold);
+        }else{
+          // Two different sail silhouettes; rig impacts the physics model too.
+          const rig=state.upgrades.rig;
+          ctx.strokeStyle="#7d493e";ctx.lineWidth=2.3;
+          ctx.beginPath();ctx.moveTo(x+3,y+h-1);ctx.lineTo(x+w-3,y+h-1);ctx.stroke();
+          ctx.fillStyle=state.upgrades.sails==="scarlet"?"#cf877e":
+                        state.upgrades.sails==="azure"?"#abdce6":"#f1dec1";
+          ctx.beginPath();
+          if(rig==="lateen"){
+            ctx.moveTo(x+w*.20,y+h-4);ctx.lineTo(x+w*.86,y+h-4);
+            ctx.lineTo(x+w*.20,y+h-h*fold);
+          }else{
+            ctx.moveTo(x+w*.26,y+h-4);ctx.lineTo(x+w*.74,y+h-4);
+            ctx.lineTo(x+w*.60,y+h-h*fold*.48);ctx.lineTo(x+w*.40,y+h-h*fold*.48);
+          }
+          ctx.closePath();ctx.fill();
+        }
+        if(damage<.5){
+          // Visible torn cloth/damaged mast, not invisible "lost health".
+          ctx.strokeStyle="#ee7865";ctx.lineWidth=2;
+          ctx.beginPath();ctx.moveTo(x+w*.37,y+h-h*fold*.6);
+          ctx.lineTo(x+w*.62,y+h-h*fold*.22);ctx.stroke();
+        }
+        if(open<.35){
+          ctx.fillStyle=state.upgrades.sails==="scarlet"?"#c26a62":
+                        state.upgrades.sails==="azure"?"#8bd3e6":"#ccb992";
+          ctx.fillRect(x+w*.12,y+h-3,w*.76,3);
+          ctx.strokeStyle="#72503c";ctx.lineWidth=1;
+          for(let i=1;i<5;i++){
+            const px=x+w*i/5;
+            ctx.beginPath();ctx.moveTo(px,y+h-5);ctx.lineTo(px,y+h);ctx.stroke();
+          }
+        }
+      }else{
+        ctx.drawImage(image,(part[2]-400)*scale,(part[3]-605)*scale,part[4]*scale,part[5]*scale);
+      }
       ctx.restore();
     }
     return true;
@@ -789,7 +926,17 @@
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(-.3);
     ctx.fillStyle = "#4d2732"; ctx.strokeStyle = "#e8b5ab"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(0, -23); ctx.bezierCurveTo(15, -15, 17, 15, 0, 24); ctx.bezierCurveTo(-17, 15, -15, -15, 0, -23); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#e0c2b9"; ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(-10, 13); ctx.lineTo(10, 13); ctx.closePath(); ctx.fill();
+    if(state.enemy.modules.sails>0){
+      ctx.fillStyle="#e0c2b9";ctx.beginPath();ctx.moveTo(0,-16);
+      ctx.lineTo(-10*(state.enemy.modules.sails/100),13);
+      ctx.lineTo(10*(state.enemy.modules.sails/100),13);
+      ctx.closePath();ctx.fill();
+    }else{
+      ctx.strokeStyle="#ff9788";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(-11,4);ctx.lineTo(11,4);ctx.stroke();
+      ctx.font="bold 9px Arial";ctx.textAlign="center";ctx.fillStyle="#fff3db";
+      ctx.fillText("SAILS OUT",0,37);
+    }
     ctx.fillStyle = "#ffbeb3"; ctx.fillRect(-19, -32, 38 * state.enemy.hp / 50, 4);
     ctx.restore();
   }
@@ -799,7 +946,14 @@
     const bob=Math.sin(state.time*2.1+state.ship.x*.008)*settings.waveHeight*.7;
     ctx.translate(0,bob);
     ctx.rotate(rad(state.ship.heading)+Math.sin(state.time*1.3)*settings.waveHeight*.008);
-    if(drawNativeShip()){ctx.restore();return;}
+    if(drawNativeShip()){
+      if(state.modules.rudder<100){
+        ctx.strokeStyle="#ff9a78";ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(-8,42);ctx.lineTo(8,56);
+        ctx.moveTo(8,42);ctx.lineTo(-8,56);ctx.stroke();
+      }
+      drawFlag(ctx);ctx.restore();return;
+    }
     ctx.shadowColor = "#06213e"; ctx.shadowBlur = 17; ctx.shadowOffsetY = 8;
     const hullColor = state.upgrades.hull === "armored" ? "#6a7181" : state.upgrades.hull === "light" ? "#d09a52" : "#ac5d25";
     ctx.fillStyle = hullColor; ctx.strokeStyle = "#4d311b"; ctx.lineWidth = 4;
@@ -810,7 +964,7 @@
     for (let y = -20; y <= 30; y += 10) { ctx.beginPath(); ctx.moveTo(-12, y); ctx.lineTo(12, y); ctx.stroke(); }
     ctx.fillStyle = "#322c2d";
     [-18, -1, 16].forEach(y => { ctx.fillRect(-26, y, 12, 5); ctx.fillRect(14, y, 12, 5); });
-    const size = settings.sail / 100;
+    const size = state.sailVisual;
     if (size > .03) {
       ctx.globalAlpha = .86 + size * .14; ctx.fillStyle = sailColor(); ctx.strokeStyle = "#b89963"; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(-2, -31); ctx.quadraticCurveTo(-29 * size, -12, -16 * size, 12); ctx.lineTo(-2, 14); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -820,7 +974,7 @@
     ctx.fillStyle = "#63391e"; ctx.fillRect(-3, -39, 6, 70);
     ctx.fillStyle = "#ffe7a5"; ctx.beginPath(); ctx.arc(0, 0, 4, 0, 2 * Math.PI); ctx.fill();
     if (state.anchor.down) { ctx.fillStyle = "#fff0c8"; ctx.font = "20px sans-serif"; ctx.textAlign = "center"; ctx.fillText("⚓", 0, 66); }
-    ctx.restore();
+    drawFlag(ctx);ctx.restore();
   }
 
   function drawAnchorChain(){
@@ -854,14 +1008,22 @@
       y:p1.y+(p2.y-p1.y)*fall-(1-fall)*12*Math.sin(Math.PI*fall)
     };
     ctx.translate(anchorPoint.x,anchorPoint.y);
-    ctx.fillStyle=a.phase==="falling"?"#f7d28b":"#c7d4d7";
-    ctx.strokeStyle="#273c42";ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(0,-9,3,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(0,9);ctx.moveTo(-7,-2);ctx.lineTo(7,-2);
-    ctx.moveTo(-11,4);ctx.quadraticCurveTo(-9,14,0,14);ctx.quadraticCurveTo(9,14,11,4);
-    ctx.stroke();
-    if(a.status==="Dragging"){
-      ctx.strokeStyle="#f7ca79";ctx.beginPath();ctx.arc(0,0,19,0,Math.PI*1.2);ctx.stroke();
+    if(a.phase==="falling"){
+      // During the throw the anchor is visible, then sinks below the water.
+      ctx.strokeStyle="#e9d2a3";ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(0,-9,3,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(0,9);ctx.moveTo(-7,-2);ctx.lineTo(7,-2);
+      ctx.moveTo(-11,4);ctx.quadraticCurveTo(-9,14,0,14);ctx.quadraticCurveTo(9,14,11,4);
+      ctx.stroke();
+    }else{
+      // The seabed anchor is no longer visible in deep water. Only the
+      // dipping chain and a faint surface contact point remain.
+      ctx.fillStyle="rgba(19,62,91,.65)";
+      ctx.beginPath();ctx.ellipse(0,0,7,4,0,0,Math.PI*2);ctx.fill();
+      if(a.status==="Dragging"){
+        ctx.strokeStyle="rgba(255,204,121,.55)";ctx.lineWidth=1.3;
+        ctx.beginPath();ctx.arc(0,0,13,0,Math.PI*1.3);ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -878,7 +1040,6 @@
       ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
     }
     drawVortex();
-    drawWakes();
     if(ocean)ocean.drawEffects(ctx,{project});
     drawRipples();
     drawAnchorChain();
@@ -888,21 +1049,31 @@
   }
 
 
+
+  const headingTicks=[];
   function renderHeadingTape(heading){
     const marks=$("headingMarks");
-    const step=15;
-    const nearest=Math.round(heading/step)*step;
-    const cardinals={0:"N",90:"E",180:"S",270:"W"};
-    const ticks=[];
-    for(let delta=-7;delta<=7;delta++){
-      const degrees=nearest+delta*step;
-      const absolute=wrapDegrees(degrees);
-      const dx=(degrees-heading)*1.55;
-      const isCardinal=Object.prototype.hasOwnProperty.call(cardinals,absolute);
-      const label=isCardinal?cardinals[absolute]:(degrees%30===0?String(absolute):"·");
-      ticks.push('<span class="tape-tick'+(isCardinal?' cardinal':'')+'" style="left:calc(50% + '+dx.toFixed(1)+'px)">'+label+'</span>');
+    if(!headingTicks.length){
+      for(let i=-8;i<=8;i++){
+        const tick=document.createElement("span");
+        tick.className="tape-tick";
+        tick.style.position="absolute";
+        marks.append(tick);
+        headingTicks.push(tick);
+      }
     }
-    marks.innerHTML=ticks.join("");
+    const nearest=Math.round(heading/15)*15;
+    const cardinals={0:"N",90:"E",180:"S",270:"W"};
+    for(let i=0;i<headingTicks.length;i++){
+      const deg=nearest+(i-8)*15;
+      const cardinal=Math.round(wrapDegrees(deg))%360;
+      const x=(deg-heading)*1.55;
+      const tick=headingTicks[i];
+      tick.style.left="calc(50% + "+x.toFixed(2)+"px)";
+      const isCardinal=cardinals[cardinal]!==undefined;
+      tick.classList.toggle("cardinal",isCardinal);
+      tick.textContent=isCardinal?cardinals[cardinal]:(deg%30===0?String(cardinal):"·");
+    }
   }
   function drawMiniMap(){
     const map=$("miniMapCanvas");
@@ -945,6 +1116,9 @@
     $("headingValue").textContent = formatHeading(ship.heading);
     $("statHeading").textContent = formatHeading(ship.heading);
     $("statSpeed").textContent = speed.toFixed(1);
+    $("forwardSpeedValue").textContent=(ship.forwardSpeed||0).toFixed(1);
+    $("sideSpeedValue").textContent=(ship.sideSpeed||0).toFixed(1);
+    $("sailEfficiencyValue").textContent=Math.round((ship.sailEfficiency||0)*100)+"%";
     $("statAlignment").textContent = (alignment >= 0 ? "+" : "") + alignment.toFixed(2);
     $("speedValue").textContent = speed.toFixed(1);
     $("rudderValue").textContent = Math.round(state.wheel.rudder * 100) + "%";
@@ -957,13 +1131,16 @@
     $("anchorTension").textContent = Math.round(state.anchor.tension*100) + "%";
     $("anchorCondition").textContent = state.anchor.status;
     $("chainFill").style.width = Math.min(100, state.anchor.length/settings.anchorLine*100) + "%";
-    renderHeadingTape(ship.heading);
     drawMiniMap();
     $("windArrow").style.transform = "rotate(" + (settings.windDirection - 90) + "deg)";
     $("windValue").textContent = settings.windStrength.toFixed(1);
-    $("windRelation").textContent = alignment > .65 ? "TAILWIND" : alignment < -.55 ? "HEADWIND" : "CROSSWIND";
+    const offWind=ship.windAngle===undefined?180:ship.windAngle;
+    $("windRelation").textContent=offWind<35?"NO-GO":offWind<75?"CLOSE REACH":offWind<145?"BEAM REACH":offWind<170?"BROAD REACH":"RUNNING";
     $("alignmentReading").textContent = (alignment >= 0 ? "+" : "") + alignment.toFixed(2);
-    $("alignmentDescription").textContent = alignment > .75 ? "Tailwind! Strong sail propulsion." : alignment < -.5 ? "Headwind. Very little forward sail thrust." : "Crosswind. Turn to get a better angle.";
+    $("alignmentDescription").textContent=offWind<35?"No-go zone: little thrust in direct headwind.":
+      offWind<75?"Close reach: partial wind efficiency.":
+      offWind<145?"Beam/broad reach: highest sail efficiency.":
+      "Downwind: steady sail drive, slower than a reach.";
     $("coinValue").textContent = ship.coins.toLocaleString("en-US");
     $("scoreValue").textContent = String(ship.score).padStart(3, "0");
     $("hpFill").style.width = ship.hull + "%";
@@ -971,29 +1148,40 @@
     $("chestAction").style.display = distToChest < 64 ? "block" : "none";
     $("fpsValue").textContent = Math.round(state.frameRate) + " FPS";
   }
-  let lastFrame = 0, lastHud = 0;
+  let lastFrame = 0, lastHud = 0, physicsAccumulator = 0;
+  const physicsStep = 1 / 60;
   function frame(timestamp) {
     if (!lastFrame) lastFrame = timestamp;
-    const dt = Math.min(.05, Math.max(0, (timestamp - lastFrame) / 1000));
+    const dt = Math.min(.06, Math.max(0, (timestamp - lastFrame) / 1000));
     lastFrame = timestamp;
     if (dt > 0) state.frameRate = state.frameRate * .93 + (1 / dt) * .07;
-    if (!state.paused && !document.hidden) simulate(dt);
+    if (!state.paused && !document.hidden) {
+      physicsAccumulator = Math.min(.12, physicsAccumulator + dt);
+      let ticks = 0;
+      while (physicsAccumulator >= physicsStep && ticks < 5) {
+        simulate(physicsStep);
+        physicsAccumulator -= physicsStep;
+        ticks++;
+      }
+    } else physicsAccumulator = 0;
     drawWorld();
     // Wheel and rudder visuals MUST update every animation frame, not at 14 FPS HUD cadence.
     $("helmWheel").style.transform = "rotate(" + state.wheel.angle.toFixed(2) + "deg)";
+    renderHeadingTape(state.ship.heading);
     if (timestamp - lastHud > 70) { updateUI(); lastHud = timestamp; }
     requestAnimationFrame(frame);
   }
   function resetEverything() {
     settings = { ...defaultSettings };
-    state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, hull: 100, score: 0, coins: 1250 };
+    state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, forwardSpeed: 0, sideSpeed: 0, sailEfficiency: 0, hull: 100, score: 0, coins: 1250 };
     state.wheel = { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 };
-    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, tension: 0, length: 0 };
+    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0 };
     state.chest = { x: 85, y: -265, collected: false };
-    state.enemy = { x: -135, y: -275, hp: 50, reload: 0 };
-    state.waves = []; state.ripples = [];
+    state.enemy = { x: -135, y: -275, vx:0,vy:0,hp:50,reload:0,modules:{sails:100,cannons:100,rudder:100,hull:100} };
+    state.modules = { sails:100,cannons:100,rudder:100,hull:100 };
+    state.waves = []; state.ripples = []; state.sailVisual = .72;
     if(ocean) ocean.reset();
-    state.paused = false; $("pauseButton").textContent = "⏸ Pause simulation";
+    state.paused = false; physicsAccumulator = 0; $("pauseButton").textContent = "⏸ Pause simulation";
     $("anchorButton").classList.remove("pressed"); $("anchorButton").setAttribute("aria-pressed", "false");
     $("anchorInspector").textContent = "⚓ Drop anchor"; $("anchorLabel").textContent = "DROP"; $("anchorRopeHud").hidden = true;
     state.mode = "friendly";
@@ -1005,7 +1193,7 @@
   $("resetAll").addEventListener("click", resetEverything);
   $("savePreset").addEventListener("click", () => {
     const exportData = {
-      title: "All Aboard Mechanics Lab tuning", version: 1,
+      title: "All Aboard Mechanics Lab tuning", version: 3,
       settings, upgrades: state.upgrades,
       note: "Concept parameters, not physically measured units"
     };
