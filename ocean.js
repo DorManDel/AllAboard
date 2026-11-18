@@ -19,7 +19,8 @@
     heightAt(x,y,settings,time=this.time){
       const a=rad(settings.windDirection||0);
       const wx=Math.sin(a),wy=-Math.cos(a);
-      const axis=x*wx+y*wy,cross=x*wy-y*wx;
+      const detail=clamp((settings.waveDetail||22)/22,.55,1.65);
+      const axis=(x*wx+y*wy)*detail,cross=(x*wy-y*wx)*detail;
       const t=time*(.5+(settings.windStrength||0)*.13);
       return (
         .48*Math.sin(axis*.021-t*.9+Math.sin(cross*.013+t*.28))+
