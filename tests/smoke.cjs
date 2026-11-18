@@ -59,7 +59,7 @@ function makeElement(tag, attributes) {
 }
 const elements = [];
 const byId = new Map();
-for (const found of html.matchAll(/<([a-z]+)\b([^>]+)>/gi)) {
+for (const found of html.matchAll(/<([a-z][a-z0-9]*)\b([^>]+)>/gi)) {
   const attributes = {};
   for (const m of found[2].matchAll(/([\w-]+)="([^"]*)"/g)) attributes[m[1]] = m[2];
   const el = makeElement(found[1], attributes);
