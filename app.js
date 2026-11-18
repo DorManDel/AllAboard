@@ -405,67 +405,132 @@
       $("damageBoard").append(b);
     });
   }
-  function hitDamage(index) {
-    if (objectiveSatisfied()) return;
-    const d = state.damage;
-    const target = d.cells[index];
-    if (d.model === "core" && index === 12 && d.weapon !== "repair") {
-      const adjacent = [7, 11, 13, 17].filter(i => d.cells[i].hp === 0);
-      if (adjacent.length < 2) {
-        $("damageStatus").textContent = "Core shielded! Break 2 neighboring tiles first.";
-        vibrate(8); return;
+  function syncEnemyModules(){
+    const d=state.damage;
+    const percent=type=>{
+      const cells=d.cells.filter(c=>c.type===type&&c.max>0);
+      if(!cells.length)return 100;
+      const max=cells.reduce((n,c)=>n+c.max,0);
+      return Math.round(100*cells.reduce((n,c)=>n+c.hp,0)/max);
+    };
+    state.enemy.modules.sails=percent("sails");
+    state.enemy.modules.cannons=percent("cannon");
+    state.enemy.modules.rudder=percent("rudder");
+    state.enemy.modules.hull=percent("hull");
+    $("enemySailsStatus").textContent=state.enemy.modules.sails===0?"DISABLED":state.enemy.modules.sails+"%";
+    $("enemyCannonsStatus").textContent=state.enemy.modules.cannons===0?"DISABLED":state.enemy.modules.cannons+"%";
+    $("enemyRudderStatus").textContent=state.enemy.modules.rudder===0?"DISABLED":state.enemy.modules.rudder+"%";
+  }
+  function evolveDamageTurn(){
+    const d=state.damage;
+    d.turn++;
+    const ignited=[];
+    for(let i=0;i<d.cells.length;i++){
+      const c=d.cells[i];
+      if(c.fire&&c.hp>0){
+        c.hp=Math.max(0,c.hp-1);
+        if(c.hp===0)c.fire=false;
+        const adjacent=[i-5,i%5<4?i+1:-1,i+5,i%5>0?i-1:-1];
+        const candidate=adjacent.find(j=>j>=0&&j<25&&d.cells[j].hp>0&&!d.cells[j].fire);
+        if(candidate!==undefined)ignited.push(candidate);
+      }
+      if(c.hp===0&&c.type==="hull")c.leaking=true;
+    }
+    for(const i of ignited)d.cells[i].fire=true;
+    const leaks=d.cells.filter(c=>c.leaking).length;
+    d.flooding=clamp(d.flooding+leaks*4.5-(leaks===0?3:0),0,100);
+    syncEnemyModules();
+  }
+  function hitDamage(index){
+    const d=state.damage;
+    if(objectiveSatisfied())return;
+    const tile=d.cells[index];
+    if(tile.max===0)return;
+    if(d.model==="core"&&index===12&&d.weapon!=="repair"){
+      const breached=[7,11,13,17].filter(i=>d.cells[i].hp===0).length;
+      if(breached<2){
+        $("damageStatus").textContent="Core shielded! Destroy 2 neighbors first.";
+        return;
       }
     }
-    const indices = d.weapon === "broadside" ? [index - 1, index, index + 1].filter(i => i >= 0 && i < 25 && Math.floor(i / 5) === Math.floor(index / 5)) : [index];
-    const chainQueue = [];
-    for (const i of indices) {
-      const cell = d.cells[i];
-      if (cell.max === 0) continue;
-      if (d.weapon === "repair") { cell.hp = Math.min(cell.max, cell.hp + 2); cell.fire = false; }
-      else if (d.weapon === "fire") { if (cell.hp > 0) cell.fire = true; }
-      else {
-        const before=cell.hp;
-        cell.hp=Math.max(0,cell.hp-(d.weapon==="cannon"?2:1));
-        if(d.model==="chain"&&cell.type==="powder"&&before>0&&cell.hp===0)chainQueue.push(i);
+    const adjacent=i=>{
+      const x=i%5,y=Math.floor(i/5);
+      return [[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[x+dx,y+dy])
+        .filter(([nx,ny])=>nx>=0&&nx<5&&ny>=0&&ny<5)
+        .map(([nx,ny])=>ny*5+nx);
+    };
+    if(d.weapon==="repair"){
+      tile.hp=Math.min(tile.max,tile.hp+2);
+      tile.fire=false;tile.leaking=false;
+    }else if(d.weapon==="fire"){
+      if(tile.hp>0)tile.fire=true;
+    }else{
+      // Impact center damages several cells. The surrounding ring takes splash damage.
+      const hitCells=new Map();
+      const mark=(i,amount)=>{
+        if(i<0||i>=25||d.cells[i].max===0)return;
+        hitCells.set(i,Math.max(amount,hitCells.get(i)||0));
+      };
+      const centers=d.weapon==="broadside"?[index-1,index,index+1]
+        .filter(i=>i>=0&&i<25&&Math.floor(i/5)===Math.floor(index/5)):[index];
+      for(const i of centers){
+        mark(i,2);for(const j of adjacent(i))mark(j,1);
       }
-    }
-    let cascades=0;
-    const popped=new Set();
-    while(chainQueue.length && cascades<25) {
-      const i=chainQueue.shift();
-      if(popped.has(i))continue;
-      popped.add(i);cascades++;
-      const y=Math.floor(i/5),x=i%5;
-      for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]) {
-        const nx=x+dx,ny=y+dy;
-        if(nx<0||nx>=5||ny<0||ny>=5)continue;
-        const j=ny*5+nx,c=d.cells[j],before=c.hp;
-        if(before<=0)continue;
-        c.hp=Math.max(0,before-2);
-        if(c.type==="powder"&&c.hp===0)chainQueue.push(j);
+      const queue=[];
+      for(const [i,amount] of hitCells){
+        const c=d.cells[i],previous=c.hp;
+        c.hp=Math.max(0,c.hp-amount);
+        if(d.model==="chain"&&c.type==="powder"&&previous>0&&c.hp===0)queue.push(i);
       }
+      const exploded=new Set();
+      while(queue.length&&exploded.size<25){
+        const i=queue.shift();if(exploded.has(i))continue;
+        exploded.add(i);
+        for(const j of adjacent(i)){
+          const c=d.cells[j],previous=c.hp;
+          c.hp=Math.max(0,c.hp-2);
+          if(d.model==="chain"&&c.type==="powder"&&previous>0&&c.hp===0)queue.push(j);
+        }
+      }
+      if(exploded.size)message(exploded.size+" powder tiles detonated in a chain reaction!");
     }
-    $("damageStatus").textContent = objectiveSatisfied() ? "Ship disabled! Try another damage model." :
-      cascades>0 ? cascades+" powder explosions! Cascading damage across adjacent tiles." :
-      "Direct hit! " + remainingDamage() + " durability remaining.";
-    vibrate(d.weapon === "repair" ? 7 : [12, 15, 7]);
+    evolveDamageTurn();
+    $("damageStatus").textContent=objectiveSatisfied()?
+      (d.flooding>=100?"Enemy ship sank from flooding!":"Enemy ship disabled!")
+      :"Turn "+d.turn+" · "+remainingDamage()+" HP · Flood "+Math.round(d.flooding)+"% · Sails "+state.enemy.modules.sails+"%.";
+    vibrate(d.weapon==="repair"?7:[12,18,10]);
     renderDamage();
   }
-  function advanceFire() {
-    const d = state.damage;
-    const spread = [];
-    d.cells.forEach((cell, i) => {
-      if (!cell.fire || cell.hp <= 0) return;
-      cell.hp -= 1;
-      if (cell.hp <= 0) { cell.fire = false; return; }
-      const adj = [i - 5, i + 5, i % 5 ? i - 1 : -1, i % 5 < 4 ? i + 1 : -1];
-      const next = adj.find(j => j >= 0 && j < 25 && d.cells[j].hp > 0 && !d.cells[j].fire);
-      if (next !== undefined) spread.push(next);
-    });
-    spread.forEach(i => d.cells[i].fire = true);
-    $("damageStatus").textContent = objectiveSatisfied() ? "Fire disabled the ship!" : "Fire spreads to adjacent intact cells.";
+  function advanceFire(){
+    evolveDamageTurn();
+    const d=state.damage;
+    $("damageStatus").textContent="Turn "+d.turn+": fire and leaks progress. Flood "+Math.round(d.flooding)+"%.";
     renderDamage();
   }
+  $("enemyRepair").addEventListener("click",()=>{
+    const d=state.damage;
+    const candidates=d.cells.filter(c=>c.hp<c.max&&c.max>0);
+    const priority={sails:0,rudder:1,cannon:2,hull:3,core:4,powder:5};
+    candidates.sort((a,b)=>(priority[a.type]??6)-(priority[b.type]??6));
+    if(!candidates.length){$("damageStatus").textContent="The enemy is already repaired.";return;}
+    const c=candidates[0];
+    c.hp=Math.min(c.max,c.hp+2);c.fire=false;c.leaking=false;
+    evolveDamageTurn();
+    $("damageStatus").textContent="The enemy spent turn "+d.turn+" repairing "+c.type+".";
+    renderDamage();
+  });
+  all("[data-test-module]").forEach(button=>button.addEventListener("click",()=>{
+    const key=button.dataset.testModule;
+    state.modules[key]=Math.max(0,state.modules[key]-50);
+    message("Our "+key+" condition: "+state.modules[key]+"%. The preview uses the damaged system.");
+    if(ocean)ocean.splash(state.ship.x,state.ship.y,1.2,"hit");
+    vibrate([15,20,20]);
+  }));
+  $("repairOwn").addEventListener("click",()=>{
+    for(const key of ["sails","cannons","rudder"])
+      state.modules[key]=Math.min(100,state.modules[key]+50);
+    message("Our ship repaired by 50%. A future encounter can charge a turn or resources.");
+  });
   all("[data-damage-model]").forEach(btn => btn.addEventListener("click", () => {
     state.damage.model = btn.dataset.damageModel;
     all("[data-damage-model]").forEach(b => b.classList.toggle("active", b === btn));
