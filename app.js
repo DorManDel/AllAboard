@@ -138,6 +138,12 @@
     btn.classList.toggle("aggressive", state.mode === "aggressive");
     btn.firstChild.textContent = state.mode === "friendly" ? "♡" : "✹";
     $("modeLabel").textContent = state.mode.toUpperCase();
+    state.encounter.kind = state.mode;
+    state.encounter.hp = 100; state.encounter.trust = 30;
+    state.encounter.chosen = false; state.encounter.disabled = [];
+    all("[data-encounter]").forEach(button => button.classList.toggle("active", button.dataset.encounter === state.mode));
+    $("encounterResult").textContent = "Make a deliberate choice.";
+    renderEncounter();
     vibrate(15);
     message(state.mode === "friendly"
       ? "Friendly mode: approach other ships to negotiate. Try the Encounters tab."
@@ -382,6 +388,7 @@
   }
   all("[data-encounter]").forEach(btn => btn.addEventListener("click", () => {
     state.encounter.kind = btn.dataset.encounter;
+    if (state.mode !== state.encounter.kind) toggleMode();
     state.encounter.hp = 100; state.encounter.trust = 30; state.encounter.chosen = false; state.encounter.disabled = [];
     all("[data-encounter]").forEach(b => b.classList.toggle("active", b === btn));
     $("encounterResult").textContent = "Make a deliberate choice.";
