@@ -230,7 +230,7 @@
     const d = state.damage;
     d.cells = Array.from({ length: 25 }, (_, i) => {
       const type = typeForIndex(i);
-      const hp = d.model === "modules" && type === "hull" ? 0 : d.model === "core" && type === "core" ? 3 + 2 * d.level : 1 + d.level + (type === "core" ? 1 : 0);
+      const hp = d.model === "modules" && type === "hull" ? 0 : d.model === "core" && type === "core" ? 3 + 2 * d.level : 2 + d.level + (type === "core" ? 1 : 0);
       return { type, hp, max: hp, fire: false };
     });
     $("damageStatus").textContent = "Select an attack, then tap a tile.";
@@ -430,7 +430,7 @@
     if (!wheel.dragging) wheel.angle *= Math.exp(-settings.wheelReturn * dt);
     if (Math.abs(wheel.angle) < 0.2 && !wheel.dragging) wheel.angle = 0;
     const input = wheel.angle / 1080;
-    const target = Math.abs(input) <= settings.deadzone / 100 ? 0 : input;
+    const target = Math.abs(input) <= settings.deadzone / 100 ? 0 : Math.sign(input) * (1 - Math.exp(-5 * Math.abs(input))) / (1 - Math.exp(-5));
     wheel.rudder += (target - wheel.rudder) * (1 - Math.exp(-settings.rudderResponse * dt));
     let speed = speedOfShip();
     // Even when anchored, a limited rudder-induced turn is allowed for tactical play.
@@ -617,7 +617,6 @@
   }
   function drawWorld() {
     if (!ctx) return;
-    resizeCanvas();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const w = viewWidth, h = viewHeight;
     const bg = ctx.createLinearGradient(0, 0, w, h);
