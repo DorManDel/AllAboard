@@ -52,7 +52,7 @@
     modules: { sails:100,cannons:100,rudder:100,hull:100 },
     flag: { text:"AA", color:"#243b70", image:null },
     waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60, sailVisual: .72,
-    upgrades: { hull: "classic", sails: "cream", cannons: "balanced" },
+    upgrades: { hull: "classic", sails: "cream", rig:"square", cannons: "balanced" },
     shipParts: { hull: true, sail_front: true, sail_rear: true, cannon_left_front: true, cannon_left_rear: true, cannon_right_front: true, cannon_right_rear: true, anchor: true },
     ideasSelected: new Set(),
     damage: { model: "grid", level: 1, weapon: "cannon", cells: [], turn:0, flooding:0 },
@@ -612,6 +612,45 @@
     renderEncounter();
   });
 
+
+  $("flagCaption").addEventListener("input",e=>{
+    state.flag.text=String(e.target.value).slice(0,3);
+  });
+  $("flagColor").addEventListener("input",e=>{state.flag.color=e.target.value;});
+  $("flagClear").addEventListener("click",()=>{
+    state.flag={text:"AA",color:"#243b70",image:null};
+    $("flagCaption").value="AA";$("flagColor").value="#243b70";$("flagUpload").value="";
+  });
+  $("flagUpload").addEventListener("change",e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024){
+      message("Flag must be a PNG/JPEG/WebP smaller than 2 MB.");return;
+    }
+    if(typeof Image!=="function"||!URL.createObjectURL)return;
+    const url=URL.createObjectURL(file);
+    const image=new Image();
+    image.onload=()=>{state.flag.image=image;URL.revokeObjectURL(url);};
+    image.onerror=()=>{URL.revokeObjectURL(url);message("Could not load flag image.");};
+    image.src=url;
+  });
+  function drawFlag(ctx){
+    const flag=state.flag;
+    ctx.save();
+    ctx.strokeStyle="#3a2620";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,-51);ctx.lineTo(0,-85);ctx.stroke();
+    ctx.fillStyle=flag.color;
+    ctx.beginPath();ctx.moveTo(0,-84);ctx.lineTo(22,-81);ctx.lineTo(20,-65);ctx.lineTo(0,-69);ctx.closePath();ctx.fill();
+    if(flag.image&&flag.image.complete&&flag.image.naturalWidth){
+      ctx.save();ctx.beginPath();ctx.moveTo(0,-84);ctx.lineTo(22,-81);ctx.lineTo(20,-65);ctx.lineTo(0,-69);ctx.closePath();ctx.clip();
+      ctx.drawImage(flag.image,0,-84,22,20);ctx.restore();
+    }else{
+      ctx.fillStyle="#fff4d4";ctx.font="bold 7px Arial";ctx.textAlign="center";
+      ctx.fillText(flag.text||"⚓",11,-73);
+    }
+    ctx.restore();
+  }
+
   // Ship customization: visible color and simple deterministic gameplay modifiers.
   function selectPart(kind, choice) {
     state.upgrades[kind] = choice;
@@ -621,13 +660,19 @@
   function stars(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
   function updateUpgradeStats() {
     const u = state.upgrades;
-    $("upgradeSpeed").textContent = stars(u.hull === "light" ? 5 : u.hull === "armored" ? 2 : 3);
+    $("upgradeSpeed").textContent = stars(u.hull === "light" ? 5 : u.hull === "armored" ? 2 : u.rig==="lateen"?4:3);
     $("upgradeHull").textContent = stars(u.hull === "armored" ? 5 : u.hull === "light" ? 2 : 3);
     $("upgradePower").textContent = stars(u.cannons === "heavy" ? 5 : u.cannons === "rapid" ? 4 : 3);
   }
   all("[data-part]").forEach(btn => btn.addEventListener("click", () => selectPart(btn.dataset.part, btn.dataset.choice)));
+  all("[data-rig]").forEach(button=>button.addEventListener("click",()=>{
+    state.upgrades.rig=button.dataset.rig;
+    all("[data-rig]").forEach(b=>b.classList.toggle("active",b===button));
+    updateUpgradeStats();
+  }));
   $("resetUpgrades").addEventListener("click", () => {
     selectPart("hull", "classic"); selectPart("sails", "cream"); selectPart("cannons", "balanced");
+    state.upgrades.rig="square";all("[data-rig]").forEach(b=>b.classList.toggle("active",b.dataset.rig==="square"));
   });
 
   // Sailing simulation: time-step based, tuned for feel. World coordinates are abstract pixels.
@@ -674,7 +719,8 @@
     const modules=state.modules;
     const modifier={
       hullFactor:hullEfficiency,
-      sailFactor:modules.sails/100,
+      sailFactor:modules.sails/100*(state.upgrades.rig==="storm"?.78:1),
+      rig:state.upgrades.rig,
       rudderFactor:modules.rudder/100
     };
     if(window.AllAboardVessel)window.AllAboardVessel.step(s,a,wheel,settings,flow,dt,modifier);
@@ -821,9 +867,34 @@
         // visibly tied, folded sail — without simply hiding the original art.
         const x=(part[2]-400)*scale,y=(part[3]-605)*scale;
         const w=part[4]*scale,h=part[5]*scale;
-        const open=clamp(state.sailVisual,0,1);
+        const damage=clamp(state.modules.sails/100,0,1);
+        const open=clamp(state.sailVisual,0,1)*damage;
         const fold=.10+.90*(open*open*(3-2*open));
-        ctx.drawImage(image,x,y+h*(1-fold),w,h*fold);
+        if(state.upgrades.rig==="square"){
+          ctx.drawImage(image,x,y+h*(1-fold),w,h*fold);
+        }else{
+          // Two different sail silhouettes; rig impacts the physics model too.
+          const rig=state.upgrades.rig;
+          ctx.strokeStyle="#7d493e";ctx.lineWidth=2.3;
+          ctx.beginPath();ctx.moveTo(x+3,y+h-1);ctx.lineTo(x+w-3,y+h-1);ctx.stroke();
+          ctx.fillStyle=state.upgrades.sails==="scarlet"?"#cf877e":
+                        state.upgrades.sails==="azure"?"#abdce6":"#f1dec1";
+          ctx.beginPath();
+          if(rig==="lateen"){
+            ctx.moveTo(x+w*.20,y+h-4);ctx.lineTo(x+w*.86,y+h-4);
+            ctx.lineTo(x+w*.20,y+h-h*fold);
+          }else{
+            ctx.moveTo(x+w*.26,y+h-4);ctx.lineTo(x+w*.74,y+h-4);
+            ctx.lineTo(x+w*.60,y+h-h*fold*.48);ctx.lineTo(x+w*.40,y+h-h*fold*.48);
+          }
+          ctx.closePath();ctx.fill();
+        }
+        if(damage<.5){
+          // Visible torn cloth/damaged mast, not invisible "lost health".
+          ctx.strokeStyle="#ee7865";ctx.lineWidth=2;
+          ctx.beginPath();ctx.moveTo(x+w*.37,y+h-h*fold*.6);
+          ctx.lineTo(x+w*.62,y+h-h*fold*.22);ctx.stroke();
+        }
         if(open<.35){
           ctx.fillStyle=state.upgrades.sails==="scarlet"?"#c26a62":
                         state.upgrades.sails==="azure"?"#8bd3e6":"#ccb992";
@@ -871,7 +942,7 @@
     const bob=Math.sin(state.time*2.1+state.ship.x*.008)*settings.waveHeight*.7;
     ctx.translate(0,bob);
     ctx.rotate(rad(state.ship.heading)+Math.sin(state.time*1.3)*settings.waveHeight*.008);
-    if(drawNativeShip()){ctx.restore();return;}
+    if(drawNativeShip()){drawFlag(ctx);ctx.restore();return;}
     ctx.shadowColor = "#06213e"; ctx.shadowBlur = 17; ctx.shadowOffsetY = 8;
     const hullColor = state.upgrades.hull === "armored" ? "#6a7181" : state.upgrades.hull === "light" ? "#d09a52" : "#ac5d25";
     ctx.fillStyle = hullColor; ctx.strokeStyle = "#4d311b"; ctx.lineWidth = 4;
@@ -892,7 +963,7 @@
     ctx.fillStyle = "#63391e"; ctx.fillRect(-3, -39, 6, 70);
     ctx.fillStyle = "#ffe7a5"; ctx.beginPath(); ctx.arc(0, 0, 4, 0, 2 * Math.PI); ctx.fill();
     if (state.anchor.down) { ctx.fillStyle = "#fff0c8"; ctx.font = "20px sans-serif"; ctx.textAlign = "center"; ctx.fillText("⚓", 0, 66); }
-    ctx.restore();
+    drawFlag(ctx);ctx.restore();
   }
 
   function drawAnchorChain(){
@@ -1016,6 +1087,9 @@
     $("headingValue").textContent = formatHeading(ship.heading);
     $("statHeading").textContent = formatHeading(ship.heading);
     $("statSpeed").textContent = speed.toFixed(1);
+    $("forwardSpeedValue").textContent=(ship.forwardSpeed||0).toFixed(1);
+    $("sideSpeedValue").textContent=(ship.sideSpeed||0).toFixed(1);
+    $("sailEfficiencyValue").textContent=Math.round((ship.sailEfficiency||0)*100)+"%";
     $("statAlignment").textContent = (alignment >= 0 ? "+" : "") + alignment.toFixed(2);
     $("speedValue").textContent = speed.toFixed(1);
     $("rudderValue").textContent = Math.round(state.wheel.rudder * 100) + "%";
