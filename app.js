@@ -1049,21 +1049,31 @@
   }
 
 
+
+  const headingTicks=[];
   function renderHeadingTape(heading){
     const marks=$("headingMarks");
-    const step=15;
-    const nearest=Math.round(heading/step)*step;
-    const cardinals={0:"N",90:"E",180:"S",270:"W"};
-    const ticks=[];
-    for(let delta=-7;delta<=7;delta++){
-      const degrees=nearest+delta*step;
-      const absolute=wrapDegrees(degrees);
-      const dx=(degrees-heading)*1.55;
-      const isCardinal=Object.prototype.hasOwnProperty.call(cardinals,absolute);
-      const label=isCardinal?cardinals[absolute]:(degrees%30===0?String(absolute):"·");
-      ticks.push('<span class="tape-tick'+(isCardinal?' cardinal':'')+'" style="left:calc(50% + '+dx.toFixed(1)+'px)">'+label+'</span>');
+    if(!headingTicks.length){
+      for(let i=-8;i<=8;i++){
+        const tick=document.createElement("span");
+        tick.className="tape-tick";
+        tick.style.position="absolute";
+        marks.append(tick);
+        headingTicks.push(tick);
+      }
     }
-    marks.innerHTML=ticks.join("");
+    const nearest=Math.round(heading/15)*15;
+    const cardinals={0:"N",90:"E",180:"S",270:"W"};
+    for(let i=0;i<headingTicks.length;i++){
+      const deg=nearest+(i-8)*15;
+      const cardinal=Math.round(wrapDegrees(deg))%360;
+      const x=(deg-heading)*1.55;
+      const tick=headingTicks[i];
+      tick.style.left="calc(50% + "+x.toFixed(2)+"px)";
+      const isCardinal=cardinals[cardinal]!==undefined;
+      tick.classList.toggle("cardinal",isCardinal);
+      tick.textContent=isCardinal?cardinals[cardinal]:(deg%30===0?String(cardinal):"·");
+    }
   }
   function drawMiniMap(){
     const map=$("miniMapCanvas");
@@ -1121,7 +1131,6 @@
     $("anchorTension").textContent = Math.round(state.anchor.tension*100) + "%";
     $("anchorCondition").textContent = state.anchor.status;
     $("chainFill").style.width = Math.min(100, state.anchor.length/settings.anchorLine*100) + "%";
-    renderHeadingTape(ship.heading);
     drawMiniMap();
     $("windArrow").style.transform = "rotate(" + (settings.windDirection - 90) + "deg)";
     $("windValue").textContent = settings.windStrength.toFixed(1);
@@ -1149,6 +1158,7 @@
     drawWorld();
     // Wheel and rudder visuals MUST update every animation frame, not at 14 FPS HUD cadence.
     $("helmWheel").style.transform = "rotate(" + state.wheel.angle.toFixed(2) + "deg)";
+    renderHeadingTape(state.ship.heading);
     if (timestamp - lastHud > 70) { updateUI(); lastHud = timestamp; }
     requestAnimationFrame(frame);
   }
