@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071725">
+  <meta name="description" content="All Aboard Mechanics Lab: hands-on experiments for sailing, wheel steering, sails, anchors, ocean motion, damage and friendly encounters.">
+  <title>All Aboard · Mechanics Lab</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.1</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+    </header>
+
+    <div class="tabbar" role="tablist" aria-label="Mechanics">
+      <button role="tab" aria-selected="true" class="tab active" data-tab="live">◉ Live Playground</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="helm">☸ Helm</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="sails">◈ Sails & Wind</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="anchor">⚓ Anchor</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="ocean">≋ Ocean</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="damage">✹ Damage</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="encounter">♡ Encounters</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="shipyard">✦ Pimp My Ship</button>
+    </div>
+
+    <main class="workspace">
+      <section class="stage" aria-label="Live portrait game preview">
+        <div class="stage-heading"><div><span class="eyebrow">INTERACTIVE PHONE PREVIEW</span><h1 id="stageTitle">Sailing playground</h1></div><div class="live-chip"><span class="dot"></span> LIVE SIM</div></div>
+        <div class="stage-body">
+          <div class="phone">
+            <div class="phone-screen" id="phoneScreen">
+              <canvas id="seaCanvas" aria-label="Animated top-down sea showing the sailing ship"></canvas>
+              <div class="notch"></div>
+              <div class="hud">
+                <div class="hud-top"><div class="coin-pill"><span>⬡</span> <strong id="coinValue">1,250</strong></div><div class="heading-pill"><span class="hud-muted">HDG</span> <strong id="headingValue">000°</strong></div></div>
+                <div class="hud-bottom"><div><small>HULL</small><div class="mini-bar"><i id="hpFill"></i></div></div><div class="wind-indicator"><span id="windArrow">➤</span><div><small>WIND</small><strong id="windValue">2.7</strong></div></div><div class="hud-score"><small>RUN SCORE</small><strong id="scoreValue">000</strong></div></div>
+              </div>
+              <div class="compass"><span class="compass-n">N</span><span class="compass-needle" id="compassNeedle">▲</span><span class="compass-s">S</span></div>
+              <div class="play-hint" id="playHint">Drag the wheel to steer · Adjust sails to catch wind</div>
+              <div class="world-action" id="chestAction"><button id="collectChest">✦ Collect treasure</button></div>
+              <div class="game-controls">
+                <div class="helm-control" id="wheelControl" role="slider" tabindex="0" aria-label="Ship's wheel, turn left or right" aria-valuemin="-1080" aria-valuemax="1080" aria-valuenow="0">
+                  <div id="helmWheel" class="wheel-art">
+                    <svg viewBox="0 0 200 200" aria-hidden="true"><defs><radialGradient id="wood" cx="40%" cy="30%" r="80%"><stop stop-color="#efa741"/><stop offset=".7" stop-color="#a55b20"/><stop offset="1" stop-color="#63310d"/></radialGradient></defs><circle cx="100" cy="100" r="68" fill="none" stroke="#44200b" stroke-width="14"/><circle cx="100" cy="100" r="68" fill="none" stroke="url(#wood)" stroke-width="10"/><g fill="url(#wood)" stroke="#5c2a0e" stroke-width="2"><path d="M96 12h8l3 48H93z M96 140h8l3 48H93z M12 96v8l48 3V93z M140 96v8l48 3V93z" /><path d="M47 41l9-6 38 45-9 8z M144 159l9-6-38-45-9 8z M147 41l9 8-45 38-8-9z M53 159l-9-8 45-38 8 9z"/></g><g fill="#b76c27" stroke="#63320f" stroke-width="2"><circle cx="100" cy="11" r="10"/><circle cx="100" cy="189" r="10"/><circle cx="11" cy="100" r="10"/><circle cx="189" cy="100" r="10"/><circle cx="37" cy="37" r="9"/><circle cx="163" cy="37" r="9"/><circle cx="37" cy="163" r="9"/><circle cx="163" cy="163" r="9"/></g><circle cx="100" cy="100" r="29" fill="#7a4017" stroke="#e2a257" stroke-width="5"/><circle cx="100" cy="100" r="16" fill="#b8702c" stroke="#60300c" stroke-width="5"/><circle cx="100" cy="100" r="6" fill="#382512"/></svg>
+                  </div>
+                  <div class="wheel-crosshair">+</div>
+                </div>
+                <div class="sail-control"><div class="control-caption">SAILS</div><input id="sailSlider" type="range" min="0" max="100" step="1" value="72" orient="vertical" aria-label="Sail height"><div class="sail-percent" id="sailPercent">72%</div></div>
+                <div class="side-controls"><button class="game-btn anchor-btn" id="anchorButton" aria-pressed="false" title="Drop or raise anchor">⚓<span>ANCHOR</span></button><button class="game-btn mode-btn friendly" id="modeButton" title="Switch between Friendly and Aggressive">♡<span id="modeLabel">FRIENDLY</span></button></div>
+              </div>
+              <div class="phone-bottomline"><span id="speedValue">0.0</span> speed <span class="separator">·</span> <span id="rudderValue">0%</span> rudder</div>
+            </div>
+          </div>
+          <div class="telemetry"><div class="telemetry-title">LIVE TELEMETRY <span id="fpsValue">-- FPS</span></div>
+            <div class="telemetry-grid">
+              <div><small>SHIP SPEED</small><strong id="statSpeed">0.0</strong><span>lab units/s</span></div>
+              <div><small>HEADING</small><strong id="statHeading">000°</strong><span>north = 0°</span></div>
+              <div><small>WIND ALIGNMENT</small><strong id="statAlignment">--</strong><span>tailwind +1 / headwind -1</span></div>
+              <div><small>ANCHOR STATE</small><strong id="statAnchor">Raised</strong><span id="statAnchorInfo">Free to sail</span></div>
+            </div>
+            <p id="systemTip" class="system-tip">Try reefing the sails before a hard turn.</p>
+          </div>
+        </div>
+      </section>
+
+      <aside class="inspector" aria-label="Mechanic tuning controls">
+        <div class="inspector-header"><span class="eyebrow">THE MECHANIC, UNDER THE HOOD</span><h2 id="inspectorTitle">Live Playground</h2><p id="inspectorSubtitle">Tune the whole vessel. Every change propagates to the other experiments.</p></div>
+
+        <section class="panel active" data-panel="live">
+          <div class="mini-heading">QUICK SCENARIOS</div>
+          <div class="scenario-list"><button class="scenario active" data-scenario="open"><span>☀</span><div><strong>Open sea</strong><small>Learn the fundamentals</small></div></button><button class="scenario" data-scenario="wind"><span>➶</span><div><strong>Strong wind</strong><small>Catch or fight the breeze</small></div></button><button class="scenario" data-scenario="vortex"><span>◉</span><div><strong>Vortex escape</strong><small>Steer, reef, anchor</small></div></button></div>
+          <div class="rule"></div>
+          <div class="setting"><div class="setting-head"><label for="quickWind">Wind strength</label><output data-value="windStrength">2.7</output></div><input id="quickWind" type="range" min="0" max="5" step=".1" data-setting="windStrength" value="2.7"></div>
+          <div class="setting"><div class="setting-head"><label for="quickSails">Sail area</label><output data-value="sail">72%</output></div><input id="quickSails" type="range" min="0" max="100" step="1" data-setting="sail" value="72"></div>
+          <div class="callout">Try sailing into the wind, then rotate until you're sailing with it. Watch acceleration and the alignment indicator.</div>
+          <button class="wide-button" id="pauseButton">⏸ Pause simulation</button>
+        </section>
+
+        <section class="panel" data-panel="helm">
+          <div class="explain"><strong>1080° left / right</strong><p>Grab the wheel and rotate it up to three turns in either direction. Release it to spring back to center while the ship keeps its momentum.</p></div>
+          <div class="setting"><div class="setting-head"><label for="steerSensitivity">Steering sensitivity</label><output data-value="steerSensitivity">1.00×</output></div><input id="steerSensitivity" type="range" min=".25" max="3" step=".05" data-setting="steerSensitivity" value="1"></div>
+          <div class="setting"><div class="setting-head"><label for="wheelReturn">Wheel self-centering</label><output data-value="wheelReturn">2.8</output></div><input id="wheelReturn" type="range" min=".5" max="8" step=".1" data-setting="wheelReturn" value="2.8"></div>
+          <div class="setting"><div class="setting-head"><label for="rudderResponse">Rudder response</label><output data-value="rudderResponse">3.0</output></div><input id="rudderResponse" type="range" min=".5" max="10" step=".1" data-setting="rudderResponse" value="3"></div>
+          <div class="setting"><div class="setting-head"><label for="deadzone">Center dead zone</label><output data-value="deadzone">2%</output></div><input id="deadzone" type="range" min="0" max="20" step="1" data-setting="deadzone" value="2"></div>
+          <div class="reading">WHEEL ROTATION <strong id="wheelReading">0°</strong><div class="reading-track"><i id="wheelReadingBar"></i></div>ACTUAL RUDDER <strong id="rudderReading">0%</strong></div>
+          <p class="tipline">Keyboard: ← / → to steer, ↑ / ↓ for sails. Optional vibration feedback on compatible Android browsers.</p>
+          <label class="switch-line"><input type="checkbox" id="hapticToggle" checked> Enable haptics where available</label>
+        </section>
+
+        <section class="panel" data-panel="sails">
+          <div class="explain"><strong>Wind is directional</strong><p>The closer the ship heading is to the wind's travel direction, the stronger its downwind propulsion. Headwinds suppress sail thrust, while currents can still move the hull.</p></div>
+          <div class="setting"><div class="setting-head"><label for="windStrength">Wind strength</label><output data-value="windStrength">2.7</output></div><input id="windStrength" type="range" min="0" max="5" step=".1" data-setting="windStrength"></div>
+          <div class="setting"><div class="setting-head"><label for="windDirection">Wind TO direction</label><output data-value="windDirection">35°</output></div><input id="windDirection" type="range" min="0" max="359" step="1" data-setting="windDirection"></div>
+          <div class="setting"><div class="setting-head"><label for="sailArea">Sail area</label><output data-value="sail">72%</output></div><input id="sailArea" type="range" min="0" max="100" step="1" data-setting="sail"></div>
+          <div class="setting"><div class="setting-head"><label for="baseThrust">Base drift / auxiliary thrust</label><output data-value="baseThrust">0.1</output></div><input id="baseThrust" type="range" min="0" max="1" step=".05" data-setting="baseThrust"></div>
+          <div class="wind-visual"><div class="wind-dial"><span class="dial-compass">N</span><div class="dial-ship">▲</div><div class="dial-wind" id="dialWind">➤</div></div><div><small>WIND ALIGNMENT</small><strong id="alignmentReading">--</strong><p id="alignmentDescription">Turn toward the wind arrow to catch a tailwind.</p></div></div>
+          <div class="callout">Arcade sailing model: these are tunable game-feel forces, not a physically calibrated sailing simulation. Real sailboats can tack upwind.</div>
+        </section>
+
+        <section class="panel" data-panel="anchor">
+          <div class="explain"><strong>A tactical handbrake, with limits</strong><p>Drop the anchor to resist wind and current. If the external pull exceeds its holding strength, the anchor drags. Try a vortex and a short anchor line.</p></div>
+          <button id="anchorInspector" class="wide-button">⚓ Drop / raise anchor</button>
+          <div class="setting"><div class="setting-head"><label for="anchorGrip">Anchor holding force</label><output data-value="anchorGrip">105</output></div><input id="anchorGrip" type="range" min="20" max="240" step="5" data-setting="anchorGrip"></div>
+          <div class="setting"><div class="setting-head"><label for="anchorLine">Anchor line radius</label><output data-value="anchorLine">24</output></div><input id="anchorLine" type="range" min="5" max="65" step="1" data-setting="anchorLine"></div>
+          <div class="setting"><div class="setting-head"><label for="vortexStrength">Vortex pull</label><output data-value="vortexStrength">1.0</output></div><input id="vortexStrength" type="range" min="0" max="3" step=".1" data-setting="vortexStrength"></div>
+          <div class="setting"><div class="setting-head"><label for="currentStrength">Current drift</label><output data-value="currentStrength">.3</output></div><input id="currentStrength" type="range" min="0" max="3" step=".1" data-setting="currentStrength"></div>
+          <div class="button-pair"><button class="outline-button" id="spawnVortex">◉ Move vortex nearby</button><button class="outline-button" id="clearVortex">✕ Clear vortex</button></div>
+          <div class="callout">Simplified assumption: this prototype always permits anchoring at the current position. Seabed depth and anchor-setting time come later.</div>
+        </section>
+
+        <section class="panel" data-panel="ocean">
+          <div class="explain"><strong>One water model, multiple reactions</strong><p>Water layers scroll with the ship, ambient waves react to wind, the hull draws a wake, objects create ripples, and a vortex applies a local current.</p></div>
+          <div class="setting"><div class="setting-head"><label for="waveHeight">Wave height</label><output data-value="waveHeight">0.7</output></div><input id="waveHeight" type="range" min="0" max="2" step=".1" data-setting="waveHeight"></div>
+          <div class="setting"><div class="setting-head"><label for="waveDetail">Wave density</label><output data-value="waveDetail">22</output></div><input id="waveDetail" type="range" min="6" max="44" step="1" data-setting="waveDetail"></div>
+          <div class="setting"><div class="setting-head"><label for="wakeStrength">Ship wake</label><output data-value="wakeStrength">1.0</output></div><input id="wakeStrength" type="range" min="0" max="2" step=".1" data-setting="wakeStrength"></div>
+          <div class="button-pair"><button class="outline-button" id="rippleButton">◎ Add ripple</button><button class="outline-button" id="stormButton">☁ Storm preset</button></div>
+          <div class="metric-note">Canvas 2D · Procedural visual approximation · Frame-rate-independent motion. The water surface is not a full fluid simulation.</div>
+        </section>
+
+        <section class="panel" data-panel="damage">
+          <div class="explain"><strong>Which damage system feels playful?</strong><p>Switch models without committing to one design. Tap cells using an attack pattern, then compare what happens at different enemy levels.</p></div>
+          <div class="segmented" role="group" aria-label="Damage model"><button class="active" data-damage-model="grid">Grid HP</button><button data-damage-model="modules">Modules</button><button data-damage-model="core">Core target</button></div>
+          <div class="setting"><div class="setting-head"><label for="enemyLevel">Enemy level</label><output id="enemyLevelValue">Lv. 1</output></div><input id="enemyLevel" type="range" min="1" max="5" value="1"></div>
+          <div class="attack-buttons" role="group" aria-label="Attack pattern"><button class="active" data-weapon="cannon">💣 Cannon</button><button data-weapon="broadside">💥 Broadside</button><button data-weapon="fire">🔥 Fire</button><button data-weapon="repair">🔧 Repair</button></div>
+          <div class="damage-head"><strong id="damageObjective">Destroy all cells</strong><span id="damageHealth">75 / 75</span></div><div class="damage-progress"><i id="damageHealthFill"></i></div>
+          <div class="damage-board" id="damageBoard" aria-label="Interactive damage cells"></div>
+          <div class="damage-status" id="damageStatus" aria-live="polite">Tap a tile to test an attack pattern.</div>
+          <div class="button-pair"><button id="fireTick" class="outline-button">🔥 Advance fire</button><button id="damageReset" class="outline-button">↺ New enemy</button></div>
+        </section>
+
+        <section class="panel" data-panel="encounter">
+          <div class="explain"><strong>Two short interactions, two playstyles</strong><p>Aggressive play rewards positioning and disabling modules. Friendly play is a small choice puzzle: understand what the other ship needs, then offer the right resource.</p></div>
+          <div class="segmented" role="group" aria-label="Encounter type"><button class="active" data-encounter="friendly">♡ Befriend</button><button data-encounter="aggressive">✹ Attack</button></div>
+          <div class="encounter-card" id="encounterCard">
+            <div class="encounter-ship">⛵</div><small>VESSEL IN RANGE</small><h3 id="encounterName">The Wandering Gull</h3><p id="encounterPrompt">Our crew has been sailing for days. We urgently need fresh provisions.</p>
+            <div class="trust-meter"><span id="relationLabel">TRUST</span><div><i id="trustFill"></i></div><strong id="trustValue">30%</strong></div>
+            <div class="choice-grid" id="encounterChoices"></div>
+            <p id="encounterResult" class="encounter-result" aria-live="polite">Pick the right offer for this captain.</p>
+          </div>
+          <button class="outline-button full" id="nextEncounter">↻ Next encounter</button>
+          <div class="callout">Prototype-friendly puzzle: information + tradeoffs, not a random success percentage. Later, alliances could affect trading routes, escorts, and rescue.</div>
+        </section>
+
+        <section class="panel" data-panel="shipyard">
+          <div class="explain"><strong>Make the ship yours</strong><p>Select a hull, sail and cannon setup. The shared preview changes immediately. Upgrade effects are deliberately conceptual and not balanced.</p></div>
+          <div class="mini-heading">HULL</div><div class="upgrade-row" data-upgrade="hull"><button data-part="hull" data-choice="classic" class="active">Classic <small>Balanced</small></button><button data-part="hull" data-choice="light">Swift <small>+ speed</small></button><button data-part="hull" data-choice="armored">Armored <small>+ hull</small></button></div>
+          <div class="mini-heading">SAILS</div><div class="upgrade-row" data-upgrade="sails"><button data-part="sails" data-choice="cream" class="active">Ivory <small>Classic</small></button><button data-part="sails" data-choice="scarlet">Crimson <small>Cosmetic</small></button><button data-part="sails" data-choice="azure">Azure <small>Cosmetic</small></button></div>
+          <div class="mini-heading">CANNONS</div><div class="upgrade-row" data-upgrade="cannons"><button data-part="cannons" data-choice="balanced" class="active">Standard <small>Balanced</small></button><button data-part="cannons" data-choice="rapid">Rapid <small>Fast reload</small></button><button data-part="cannons" data-choice="heavy">Heavy <small>+ impact</small></button></div>
+          <div class="ship-stats"><div><span>SPEED</span><strong id="upgradeSpeed">★★★☆☆</strong></div><div><span>HULL</span><strong id="upgradeHull">★★★☆☆</strong></div><div><span>FIREPOWER</span><strong id="upgradePower">★★★☆☆</strong></div></div>
+          <button id="resetUpgrades" class="outline-button full">↺ Reset customization</button>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer"><span>Prototype ≠ calibrated marine physics. Keep what feels fun, measure what works.</span><span>Unity source: <a href="https://github.com/Eilon343/AllAboard" target="_blank" rel="noopener">Eilon343/AllAboard</a> · <a href="./DESIGN.md">Design notes</a></span></footer>
+  </div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
