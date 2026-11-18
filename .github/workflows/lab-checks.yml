@@ -1,0 +1,26 @@
+name: Mechanics Lab Checks
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Run lab smoke tests
+        run: node tests/smoke.cjs
