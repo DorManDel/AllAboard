@@ -16,7 +16,7 @@
   const defaultSettings = Object.freeze({
     sail: 72, windStrength: 2.7, windDirection: 35, baseThrust: 0.1,
     steerSensitivity: 1, wheelReturn: 4.8, rudderResponse: 6, yawResponse: 5, deadzone: 2,
-    anchorGrip: 105, anchorLine: 24, vortexStrength: 1,
+    anchorGrip: 185, anchorLine: 70, ropeStiffness: 9, ropeDamping: 6, lateralDrag: 5.5, wavePush: .65, vortexStrength: 1,
     currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
   });
   let settings = { ...defaultSettings };
@@ -44,12 +44,12 @@
   const state = {
     activeTab: "live", scenario: "open", paused: false, haptics: true, mode: "friendly",
     wheel: { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 },
-    ship: { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, hull: 100, score: 0, coins: 1250 },
-    anchor: { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, tension: 0, length: 0 },
+    ship: { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, forwardSpeed: 0, sideSpeed: 0, sailEfficiency: 0, hull: 100, score: 0, coins: 1250 },
+    anchor: { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0 },
     vortex: { active: false, x: 155, y: -190 },
     chest: { x: 85, y: -265, collected: false },
     enemy: { x: -135, y: -275, hp: 50, reload: 0 },
-    waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60,
+    waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60, sailVisual: .72,
     upgrades: { hull: "classic", sails: "cream", cannons: "balanced" },
     shipParts: { hull: true, sail_front: true, sail_rear: true, cannon_left_front: true, cannon_left_rear: true, cannon_right_front: true, cannon_right_rear: true, anchor: true },
     ideasSelected: new Set(),
@@ -223,7 +223,7 @@
       const fwdX = Math.sin(rad(ship.heading)), fwdY = -Math.cos(rad(ship.heading));
       // The line starts from the stern and the dropped anchor sinks close behind the hull.
       a.point = { x: ship.x - fwdX * 20, y: ship.y - fwdY * 20 };
-      a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0;
+      a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0; a.overload = 0;
       a.tension = 0; a.length = 20;
       vibrate([18, 45, 26]);
       message("Anchor thrown! Watch the splash, then the ship can drift until the chain is taut.");
@@ -573,6 +573,7 @@
   function simulate(dt) {
     state.time += dt;
     if (ocean) ocean.step(dt);
+    state.sailVisual += ((settings.sail/100)-state.sailVisual)*(1-Math.exp(-2.3*dt));
     const s = state.ship;
     const wheel = state.wheel;
     if (!wheel.dragging) wheel.angle *= Math.exp(-settings.wheelReturn * dt);
@@ -582,74 +583,32 @@
     const target = Math.abs(input) <= settings.deadzone / 100
       ? 0 : Math.sign(input) * (1 - Math.exp(-9 * Math.abs(input))) / (1 - Math.exp(-9));
     wheel.rudder += (target - wheel.rudder) * (1 - Math.exp(-settings.rudderResponse * dt));
-    let speed = speedOfShip();
-    // Even when anchored, a limited rudder-induced turn is allowed for tactical play.
-    const turning = (35 + 1.25 * Math.min(speed, 65)) * settings.steerSensitivity;
-    const yawTarget = wheel.rudder * turning * (state.anchor.down ? 0.65 : 1);
-    s.angularVelocity += (yawTarget - s.angularVelocity) * (1 - Math.exp(-settings.yawResponse * dt));
-    s.heading = wrapDegrees(s.heading + s.angularVelocity * dt);
-    const fwdX = Math.sin(rad(s.heading)), fwdY = -Math.cos(rad(s.heading));
-    const windX = Math.sin(rad(settings.windDirection)), windY = -Math.cos(rad(settings.windDirection));
-    const align = windAlignment();
-    const tailwind = Math.pow(clamp((align + 0.2) / 1.2, 0, 1), 1.5);
-    const efficiency = state.upgrades.hull === "light" ? 1.2 : state.upgrades.hull === "armored" ? 0.8 : 1;
-    const thrust = (settings.baseThrust * 14 + settings.windStrength * 20 * (settings.sail / 100) * tailwind) * efficiency;
-    const sideways = settings.windStrength * (settings.sail / 100) * 2.3;
-    const flow = ocean ? ocean.sampleFlow(s.x, s.y, settings, state.vortex) : vortexAcceleration();
-    let ax = fwdX * thrust + windX * sideways + flow.x;
-    let ay = fwdY * thrust + windY * sideways + flow.y;
-    const a = state.anchor;
-    if (a.down && a.phase === "falling") {
-      a.fallTime += dt;
-      a.status = "Dropping";
-      if (a.fallTime >= .75) {
-        a.phase = "set";
-        a.status = "Slack";
-        if (ocean) ocean.splash(a.point.x, a.point.y, 1.5, "anchor");
-        state.ripples.push({x:a.point.x,y:a.point.y,age:0});
+    // Ship forces come from one isolated physics model.
+    // No position teleporting when the anchor is set: the chain can be slack,
+    // gradually tensioned, or drag its fixed point under sustained overload.
+    const a=state.anchor;
+    if(a.down && a.phase==="falling"){
+      a.fallTime+=dt;
+      a.status="Dropping";
+      if(a.fallTime>=.75){
+        a.phase="set";
+        a.status="Slack";
+        if(ocean)ocean.splash(a.point.x,a.point.y,1.45,"anchor");
         $("anchorButton").classList.remove("throwing");
-        vibrate([11,28,18]);
+        vibrate([11,30,19]);
       }
     }
-    // Water and sails still move the hull even if the anchor is down.
-    // Rope constraints are positional: while the anchor holds, max distance is a hard limit.
-    const friction = a.down ? 1.75 : 1.35;
-    s.vx = s.vx * Math.exp(-friction * dt) + ax * dt;
-    s.vy = s.vy * Math.exp(-friction * dt) + ay * dt;
-    const speedCap = 100 * efficiency;
-    const vmag = speedOfShip();
-    if (vmag > speedCap) { s.vx *= speedCap / vmag; s.vy *= speedCap / vmag; }
-    s.x += s.vx * dt; s.y += s.vy * dt;
-    if (a.down && a.phase === "set") {
-      const dx=s.x-a.point.x,dy=s.y-a.point.y;
-      const distance=Math.max(.00001,Math.hypot(dx,dy));
-      const ux=dx/distance,uy=dy/distance;
-      const outward=Math.max(0,s.vx*ux+s.vy*uy);
-      const limit=settings.anchorLine;
-      const over=Math.max(0,distance-limit);
-      const externalForce=Math.hypot(ax,ay);
-      a.length=distance;
-      a.tension=clamp((over*32+Math.max(0,externalForce-15)) / Math.max(1,settings.anchorGrip),0,2);
-      const dragging=over>0 && (externalForce+over*42)>settings.anchorGrip;
-      if(dragging){
-        // The point moves slowly across the seabed; the chain stays bounded relative to it.
-        const dragSpeed=clamp(((externalForce+over*42)-settings.anchorGrip)*.11,0,35);
-        a.point.x+=ux*dragSpeed*dt;
-        a.point.y+=uy*dragSpeed*dt;
-        a.status="Dragging";
-      }else a.status=distance>=limit-1?"Taut":"Slack";
-      const rx=s.x-a.point.x,ry=s.y-a.point.y;
-      const constrainedDist=Math.max(.00001,Math.hypot(rx,ry));
-      if(constrainedDist>limit){
-        const nx=rx/constrainedDist,ny=ry/constrainedDist;
-        s.x=a.point.x+nx*limit;
-        s.y=a.point.y+ny*limit;
-        const radialVelocity=s.vx*nx+s.vy*ny;
-        if(radialVelocity>0){s.vx-=nx*radialVelocity;s.vy-=ny*radialVelocity;}
-        // Tangential velocity is kept so the vessel can swing around the anchor.
-        a.length=limit;
-      }
-    } else if(!a.down) a.status="Raised";
+    const flow=ocean?ocean.sampleFlow(s.x,s.y,settings,state.vortex):vortexAcceleration();
+    const hullEfficiency=state.upgrades.hull==="light"?1.12:state.upgrades.hull==="armored"?.83:1;
+    const modules=state.modules;
+    const modifier={
+      hullFactor:hullEfficiency,
+      sailFactor:modules.sails/100,
+      rudderFactor:modules.rudder/100
+    };
+    if(window.AllAboardVessel)window.AllAboardVessel.step(s,a,wheel,settings,flow,dt,modifier);
+    if(ocean)ocean.emitWake(s,settings,dt);
+    const fwdX=Math.sin(rad(s.heading)),fwdY=-Math.cos(rad(s.heading));
     // Environmental reactions persist briefly at the same world coordinate.
     state.wakeTimer += dt;
     if (state.wakeTimer > 0.12 && speedOfShip() > 5 && settings.wakeStrength > 0) {
@@ -763,8 +722,13 @@
       if (name==="anchor" && state.anchor.down) continue;
       ctx.save();
       if(name.startsWith("sail_")){
-        if (settings.sail<3){ctx.restore();continue;}
-        ctx.globalAlpha=clamp(settings.sail/100,.05,1);
+        // Fold/retract the cloth toward the yard instead of fading it away.
+        // The full-width yard remains visible even when the sail is furled.
+        const open=clamp(state.sailVisual,0,1);
+        const x=(part[2]-400)*scale, y=(part[3]-605)*scale, w=part[4]*scale, h=part[5]*scale;
+        const unfurled=.1+.9*(open*open*(3-2*open));
+        ctx.globalAlpha=1;
+        ctx.filter="none";
         const tint=state.upgrades.sails;
         ctx.filter=tint==="scarlet"?"sepia(1) saturate(4) hue-rotate(310deg) brightness(1.8)":
                    tint==="azure"?"sepia(1) saturate(3) hue-rotate(145deg) brightness(1.8)":
@@ -774,7 +738,28 @@
         ctx.filter=state.upgrades.hull==="light"?"brightness(1.16) saturate(1.05)":
                    state.upgrades.hull==="armored"?"grayscale(.45) contrast(1.1)":"none";
       }
-      ctx.drawImage(image,(part[2]-400)*scale,(part[3]-605)*scale,part[4]*scale,part[5]*scale);
+      if(name.startsWith("sail_")){
+        // The sourced sail SVG includes a horizontal yard at its bottom edge.
+        // Compressing the sail upward/downward around that yard creates a
+        // visibly tied, folded sail — without simply hiding the original art.
+        const x=(part[2]-400)*scale,y=(part[3]-605)*scale;
+        const w=part[4]*scale,h=part[5]*scale;
+        const open=clamp(state.sailVisual,0,1);
+        const fold=.10+.90*(open*open*(3-2*open));
+        ctx.drawImage(image,x,y+h*(1-fold),w,h*fold);
+        if(open<.35){
+          ctx.fillStyle=state.upgrades.sails==="scarlet"?"#c26a62":
+                        state.upgrades.sails==="azure"?"#8bd3e6":"#ccb992";
+          ctx.fillRect(x+w*.12,y+h-3,w*.76,3);
+          ctx.strokeStyle="#72503c";ctx.lineWidth=1;
+          for(let i=1;i<5;i++){
+            const px=x+w*i/5;
+            ctx.beginPath();ctx.moveTo(px,y+h-5);ctx.lineTo(px,y+h);ctx.stroke();
+          }
+        }
+      }else{
+        ctx.drawImage(image,(part[2]-400)*scale,(part[3]-605)*scale,part[4]*scale,part[5]*scale);
+      }
       ctx.restore();
     }
     return true;
@@ -810,7 +795,7 @@
     for (let y = -20; y <= 30; y += 10) { ctx.beginPath(); ctx.moveTo(-12, y); ctx.lineTo(12, y); ctx.stroke(); }
     ctx.fillStyle = "#322c2d";
     [-18, -1, 16].forEach(y => { ctx.fillRect(-26, y, 12, 5); ctx.fillRect(14, y, 12, 5); });
-    const size = settings.sail / 100;
+    const size = state.sailVisual;
     if (size > .03) {
       ctx.globalAlpha = .86 + size * .14; ctx.fillStyle = sailColor(); ctx.strokeStyle = "#b89963"; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(-2, -31); ctx.quadraticCurveTo(-29 * size, -12, -16 * size, 12); ctx.lineTo(-2, 14); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -878,7 +863,6 @@
       ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
     }
     drawVortex();
-    drawWakes();
     if(ocean)ocean.drawEffects(ctx,{project});
     drawRipples();
     drawAnchorChain();
@@ -986,12 +970,12 @@
   }
   function resetEverything() {
     settings = { ...defaultSettings };
-    state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, hull: 100, score: 0, coins: 1250 };
+    state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, forwardSpeed: 0, sideSpeed: 0, sailEfficiency: 0, hull: 100, score: 0, coins: 1250 };
     state.wheel = { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 };
-    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, tension: 0, length: 0 };
+    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0 };
     state.chest = { x: 85, y: -265, collected: false };
     state.enemy = { x: -135, y: -275, hp: 50, reload: 0 };
-    state.waves = []; state.ripples = [];
+    state.waves = []; state.ripples = []; state.sailVisual = .72;
     if(ocean) ocean.reset();
     state.paused = false; $("pauseButton").textContent = "⏸ Pause simulation";
     $("anchorButton").classList.remove("pressed"); $("anchorButton").setAttribute("aria-pressed", "false");
@@ -1005,7 +989,7 @@
   $("resetAll").addEventListener("click", resetEverything);
   $("savePreset").addEventListener("click", () => {
     const exportData = {
-      title: "All Aboard Mechanics Lab tuning", version: 1,
+      title: "All Aboard Mechanics Lab tuning", version: 3,
       settings, upgrades: state.upgrades,
       note: "Concept parameters, not physically measured units"
     };
