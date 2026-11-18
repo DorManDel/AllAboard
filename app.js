@@ -861,6 +861,10 @@
         ctx.filter=state.upgrades.hull==="light"?"brightness(1.16) saturate(1.05)":
                    state.upgrades.hull==="armored"?"grayscale(.45) contrast(1.1)":"none";
       }
+      if(name.startsWith("cannon_")&&state.modules.cannons<100){
+        ctx.globalAlpha=.22+.78*(state.modules.cannons/100);
+        ctx.filter=state.modules.cannons===0?"grayscale(1) brightness(.6)":"sepia(.6)";
+      }
       if(name.startsWith("sail_")){
         // The sourced sail SVG includes a horizontal yard at its bottom edge.
         // Compressing the sail upward/downward around that yard creates a
@@ -942,7 +946,14 @@
     const bob=Math.sin(state.time*2.1+state.ship.x*.008)*settings.waveHeight*.7;
     ctx.translate(0,bob);
     ctx.rotate(rad(state.ship.heading)+Math.sin(state.time*1.3)*settings.waveHeight*.008);
-    if(drawNativeShip()){drawFlag(ctx);ctx.restore();return;}
+    if(drawNativeShip()){
+      if(state.modules.rudder<100){
+        ctx.strokeStyle="#ff9a78";ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(-8,42);ctx.lineTo(8,56);
+        ctx.moveTo(8,42);ctx.lineTo(-8,56);ctx.stroke();
+      }
+      drawFlag(ctx);ctx.restore();return;
+    }
     ctx.shadowColor = "#06213e"; ctx.shadowBlur = 17; ctx.shadowOffsetY = 8;
     const hullColor = state.upgrades.hull === "armored" ? "#6a7181" : state.upgrades.hull === "light" ? "#d09a52" : "#ac5d25";
     ctx.fillStyle = hullColor; ctx.strokeStyle = "#4d311b"; ctx.lineWidth = 4;
@@ -997,14 +1008,22 @@
       y:p1.y+(p2.y-p1.y)*fall-(1-fall)*12*Math.sin(Math.PI*fall)
     };
     ctx.translate(anchorPoint.x,anchorPoint.y);
-    ctx.fillStyle=a.phase==="falling"?"#f7d28b":"#c7d4d7";
-    ctx.strokeStyle="#273c42";ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(0,-9,3,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(0,9);ctx.moveTo(-7,-2);ctx.lineTo(7,-2);
-    ctx.moveTo(-11,4);ctx.quadraticCurveTo(-9,14,0,14);ctx.quadraticCurveTo(9,14,11,4);
-    ctx.stroke();
-    if(a.status==="Dragging"){
-      ctx.strokeStyle="#f7ca79";ctx.beginPath();ctx.arc(0,0,19,0,Math.PI*1.2);ctx.stroke();
+    if(a.phase==="falling"){
+      // During the throw the anchor is visible, then sinks below the water.
+      ctx.strokeStyle="#e9d2a3";ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(0,-9,3,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(0,9);ctx.moveTo(-7,-2);ctx.lineTo(7,-2);
+      ctx.moveTo(-11,4);ctx.quadraticCurveTo(-9,14,0,14);ctx.quadraticCurveTo(9,14,11,4);
+      ctx.stroke();
+    }else{
+      // The seabed anchor is no longer visible in deep water. Only the
+      // dipping chain and a faint surface contact point remain.
+      ctx.fillStyle="rgba(19,62,91,.65)";
+      ctx.beginPath();ctx.ellipse(0,0,7,4,0,0,Math.PI*2);ctx.fill();
+      if(a.status==="Dragging"){
+        ctx.strokeStyle="rgba(255,204,121,.55)";ctx.lineWidth=1.3;
+        ctx.beginPath();ctx.arc(0,0,13,0,Math.PI*1.3);ctx.stroke();
+      }
     }
     ctx.restore();
   }
