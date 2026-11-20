@@ -198,11 +198,13 @@ class LayoutStudio{
    if(range)range.value=n;
    if(value)value.value=n.toFixed(spec.digits);
   }
-  this.$("layoutOutput").textContent=(targets.find(x=>x[0]===this.selected)?.[1]||"Component")+
+  const readout=this.$("layoutOutput");
+  if(!readout)return;
+  readout.textContent=(targets.find(x=>x[0]===this.selected)?.[1]||"Component")+
    " · X "+p.x.toFixed(1)+"% · Y "+p.y.toFixed(1)+"% · "+
    p.scaleX.toFixed(2)+"×"+p.scaleY.toFixed(2)+" · "+
    p.rotation.toFixed(1)+"° · "+Math.round(p.opacity*100)+"% · layer "+p.layer;
-  this.$("layoutPresetName").textContent=this.loadedPreset;
+  const presetLabel=this.$("layoutPresetName");if(presetLabel)presetLabel.textContent=this.loadedPreset;
  }
  render(){
   if(!this.phone)return;
