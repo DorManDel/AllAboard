@@ -120,6 +120,7 @@ class LayoutStudio{
     item.addEventListener("pointercancel",finish,true);
   }
   apply(id){
+    if(typeof document==="undefined")return;
     const target=this.$(id),data=this.layout[id];
     if(!target||!this.phone||!data)return;
     const rect=this.phone.getBoundingClientRect();
