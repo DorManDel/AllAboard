@@ -18,15 +18,17 @@ const reviewJs = fs.readFileSync(path.join(root,"mechanics-review.js"),"utf8");
 const catalogJs=fs.readFileSync(path.join(root,"mechanic-catalog.js"),"utf8");
 const loopJs=fs.readFileSync(path.join(root,"stage-loop.js"),"utf8");
 const roadmapJs=fs.readFileSync(path.join(root,"roadmap-board.js"),"utf8");
+const layoutJs=fs.readFileSync(path.join(root,"ui-layout.js"),"utf8");
+const mapJs=fs.readFileSync(path.join(root,"map-explorer.js"),"utf8");
 
 assert.doesNotThrow(() => new vm.Script(js), "JavaScript must parse");
 assert.doesNotThrow(() => new vm.Script(oceanJs), "Ocean engine must parse");
 assert.doesNotThrow(() => new vm.Script(vesselJs), "Vessel physics must parse");
-for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"]])
+for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"],[layoutJs,"UI Studio"],[mapJs,"World Map"]])
   assert.doesNotThrow(()=>new vm.Script(source),name+" engine must parse");
 assert.match(html, /<script src="\.\/ocean\.js" defer>/);
 assert.match(html, /<script src="\.\/vessel\.js" defer>/);
-for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js"])
+for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js","ui-layout.js","map-explorer.js"])
   assert(html.includes('<script src="./'+name+'" defer></script>'));
 for (const part of ["hull","sail_front","sail_rear","anchor","cannon_left_front","cannon_left_rear","cannon_right_front","cannon_right_rear"]) assert(fs.existsSync(path.join(root,"assets","ship-parts",part+".svg")), "Missing ship part "+part);
 assert.match(html, /<meta name="viewport"/);
@@ -41,12 +43,12 @@ for (const id of referencedIds) assert(ids.includes(id), "Missing DOM ID: " + id
 
 const tabs = [...html.matchAll(/\bdata-tab="([^"]+)"/g)].map(m => m[1]);
 const panels = [...html.matchAll(/\bdata-panel="([^"]+)"/g)].map(m => m[1]);
-assert.equal(tabs.length, 13);
+assert.equal(tabs.length, 14);
 assert.deepEqual(tabs.sort(), panels.sort(), "Each tab must have a matching panel");
 
 // Small DOM mock exercises initialization plus main controls without external packages.
 const drawingContext = {};
-for (const name of ["setTransform","clearRect","fillRect","strokeRect","beginPath","closePath","stroke","fill","lineTo","moveTo","quadraticCurveTo","bezierCurveTo","arc","ellipse","save","restore","translate","rotate","fillText","setLineDash","drawImage","clip"]) drawingContext[name] = () => {};
+for (const name of ["setTransform","clearRect","fillRect","strokeRect","beginPath","closePath","stroke","fill","lineTo","moveTo","quadraticCurveTo","bezierCurveTo","arc","ellipse","save","restore","translate","rotate","fillText","setLineDash","drawImage","clip","rect"]) drawingContext[name] = () => {};
 drawingContext.createLinearGradient = () => ({ addColorStop() {} });
 drawingContext.createRadialGradient = () => ({ addColorStop() {} });
 function makeElement(tag, attributes) {
@@ -177,4 +179,4 @@ assert.equal(byId.get("loopPhase").textContent,"CHOICE");
 assert(byId.get("plannerCatalog").children.length>10,"Planner catalog should render");
 fire("plannerAdd","click");
 assert(byId.get("plannerBoardCount").textContent.startsWith("1"),"Selected mechanic should be added to Kanban");
-console.log("PASS: thirteen tabs, ship/world, stage checkpoint/risk, 10s tutorial and Kanban planning controls.");
+console.log("PASS: fourteen tabs, sea/land clipping, layout studio, expanded world map, stage loop and Kanban.");
