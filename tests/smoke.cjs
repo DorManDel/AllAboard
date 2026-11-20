@@ -53,7 +53,7 @@ assert.deepEqual(tabs.sort(), panels.sort(), "Each tab must have a matching pane
 
 // Small DOM mock exercises initialization plus main controls without external packages.
 const drawingContext = {};
-for (const name of ["setTransform","clearRect","fillRect","strokeRect","beginPath","closePath","stroke","fill","lineTo","moveTo","quadraticCurveTo","bezierCurveTo","arc","ellipse","save","restore","translate","rotate","fillText","setLineDash","drawImage","clip","rect"]) drawingContext[name] = () => {};
+for (const name of ["setTransform","clearRect","fillRect","strokeRect","beginPath","closePath","stroke","fill","lineTo","moveTo","quadraticCurveTo","bezierCurveTo","arc","ellipse","save","restore","translate","rotate","scale","fillText","setLineDash","drawImage","clip","rect"]) drawingContext[name] = () => {};
 drawingContext.createLinearGradient = () => ({ addColorStop() {} });
 drawingContext.createRadialGradient = () => ({ addColorStop() {} });
 function makeElement(tag, attributes) {
