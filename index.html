@@ -12,9 +12,13 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.8</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.9</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
+    <nav class="nav-shell" aria-label="Mechanics navigation">
+      <div class="nav-categories" id="navGroups" aria-label="Mechanics categories"></div>
+      <label class="nav-pick-label" for="navMechanic">Mechanic <select id="navMechanic" aria-label="Jump to mechanic"></select></label>
+    </nav>
     <div class="tabbar" role="tablist" aria-label="Mechanics">
       <button role="tab" aria-selected="true" class="tab active" data-tab="live">◉ Live Playground</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="helm">☸ Helm</button>
@@ -38,10 +42,18 @@
         <div class="stage-body">
           <div class="phone">
             <div class="phone-screen" id="phoneScreen">
-              <canvas id="seaCanvas" aria-label="Animated top-down sea showing the sailing ship"></canvas><img id="flagGifOverlay" class="flag-gif-live" alt="" hidden>
+              <canvas id="seaCanvas" aria-label="Animated top-down sea showing the sailing ship"></canvas>
+              <div class="quick-tutorial" id="quickTutorial" hidden aria-live="polite">
+                <span class="quick-tutorial-progress" id="quickTutorialStep">1 / 5</span>
+                <strong id="quickTutorialTitle">STEER</strong>
+                <span id="quickTutorialDescription">Drag the wheel left or right</span>
+                <button type="button" id="quickTutorialSkip" aria-label="Skip tutorial">Skip ×</button>
+              </div>
+              <button type="button" id="quickTutorialReplay" class="quick-tutorial-replay" title="Replay the 10-second tutorial">?</button>
+              <img id="flagGifOverlay" class="flag-gif-live" alt="" hidden>
               <div class="notch"></div>
               <div class="hud">
-                <div class="hud-top"><div class="coin-pill" id="coinHud"><span>⬡</span> <strong id="coinValue">1,250</strong></div><div class="heading-pill"><span class="hud-muted">HDG</span> <strong id="headingValue">000°</strong></div></div>
+                <div class="hud-top"><div class="coin-pill" id="coinHud"><span>⬡</span> <strong id="coinValue">1,250</strong></div><div class="heading-pill" id="headingPill"><span class="hud-muted">HDG</span> <strong id="headingValue">000°</strong></div></div>
                 <div class="hud-bottom"><div id="healthHud"><small>HULL</small><div class="mini-bar"><i id="hpFill"></i></div></div><div class="hud-score" id="scoreHud"><small>RUN SCORE</small><strong id="scoreValue">000</strong></div></div>
               </div>
               <div class="heading-hud" id="headingHud" aria-label="Compass heading strip">
@@ -64,6 +76,7 @@
                   <div class="control-caption">SAILS</div>
                   <input id="sailSlider" type="range" min="0" max="100" step="1" value="72" orient="vertical" aria-label="Sail height">
                   <div class="sail-percent" id="sailPercent">72%</div>
+                  <button type="button" id="sailHeightToggle" class="sail-height-toggle" hidden aria-label="Raise or furl all sails">FULL</button>
                   <button type="button" class="sail-trim-toggle" id="sailTrimToggle" aria-expanded="false" aria-controls="sailTrimQuick">↪ AUTO</button>
                   <div class="sail-trim-popup" id="sailTrimQuick" hidden>
                     <div class="quick-title">⛵ SAIL YARD TILT</div>
@@ -129,6 +142,16 @@
           </div>
           <button id="layoutEditToggle" class="wide-button" aria-pressed="false">✥ Enable touch editing</button>
           <button id="layoutApplyDor" class="outline-button">★ Apply Dor's uploaded V0.7 layout</button>
+          <div class="layout-icon-preview"><img id="layoutIconPreview" alt="Selected HUD component icon" src="./assets/ship-wheel.svg"><div><strong id="layoutIconName">Helm wheel</strong><small>Matching game artwork. Selected component glows in the phone preview.</small></div></div>
+          <div class="layout-appearance">
+            <div class="mini-heading">APPEARANCE · GAME HUD</div>
+            <label class="fx-toggle"><input type="checkbox" id="layoutVisible" checked> Show selected component (hide/remove from HUD)</label>
+            <div class="setting"><div class="setting-head"><label for="layoutBorderWidth">Border thickness</label><output id="layoutBorderValue">0 px</output></div>
+              <input type="range" id="layoutBorderWidth" min="0" max="8" step=".5" value="0"></div>
+            <div class="layout-colors"><label>Border <input type="color" id="layoutBorderColor" value="#8be8d6"></label>
+              <label>Background <input type="color" id="layoutBackgroundColor" value="#103b51"></label></div>
+            <label class="fx-toggle"><input type="checkbox" id="layoutUseBackground"> Custom background color</label>
+          </div>
           <div class="layout-preset-caption">Current preset: <strong id="layoutPresetName">Default</strong> · V0.8 supports legacy V0.7 JSON imports.</div>
           <div class="setting"><label for="layoutElement">Select UI component</label><select id="layoutElement" class="layout-select"></select></div>
           <div class="layout-controls">
@@ -169,6 +192,13 @@
           <div class="setting"><div class="setting-head"><label for="cameraShake">Camera shake</label><output data-value="cameraShake">0.5</output></div><input id="cameraShake" type="range" min="0" max="2" step=".1" value=".5" data-setting="cameraShake"></div>
           <div class="setting"><div class="setting-head"><label for="waveRoll">Wave-induced ship tilt</label><output data-value="waveRoll">1.0</output></div><input id="waveRoll" type="range" min="0" max="2" step=".1" value="1" data-setting="waveRoll"></div>
           <div class="button-pair"><button class="wide-button" id="feelTestShot">✹ Fire test broadside</button><button class="outline-button" id="feelTestHit">✦ Test hull impact</button></div>
+          <div class="mini-heading">SAIL CONTROL DESIGN</div>
+          <div class="setting"><label for="sailControlStyle">Mobile sail control</label>
+            <select id="sailControlStyle" class="layout-select">
+              <option value="classic">Height slider + compact AUTO button</option>
+              <option value="toggle-tilt">Up/Down toggle + wind trim mini dial</option>
+            </select>
+          </div>
           <div class="mini-heading">SAIL TRIM (OPTIONAL ONE-THUMB SKILL)</div>
           <div class="explain"><strong>Tilt the yard to catch wind</strong><p>Auto-trim stays enabled by default. Manual trim adds a small skill advantage but is not a new mandatory game button. A visual yard rotation follows the selected trim.</p></div>
           <div class="setting"><div class="setting-head"><label for="sailTrim">Sail tilt / yard angle</label><output data-value="sailTrim">0°</output></div><input id="sailTrim" type="range" min="-45" max="45" step="1" value="0" data-setting="sailTrim"></div>
@@ -311,7 +341,15 @@
           <div class="damage-turn">TURN <strong id="damageTurn">0</strong> <span>· every repair spends a turn</span></div>
           <div class="damage-modules">⛵ ENEMY SAILS <strong id="enemySailsStatus">100%</strong> · ✹ CANNONS <strong id="enemyCannonsStatus">100%</strong> · ☸ RUDDER <strong id="enemyRudderStatus">100%</strong></div>
           <div class="mini-heading">TEST SHIP COMPONENT FAILURE</div>
-          <div class="module-test-controls"><button data-test-module="sails">⛵ Hit OUR sails</button><button data-test-module="cannons">✹ Hit OUR guns</button><button data-test-module="rudder">☸ Hit OUR rudder</button><button id="repairOwn" class="outline-button">🔧 Repair our ship</button></div>
+          <div class="module-test-controls"><button data-test-module="sails">⛵ Hit OUR sails</button><button data-test-module="cannons">✹ Hit OUR guns</button><button data-test-module="rudder">☸ Hit OUR rudder</button><button id="repairOwn" class="outline-button">🔧 Instant repair (debug)</button></div>
+          <div class="repair-quick-lab" id="repairQuickLab">
+            <div class="mini-heading">QUICK REPAIR · THREE RIVETS</div>
+            <div class="setting"><label for="repairTarget">Part to fix</label>
+              <select id="repairTarget" class="layout-select"><option value="sails">Sails</option><option value="cannons">Cannons</option><option value="rudder">Rudder</option></select></div>
+            <div class="button-pair"><button id="repairBegin" class="wide-button">🔨 Start patching</button><button id="repairReset" class="outline-button">Reset puzzle</button></div>
+            <div class="repair-rivets"><button data-repair-step="0">●</button><button data-repair-step="1">●</button><button data-repair-step="2">●</button></div>
+            <div id="repairStatus" class="physics-readout">Tap the glowing rivets in order. A successful patch costs 20 coins; faster repairs restore a little more.</div>
+          </div>
           <p class="tipline">These tests affect the main gameplay preview: sails lose propulsion, rudder loses authority, and damaged guns cannot fire.</p><div class="damage-progress"><i id="damageHealthFill"></i></div>
           <div class="damage-board" id="damageBoard" aria-label="Interactive damage cells"></div>
           <div class="damage-status" id="damageStatus" aria-live="polite">Tap a tile to test an attack pattern.</div>
@@ -527,10 +565,14 @@
   <script src="./unity-readiness.js" defer></script>
   <script src="./world.js" defer></script>
   <script src="./kraken-grapple.js" defer></script>
+  <script src="./flag-motion.js" defer></script>
   <script src="./flag-workshop.js" defer></script>
   <script src="./mechanics-review.js" defer></script>
   <script src="./app.js" defer></script>
   <script src="./ui-layout.js" defer></script>
+  <script src="./nav-ui.js" defer></script>
+  <script src="./quick-tutorial.js" defer></script>
+  <script src="./repair-mini.js" defer></script>
   <script src="./map-explorer.js" defer></script>
   <script src="./mechanic-catalog.js" defer></script>
   <script src="./stage-loop.js" defer></script>
