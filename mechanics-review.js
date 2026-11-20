@@ -32,7 +32,14 @@ const catalog=[
 ["hud-layout","Editable HUD / Touch Layout","Core","HUDLayoutPreset, ResponsiveControlAnchors","Thumb-friendly on mobile; export normalized positions and scale for Unity"],
 ["expanded-map","POI Map & Faction Heat Layers","World","WorldMapPresenter, WorldPOIQuery","Explore seeded islands and selective faction layers without changing live chunk simulation"],
 ["coastline-mask","Water/Land Mask & Reactive Shoreline","Core","WorldSurfaceMask, OceanEffectClipper","Water foam and ripple paths stay off land; no visual leaks across sand"],
-["kraken-grapple","Kraken Grapple & Shoot-to-Release","After Core","KrakenBrain, ArmCoordinator, ArmState","Visible warning, bounded tentacle grab, auto-cannon release and fair escape"]
+["kraken-grapple","Kraken Grapple & Shoot-to-Release","After Core","KrakenBrain, ArmCoordinator, ArmState","Visible warning, bounded tentacle grab, auto-cannon release and fair escape"],
+["cannon-recoil","Cannon Recoil & Impact Feedback","Core","BroadsideFeedback, ShipPosePresenter","Short decaying recoil, ship feedback and audio"],
+["sail-tilt","Sail Yard Tilt & Auto Trim","Core","SailTrimController, SailRigView","Optional trim adds skill while auto trim stays playable"],
+["wave-rock","Wave-Driven Ship Motion","Core","WavePoseSampler, ShipPosePresenter","Bob, roll and pitch from OceanField samples"],
+["audio-moods","Original Pirate Music & SFX","Core","AudioDirector, AudioMixer, MusicMood","Audio event contracts, distinct moods, licensing ledger"],
+["unity-health","Unity Prefab Audit & Test Framework","Core","PrefabAuditWindow, EditModeTests, PlayModeTests","Unity Editor test report is authoritative, browser scan advisory"],
+["enemy-tells","Enemy Attack Telegraphs","After Core","EnemyIntentPresenter","Readable attacks without permanent extra buttons"],
+["boarding-puzzle","Optional Short Boarding Puzzle","After Core","BoardingMiniGame","Five to ten second skill challenge, skip allowed"]
 ].map(([id,title,group,unity,criteria])=>({id,title,group,unity,criteria}));
 const values=["keep","refine","test","later","reject"];
 class MechanicsReview{
