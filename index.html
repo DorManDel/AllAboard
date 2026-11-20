@@ -297,6 +297,8 @@
           <div class="setting"><div class="setting-head"><label for="waveDetail">Wave density</label><output data-value="waveDetail">22</output></div><input id="waveDetail" type="range" min="6" max="44" step="1" data-setting="waveDetail"></div>
           <div class="setting"><div class="setting-head"><label for="wavePush">Wave → vessel force</label><output data-value="wavePush">0.7</output></div><input id="wavePush" type="range" min="0" max="2" step=".05" data-setting="wavePush"></div>
           <div class="setting"><div class="setting-head"><label for="wakeStrength">Ship wake</label><output data-value="wakeStrength">1.0</output></div><input id="wakeStrength" type="range" min="0" max="2" step=".1" data-setting="wakeStrength"></div>
+          <div class="setting"><div class="setting-head"><label for="rippleStrength">Reactive water · event waves</label><output data-value="rippleStrength">0.8</output></div><input id="rippleStrength" type="range" min="0" max="2" step=".1" data-setting="rippleStrength"></div>
+          <p class="tipline">0 = baseline wave field, 0.8 = subtle wake and anchor impulses, 2 = exaggerated response. Island interiors block waves and splashes; a full fluid solver is not simulated.</p>
           <div class="button-pair"><button class="outline-button" id="rippleButton">◎ Add ripple</button><button class="outline-button" id="stormButton">☁ Storm preset</button></div>
           <div class="mini-heading">WATER BASELINE · V0.5</div>
           <div class="button-pair"><button id="waterSnapshot" class="outline-button">↓ Snapshot water PNG</button><button id="waterJsonExport" class="outline-button">↓ Export water settings JSON</button></div><button id="waterBaseline" class="outline-button">↺ Restore V0.5 water tuning</button>
