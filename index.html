@@ -179,6 +179,8 @@
           <label class="switch-line"><input id="worldKrakenEnabled" type="checkbox" checked> Rare secret Kraken events (about 1.8% of chunks)</label>
           <label class="switch-line"><input id="worldChunkGrid" type="checkbox"> Show chunk boundaries (debug)</label>
           <div class="button-pair"><button id="worldExplore" class="outline-button">➤ Explore next chunk</button><button id="worldSummonKraken" class="outline-button">🐙 Test Kraken</button></div>
+          <div class="kraken-lab-status" id="krakenLabStatus">🐙 Kraken arm lab: summon nearby, wait for warning, then shoot the grabbing arm.</div>
+          <button id="krakenShootArm" class="outline-button">✹ Test firing at grabbing tentacle</button>
           <div class="button-pair"><button id="mapOpenWorld" class="wide-button">⤢ Expand generated world map</button></div>
           <p class="tipline">Expanded map: drag to pan, zoom to explore, toggle POIs and hostile/friendly heatmap layers. Rendering never changes the live chunk cache.</p>
           <div class="world-alert" id="worldAlert" role="status">Sail to discover islands, trade ships and hidden treasure.</div>
@@ -400,6 +402,7 @@
   <script src="./ocean.js" defer></script>
   <script src="./vessel.js" defer></script>
   <script src="./world.js" defer></script>
+  <script src="./kraken-grapple.js" defer></script>
   <script src="./flag-workshop.js" defer></script>
   <script src="./mechanics-review.js" defer></script>
   <script src="./app.js" defer></script>
