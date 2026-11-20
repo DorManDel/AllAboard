@@ -695,3 +695,6 @@
 }
 .repair-rivets button:disabled{cursor:default}
 @media(prefers-reduced-motion:reduce){.repair-rivets button.repair-next{animation:none}}
+
+/* Highlight selected target whenever UI Studio is viewed, including numerical editing. */
+.phone-screen [data-ui-custom].layout-selected{outline:2px solid #f5d88b;outline-offset:5px;filter:drop-shadow(0 0 6px #f5d88b88)}
