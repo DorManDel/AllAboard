@@ -193,6 +193,57 @@
       }
       this.krakenState.set(monster.id,kraken);
     }
+
+    // The shoreline polygon is the same deterministic shape used for drawing,
+    // not a circular approximation. This lets waves respect actual land.
+    pointInIsland(x,y,island,scale=1.03){
+      const dx=x-island.x,dy=y-island.y;
+      const ca=Math.cos(island.angle),sa=Math.sin(island.angle);
+      const lx=dx*ca+dy*sa,ly=-dx*sa+dy*ca;
+      const n=island.shape.length;
+      let inside=false;
+      for(let i=0,j=n-1;i<n;j=i++){
+        const ai=i*2*Math.PI/n,aj=j*2*Math.PI/n;
+        const xi=Math.cos(ai)*island.rx*island.shape[i]*scale;
+        const yi=Math.sin(ai)*island.ry*island.shape[i]*scale;
+        const xj=Math.cos(aj)*island.rx*island.shape[j]*scale;
+        const yj=Math.sin(aj)*island.ry*island.shape[j]*scale;
+        if((yi>ly)!==(yj>ly) && lx<(xj-xi)*(ly-yi)/(yj-yi)+xi)
+          inside=!inside;
+      }
+      return inside;
+    }
+    isWater(x,y){
+      // Read the already-active 5x5 chunks only. Never shift the live cache
+      // while sampling splash points or distant map locations.
+      for(const chunk of this.cache.values())
+        for(const island of chunk.features){
+          if(island.type!=="island")continue;
+          if(Math.abs(island.x-x)>island.rx*1.5||Math.abs(island.y-y)>island.rx*1.5)continue;
+          if(this.pointInIsland(x,y,island))return false;
+        }
+      return true;
+    }
+    clipWater(ctx,project,player,w,h){
+      // Clip water foam/ripples to a rectangle with land cut-outs. This keeps
+      // large splash rings from visually drawing on beaches or vegetation.
+      ctx.beginPath();ctx.rect(-2,-2,w+4,h+4);
+      const islands=this.nearbyObjects(player.x,player.y,Math.max(w,h)+130)
+        .filter(item=>item.type==="island");
+      for(const item of islands){
+        const p=project(item.x,item.y),n=item.shape.length;
+        for(let i=0;i<n;i++){
+          const a=i*2*Math.PI/n;
+          const x=Math.cos(a)*item.rx*item.shape[i]*1.03;
+          const y=Math.sin(a)*item.ry*item.shape[i]*1.03;
+          const ca=Math.cos(item.angle),sa=Math.sin(item.angle);
+          const px=p.x+x*ca-y*sa,py=p.y+x*sa+y*ca;
+          if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+        }
+        ctx.closePath();
+      }
+      ctx.clip("evenodd");
+    }
     islandPenetration(x,y,item){
       // Axis-aligned conservative collision; draw angle is visual only.
       const nx=(x-item.x)/(item.rx+10),ny=(y-item.y)/(item.ry+10);
