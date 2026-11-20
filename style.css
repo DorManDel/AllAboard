@@ -698,3 +698,51 @@
 
 /* Highlight selected target whenever UI Studio is viewed, including numerical editing. */
 .phone-screen [data-ui-custom].layout-selected{outline:2px solid #f5d88b;outline-offset:5px;filter:drop-shadow(0 0 6px #f5d88b88)}
+
+
+/* V0.10 — Both sail modes use a standing vertical slider, never horizontal. */
+#sailControl{width:86px;max-width:29%;bottom:226px;gap:6px;padding:8px 6px;border-radius:13px}
+#sailControl .control-caption{font-size:9px}
+#sailControl.sail-toggle-mode{width:86px;bottom:225px;gap:6px}
+#sailControl .sail-height-toggle{width:100%;min-height:35px}
+#sailControl.sail-toggle-mode .sail-trim-popup{
+  position:static;right:auto;bottom:auto;display:flex;align-items:center;
+  width:100%;max-width:none;box-shadow:none;border:0;border-radius:9px;
+  background:transparent;padding:2px 0;gap:3px
+}
+#sailControl #sailTrimQuickSlider,#sailControl #sailSlider{
+  writing-mode:vertical-lr!important;direction:rtl!important;
+  appearance:slider-vertical!important;width:33px!important;height:117px!important;
+  min-height:117px!important;display:block;touch-action:none;
+  accent-color:#f2c17b;cursor:grab;margin:4px auto!important;
+}
+#sailControl #sailTrimQuickSlider:active,#sailControl #sailSlider:active{cursor:grabbing}
+#sailControl #sailTrimQuick[hidden],#sailControl #sailSlider[hidden],
+#sailControl #sailHeightToggle[hidden],#sailControl #sailTrimToggle[hidden],
+#sailControl #sailQuickAutoLabel[hidden],#sailControl #sailPercent[hidden]{display:none!important}
+#sailControl #sailQuickTitle{font-size:8px;line-height:1.4;letter-spacing:.05em;text-align:center}
+#sailControl #sailQuickTrimValue{
+  color:#fbe6be;font-size:8px;line-height:1.35;text-align:center;
+  font-weight:800;overflow-wrap:normal;white-space:normal
+}
+#sailControl.sail-area-mode{bottom:225px;gap:5px;width:76px}
+#sailControl.sail-area-mode #sailTrimToggle{
+  display:block;width:100%;border-color:#5aaea7;color:#d8ffeb;cursor:help
+}
+#sailControl .sail-percent{font-size:11px}
+#sailControl input[type=range]{background:transparent}
+#sailControl input[type=range]:focus-visible{outline:2px solid #ffe3a1;outline-offset:3px}
+@media(max-width:410px){
+ #sailControl,#sailControl.sail-toggle-mode{width:79px;right:6px}
+ #sailControl.sail-area-mode{width:72px}
+}
+
+/* Full control: geometry (position/scale) and appearance are separate workflows. */
+.layout-appearance .fx-toggle{font-size:11px;min-height:39px}
+.layout-appearance #layoutBackgroundStyle{width:100%;margin:6px 0}
+.layout-appearance #layoutBackgroundOpacity,.layout-appearance #layoutBorderRadius{width:100%}
+.layout-appearance .setting{margin:9px 0}
+.feel-number{width:82px;min-width:72px;border:1px solid #65a0ae;
+ border-radius:8px;color:#ebf6f4;background:#0d3245;padding:7px 6px;
+ text-align:center;font:inherit;font-size:11px;font-variant-numeric:tabular-nums}
+.feel-number:focus-visible{outline:2px solid #9bf7d6}
