@@ -12,7 +12,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.4</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.5</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
     <div class="tabbar" role="tablist" aria-label="Mechanics">
@@ -24,6 +24,8 @@
       <button role="tab" aria-selected="false" class="tab" data-tab="damage">✹ Damage</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="encounter">♡ Encounters</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="shipyard">✦ Pimp My Ship</button><button role="tab" aria-selected="false" class="tab" data-tab="ideas">✧ Ideas Board</button><button role="tab" aria-selected="false" class="tab" data-tab="review">✓ Mechanics Review</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="loop">↻ Stage Loop</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="planner">▦ Roadmap & Kanban</button>
     </div>
 
     <main class="workspace">
@@ -244,6 +246,98 @@
           <div class="button-pair"><button id="reviewExport" class="wide-button">↓ Export Unity brief</button><button id="reviewReset" class="outline-button">↺ Reset decisions</button></div>
           <div class="callout">The exported brief describes approved behavior, C# candidates, and test criteria. Browser JavaScript is not copied directly to Unity, and deferred Fleet / Rescue / Intercept remain later-phase mechanics.</div>
         </section>
+
+        <section class="panel" data-panel="loop">
+          <div class="explain"><strong>Eilon's fused loop: stages + optional endless risk</strong>
+            <p>Complete a stage objective, then decide whether to <b>cash out</b> or <b>stay at sea</b> for harder waves and improved rewards. The guaranteed stage reward stays safe; only optional unbanked rewards are at risk.</p>
+          </div>
+          <div class="loop-rule">OBJECTIVE <span>→</span> CHOICE <span>→</span> LEAVE / STAY <span>→</span> SAVE / RISK</div>
+          <div class="loop-head">
+            <div><small>STAGE</small><strong id="loopStage">1</strong></div>
+            <div class="loop-phase"><small>STATUS</small><strong id="loopPhase">OBJECTIVE</strong></div>
+            <div><small>RISK WAVE</small><strong id="loopWave">0</strong></div>
+          </div>
+          <div class="loop-objective">
+            <span class="mini-heading">CURRENT OBJECTIVE</span>
+            <h3 id="loopObjective">Reach the trade passage</h3>
+            <p id="loopObjectiveHint">Navigate around the reef</p>
+            <div class="loop-reward">Guaranteed reward <strong>+<span id="loopGuaranteed">50</span> coins</strong></div>
+          </div>
+          <div class="loop-wallet">
+            <div><small>BANKED / SAFE</small><strong id="loopBanked">0</strong><span>Coins protected</span></div>
+            <div><small>UNBANKED / AT RISK</small><strong id="loopPending">0</strong><span>Lost on defeat</span></div>
+          </div>
+          <div class="loop-danger">
+            <div class="setting-head"><span>Danger <strong id="loopRiskTier">Safe</strong></span><strong id="loopDifficulty">0.9</strong></div>
+            <div class="loop-meter"><div id="loopDifficultyBar"></div></div>
+            <div class="loop-potential"><span>Potential next bonus <b id="loopPotential">+29</b></span><span>Time in current wave <b id="loopAtSea">0s</b></span></div>
+          </div>
+          <div class="loop-actions">
+            <button id="loopCompleteObjective" class="wide-button">✓ Complete objective (lab test)</button>
+            <button id="loopLeave" class="wide-button">⌂ Leave & bank rewards</button>
+            <button id="loopStay" class="outline-button">🔥 Stay · Higher stakes</button>
+            <button id="loopAdvance10" class="outline-button">＋ Simulate 10s at sea</button>
+            <button id="loopSurvive" class="wide-button">✓ Survive this risk wave</button>
+            <button id="loopFail" class="outline-button">✕ Test losing the extra round</button>
+            <button id="loopResume" class="wide-button">↻ Resume same stage</button>
+            <button id="loopNextStage" class="outline-button">→ Start next stage</button>
+            <button id="loopReset" class="outline-button">↺ Reset loop demo</button>
+          </div>
+          <div class="loop-event" id="loopLastEvent" role="status">Start the objective.</div>
+          <div class="callout">This is an interactive rules prototype independent of the live ship. Buttons simulate encounter outcomes; no random win percentages or production reward balance are implied. Browser-local checkpoint data is stored for this demo.</div>
+          <div class="mini-heading">10-SECOND FIRST-RUN TUTORIAL — STORYBOARD</div>
+          <div class="tutorial-shell">
+            <div class="tutorial-hint"><div id="tutorialHintIcon">☸</div><div><strong id="tutorialHintTitle">STEER</strong><p id="tutorialHintDescription">Drag the wheel to steer.</p></div></div>
+            <div class="tutorial-time"><span id="tutorialTime">0.0 / 10s</span><div class="tutorial-progress"><div id="tutorialProgress"></div></div></div>
+            <div class="tutorial-steps" id="tutorialSteps"></div>
+            <div class="button-pair"><button id="tutorialReplay" class="wide-button">▶ Play 10s tutorial</button><button id="tutorialNext" class="outline-button">Step</button><button id="tutorialSkip" class="outline-button">Skip</button></div>
+          </div>
+          <p class="tipline">Our tutorial should eventually appear as light prompts over the live game, not as a separate mandatory ten-second cutscene.</p>
+        </section>
+        <section class="panel" data-panel="planner">
+          <div class="explain"><strong>Our roadmap: from idea → test → Unity</strong>
+            <p>Select a mechanic to read its <b>full plan</b>. Add only the chosen ideas to a local Kanban. This is a <b>planning board</b>, not an automatic Jira writer. We found the real All Aboard! Jira project: SCRUM.</p>
+          </div>
+          <div class="roadmap-phases">
+            <div><strong>01 · CORE</strong><small>Sail, objective, Stay/Leave, checkpoint</small></div>
+            <div><strong>02 · COMBAT</strong><small>Spatial damage, trajectories, auto-cannons</small></div>
+            <div><strong>03 · REVIEW</strong><small>Android tests, Eilon + Dor approval, Unity</small></div>
+            <div><strong>04 · EXPAND</strong><small>Reputation, followers, ammo, Kraken arms</small></div>
+          </div>
+          <div class="mini-heading">MECHANIC LIBRARY</div>
+          <div class="planner-filters">
+            <input id="plannerSearch" type="search" placeholder="Search mechanics..." aria-label="Search mechanics">
+            <div class="button-pair"><select id="plannerPhase" aria-label="Filter by phase"><option value="all">All phases</option><option value="Core">Core</option><option value="After Core">After Core</option></select>
+            <select id="plannerCategory" aria-label="Filter by category"><option value="all">All categories</option></select></div>
+          </div>
+          <div class="planner-count" id="plannerCatalogCount">14 plans</div>
+          <div class="planner-catalog" id="plannerCatalog"></div>
+          <div class="planner-detail" id="plannerDetail">
+            <div class="planner-detail-header">
+              <div><small id="plannerDetailCategory">Game Loop</small><h3 id="plannerDetailTitle">Stage + Endless Stay-or-Leave Loop</h3></div>
+              <span id="plannerDetailPhase">Core</span>
+            </div>
+            <div class="planner-effort" id="plannerDetailEffort">Effort M · P0</div>
+            <p id="plannerDetailSummary"></p>
+            <div class="planner-detail-sub"><strong>Player's decision</strong><p id="plannerDetailDecision"></p></div>
+            <div class="planner-detail-sub"><strong>Prototype to test</strong><p id="plannerDetailPrototype"></p></div>
+            <div class="planner-detail-sub"><strong>Minimum viable behavior</strong><ul id="plannerDetailMvp"></ul></div>
+            <div class="planner-detail-sub"><strong>Acceptance tests</strong><ul id="plannerDetailAcceptance"></ul></div>
+            <div class="planner-detail-sub"><strong>Dependencies</strong><p id="plannerDetailDependencies"></p></div>
+            <div class="planner-detail-sub"><strong>Proposed Unity classes</strong><p id="plannerDetailUnity"></p></div>
+            <div class="button-pair"><button id="plannerAdd" class="wide-button">＋ Add to Kanban</button><button id="plannerCopyJira" class="outline-button">⧉ Copy Jira ticket</button></div>
+          </div>
+          <div class="mini-heading">LOCAL KANBAN — PLANNING ONLY</div>
+          <div class="planner-count" id="plannerBoardCount">0 mechanics on board</div>
+          <div id="plannerBoard" class="planner-board"></div>
+          <div class="planner-board-tools">
+            <button id="plannerExportMd" class="wide-button">↓ Export Jira-ready backlog (.md)</button>
+            <div class="button-pair"><button id="plannerExportJson" class="outline-button">↓ Export board JSON</button><label for="plannerImportJson" class="outline-button import-label">↑ Import board JSON</label><input id="plannerImportJson" type="file" accept="application/json,.json" hidden></div>
+            <button id="plannerReset" class="outline-button">↺ Clear local board</button>
+          </div>
+          <div class="world-alert" id="plannerStatus" role="status">Select mechanics above to add them to the board.</div>
+          <div class="callout">Board cards and notes are saved on this browser/device. Export JSON to share with Eilon, or copy a Jira-ready issue for the SCRUM project. The public website does not store an Atlassian access token and cannot silently create Jira issues. No Unity changes are made here.</div>
+        </section>
       </aside>
     </main>
 
@@ -255,5 +349,8 @@
   <script src="./flag-workshop.js" defer></script>
   <script src="./mechanics-review.js" defer></script>
   <script src="./app.js" defer></script>
+  <script src="./mechanic-catalog.js" defer></script>
+  <script src="./stage-loop.js" defer></script>
+  <script src="./roadmap-board.js" defer></script>
 </body>
 </html>
