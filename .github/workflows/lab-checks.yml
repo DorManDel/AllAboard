@@ -21,8 +21,10 @@ jobs:
         with:
           node-version: "22"
       - name: Check JavaScript syntax
-        run: node --check app.js && node --check ocean.js && node --check vessel.js
+        run: node --check app.js && node --check ocean.js && node --check vessel.js && node --check world.js && node --check flag-workshop.js && node --check mechanics-review.js
       - name: Run lab smoke tests
         run: node tests/smoke.cjs
       - name: Run vessel and ocean physics tests
         run: node tests/vessel.cjs
+      - name: Test deterministic world generation
+        run: node tests/world.cjs
