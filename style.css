@@ -385,3 +385,6 @@
   background:linear-gradient(125deg,#282044,#173444);
   padding:12px;margin:12px 0;color:#e5cff3;font-size:11px;line-height:1.6}
 #krakenShootArm{width:100%;min-height:42px;color:#efc7fc;border-color:#8c71a1}
+
+/* Keep the helm centered in the default phone layout; UI Studio can shift it. */
+.helm-control{left:50%}
