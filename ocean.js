@@ -19,6 +19,29 @@
       this.time=0;this.splashes=[];this.foam=[];this.wakeClock=0;
       this.lastSurface=-100;
     }
+    rippleImpulseAt(x,y,settings,time=this.time){
+      if(!this.isWater(x,y))return 0;
+      const strength=Math.max(0,Math.min(2,settings.rippleStrength??.8));
+      if(!strength)return 0;
+      let response=0;
+      // The last eight local events disturb the same sampled sea surface.
+      // A damped traveling ring, not a costly 2D fluid solver.
+      const begin=Math.max(0,this.splashes.length-8);
+      for(let i=begin;i<this.splashes.length;i++){
+        const pulse=this.splashes[i],age=Math.max(0,time-(this.time-pulse.age));
+        if(age>=2.8)continue;
+        const dx=x-pulse.x,dy=y-pulse.y;
+        const distance=Math.hypot(dx,dy);
+        if(distance>150*pulse.size+50)continue;
+        // Prevent a wave from passing through island interior.
+        if(this.waterMask&&!this.isWater((x+pulse.x)/2,(y+pulse.y)/2))continue;
+        const radius=(age*29+3)*pulse.size;
+        const spread=9+age*8;
+        const ring=Math.exp(-Math.pow((distance-radius)/spread,2));
+        response+=ring*Math.exp(-age*1.2)*pulse.size*.18;
+      }
+      return Math.min(.85,response*strength);
+    }
     heightAt(x,y,settings,time=this.time){
       const a=rad(settings.windDirection||0);
       const wx=Math.sin(a),wy=-Math.cos(a);
@@ -30,7 +53,8 @@
         .28*Math.sin(cross*.034+t*.61+Math.sin(axis*.015)*1.2)+
         .16*Math.cos(axis*.057+cross*.037-t*1.15)+
         .08*Math.sin(x*.093+y*.039+t*1.57)
-      )*Math.max(.05,settings.waveHeight||.7);
+      )*Math.max(.05,settings.waveHeight||.7)+
+        this.rippleImpulseAt(x,y,settings,time);
     }
     sampleFlow(x,y,settings,vortex){
       const angle=rad(settings.windDirection);
@@ -98,6 +122,13 @@
         }
       }
       if(turn>.25&&Math.random()<turn*.5) this.splash(bx+rightX*20,by+rightY*20,.3,"turn");
+      // Sparse wake impulses make the surface react to moving ships, not
+      // just draw short-lived white foam sprites on top of a static field.
+      this.wakeImpulseClock=(this.wakeImpulseClock||0)+dt;
+      if(this.wakeImpulseClock>.28&&speed>6){
+        this.wakeImpulseClock=0;
+        this.splash(bx,by,Math.min(.35,.12+speed/220),"wake");
+      }
       this.limitFoam();
     }
     step(dt){

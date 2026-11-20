@@ -144,7 +144,7 @@ const plans=[
   },
   {
     id:"hud-layout",title:"Touch-Editable HUD & Button Design",category:"Core Sailing",phase:"Core",priority:"P0",effort:"M",
-    summary:"Advanced HUD Studio V0.8: touch move, independent scale X/Y, rotation, opacity, layer order, precise values, presets and overlap hints.",
+    summary:"V0.9 HUD Studio adds show/hide (including heading degrees), borders/background colors and SVG selection preview to V0.8 geometry editing.",
     player:"Find a thumb-friendly wheel, anchor, sail control, compass, minimap and Friendly toggle layout.",
     prototype:"V0.8 editor imports legacy V0.7 JSON, includes Dor’s approved test layout, controls X/Y scale/rotation/opacity/layer and saves versioned presets.",
     mvp:["Touch drag and precision 0.1% X/Y","Independent X/Y + uniform scale","Rotation, transparency and layer priority","V1→V2 JSON migration and local save","Overlap/offscreen warnings and three button themes"],
@@ -255,11 +255,56 @@ const plans=[
   {
     id:"unified-anchor-chain",title:"Unified Anchor & Chain Control",category:"Core Sailing",phase:"Core",priority:"P0",effort:"S",
     summary:"Combine anchor drop/raise, live line tension/status and adjustable deployed-chain length into one compact HUD control.",
-    player:"Tap anchor to deploy/recover; expand the chain segment only when adjusting length. Current direction remains visible.",
-    prototype:"V0.8 one anchor card with inline chain status, a compact slider and continuous reeling with no ship teleport.",
-    mvp:["Anchor action remains one tap","Secondary chain segment opens contextual length slider","Rope length reeled gradually in physics","Single movable/resizable HUD group","No redundant floating chain HUD"],
+    player:"One compact Drop/Raise button; after deployment see chain stretch and status without opening a second live-game editor.",
+    prototype:"V0.9 compacts the real HUD: button and conditional chain tension readout only. Adjustable chain remains in separate Anchor Lab.",
+    mvp:["Anchor action remains one tap","Conditional chain distance and tension bar below action","Rope length tuning in Anchor Lab only","Single movable/resizable HUD group","No redundant floating chain HUD"],
     acceptance:["Drop/raise still works with edit mode off","Changing length while anchored never teleports the ship","HUD shows deployed length and target reeling state","Anchor and status move together"],
     dependencies:["sailing-feel"],unity:["AnchorController","RopeConstraint","AnchorControlView"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"grouped-navigation",title:"Phone-Friendly Grouped Mechanics Navigation",category:"Game Loop",phase:"Core",priority:"P0",effort:"S",
+    summary:"Replace 17 horizontally scrolling lab tabs with five grouped categories, visible subset tabs and direct jump select.",
+    player:"Find and compare a mechanic on either phone or PC without swiping across a long navigation strip.",
+    prototype:"V0.9 nav-ui.js groups sailing, adventure, world, creation and build tools without removing any existing tab.",
+    mvp:["All 17 routes reachable","Visible tabs wrap instead of horizontal scroll","Category controls accessible by touch/keyboard","Single existing app tab router"],
+    acceptance:["No mechanics lost","Mobile quick switch takes <=2 taps","No navigation overflow at 375px"],
+    dependencies:["hud-layout"],unity:["MechanicsLabNavigation"],jiraType:"Task",postCore:false
+  },
+  {
+    id:"wind-flag-animation",title:"Wind-Driven Cloth Flag",category:"Customization",phase:"Core",priority:"P1",effort:"S",
+    summary:"Your mast-mounted custom painted/photo flag billows and changes direction/sway with wind and vessel heading.",
+    player:"Tell wind direction visually by watching your custom fleet flag flutter; the flag feels connected to the ocean.",
+    prototype:"V0.9 flag-motion.js and seven textured canvas strips. GIF is still kept as an animated DOM image with a wind transform.",
+    mvp:["Relative wind drives extension/sign","Time and speed drive flutter","Always attached to selected mast","Static PNG flag included in export preset"],
+    acceptance:["Flag root stays on mast","Moving ship and wind change direction","No large memory/per-frame allocations","Animated GIF exported as a poster only"],
+    dependencies:["sailing-feel"],unity:["ShipFlagPresenter","FlagSprite"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"reactive-water-impulses",title:"Water Surface Reacts to Events",category:"World",phase:"Core",priority:"P1",effort:"M",
+    summary:"Small bounded ripple field after ship wakes, anchor throw, projectiles and Kraken while preserving V0.8 water aesthetics.",
+    player:"Every impact slightly changes water height, but waves cannot pass through islands or land.",
+    prototype:"V0.9 local damped wave-ring impulses in OceanField, slider 0..2 and unchanged V0.8 source snapshot.",
+    mvp:["Events add short-lived impulses","Reuse wave height sample for ship rocking","Clip land and midpoint island paths","Keep last eight local pulses and cap amplitude","Intensity zero compares against V0.8 baseline"],
+    acceptance:["Nearby height changes when splash occurs","No impulse on land","No noticeable frame time regression on phone"],
+    dependencies:["water-shore-mask"],unity:["OceanField","OceanImpulse"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"guided-quick-tutorial",title:"On-Screen Ten-Second Control Glow",category:"Game Loop",phase:"Core",priority:"P0",effort:"S",
+    summary:"Five two-second tutorial prompts directly over active gameplay, highlighting wheel, sails, anchor, mode and compass.",
+    player:"Start sailing immediately while the current control glows and small arrows demonstrate steering.",
+    prototype:"V0.9 quick-tutorial.js: nonblocking overlay, replay ?, skip and reduced-motion CSS.",
+    mvp:["Wheel arrows left and right","Sail/anchor/mode glow","Compass/wind step","Skip, replay and session-based seen flag"],
+    acceptance:["Never block the wheel or mode taps","Complete in ten seconds","Replay works on phone and reduced-motion"],
+    dependencies:["sailing-feel"],unity:["TutorialCoach","ControlHighlight"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"quick-rivet-repair",title:"Three-Rivet Interactive Ship Repair",category:"Combat",phase:"After Core",priority:"P2",effort:"S",
+    summary:"Tiny optional tap-based repair: center, left, right rivets. Successful timed action repairs an actual damaged module and costs 20 coins.",
+    player:"Trade materials and time for repaired sails/cannons/rudder; a faster sequence has a small reward.",
+    prototype:"V0.9 Damage Lab RepairMiniUI and pure RepairSequence, with visible current rivet and no extra main HUD buttons.",
+    mvp:["Pick damaged target module","Three ordered taps","20 coin material cost","Fast +35%, slower +25% condition","Repair SFX and consistent HUD telemetry"],
+    acceptance:["Wrong tap doesn't grant repair","Cannot repeat free repair without materials","Repair changes movement or fire authority"],
+    dependencies:["damage"],unity:["RepairMiniGame","ModuleHealth"],jiraType:"Story",postCore:true
   }
 ];
 const byId=Object.freeze(Object.fromEntries(plans.map(plan=>[plan.id,plan])));

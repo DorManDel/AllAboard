@@ -19,7 +19,7 @@
     windDrive: 1, waterDrag: 1,
     sailTrim: 0, sailAutoTrim: true, recoilStrength: .8, cameraShake: .5, waveRoll: 1, windFX: .6,
     anchorGrip: 185, anchorLine: 70, ropeStiffness: 9, ropeDamping: 6, lateralDrag: 5.5, wavePush: .65, vortexStrength: 1,
-    currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
+    currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1, rippleStrength: .8
   });
   let settings = { ...defaultSettings };
   const ocean = typeof window.AllAboardOcean === "function" ? new window.AllAboardOcean() : null;
@@ -314,6 +314,8 @@
     if (name === "damage") renderDamage();
     if (name === "encounter") renderEncounter();
     if (name === "shipyard") renderPartsGallery();
+    window.AllAboardNavInstance?.sync(name);
+    window.AllAboardUILayoutInstance?.applyAll();
     if (name === "ideas") renderIdeas();
   }
   all(".tab").forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
@@ -330,6 +332,7 @@
     all("[data-value]").forEach((output) => { output.textContent = formatValue(output.dataset.value, settings[output.dataset.value]); });
     $("sailSlider").value = settings.sail;
     $("sailPercent").textContent = Math.round(settings.sail) + "%";
+    const heightToggle=$("sailHeightToggle");if(heightToggle)heightToggle.textContent=settings.sail>0?"LOWER":"RAISE";
     $("anchorChainQuickSlider").value = settings.anchorLine;
     $("anchorChainQuickValue").textContent = String(Math.round(settings.anchorLine));
     $("anchorChainEditValue").textContent = String(Math.round(settings.anchorLine));
@@ -355,6 +358,23 @@
     settings.sailAutoTrim=e.target.checked;syncSettings();
   });
   $("sailTrimQuickSlider").addEventListener("input",e=>tune("sailTrim",e.target.value));
+  const setSailControlStyle=mode=>{
+    const toggle=mode==="toggle-tilt";
+    $("sailSlider").hidden=toggle;
+    $("sailPercent").hidden=toggle;
+    $("sailHeightToggle").hidden=!toggle;
+    $("sailTrimToggle").hidden=toggle;
+    $("sailTrimQuick").hidden=!toggle;
+    $("sailControl").classList.toggle("sail-toggle-mode",toggle);
+    if(!toggle)$("sailTrimToggle").setAttribute("aria-expanded","false");
+    $("sailHeightToggle").textContent=settings.sail>0?"LOWER":"RAISE";
+  };
+  $("sailControlStyle").addEventListener("change",e=>setSailControlStyle(e.target.value));
+  $("sailHeightToggle").addEventListener("click",()=>{
+    tune("sail",settings.sail>0?0:100);
+    $("sailHeightToggle").textContent=settings.sail>0?"LOWER":"RAISE";
+  });
+  setSailControlStyle("classic");
   $("sailTrimToggle").addEventListener("click",()=>{
     const popup=$("sailTrimQuick"),open=popup.hidden;
     popup.hidden=!open;
@@ -834,7 +854,7 @@
   // V0.4 separates the flag painter from the game simulation.
   // This renderer runs inside the rotated ship-local drawing context.
   function drawFlag(ctx){
-    if(flagWorkshop)flagWorkshop.drawOnShip(ctx);
+    if(flagWorkshop)flagWorkshop.drawOnShip(ctx,state.ship,settings,state.time);
   }
   // Ship customization: visible color and simple deterministic gameplay modifiers.
   function selectPart(kind, choice) {
@@ -1311,7 +1331,7 @@
     drawChest();
     drawSmallEnemy();
     drawShip();
-    if(flagWorkshop)flagWorkshop.positionGif(state.ship,{time:state.time,waveHeight:settings.waveHeight},project);
+    if(flagWorkshop)flagWorkshop.positionGif(state.ship,{time:state.time,waveHeight:settings.waveHeight,windDirection:settings.windDirection,windStrength:settings.windStrength},project);
   }
   function drawWorldChunkGrid(ctx,w,h){
     const scale=world.constructor.CHUNK_SIZE;
@@ -1502,12 +1522,44 @@
     message("Reset! All experiments are ready to be tested again.");
   }
   $("resetAll").addEventListener("click", resetEverything);
+  function applyMechanicsPreset(data){
+    if(!data||!data.settings||typeof data.settings!=="object")throw Error("Invalid mechanics preset");
+    const filtered=Object.fromEntries(Object.entries(data.settings).filter(([key,v])=>
+      key in defaultSettings&&typeof v==="number"&&Number.isFinite(v)));
+    settings={...defaultSettings,...filtered};
+    if(typeof data.settings.sailAutoTrim==="boolean")settings.sailAutoTrim=data.settings.sailAutoTrim;
+    if(data.upgrades&&typeof data.upgrades==="object")state.upgrades={...state.upgrades,...data.upgrades};
+    if(data.hudLayout)window.AllAboardUILayoutInstance?.restore(data.hudLayout);
+    if(data.flag)flagWorkshop?.restorePreset?.(data.flag);
+    syncSettings();updateUI();
+    message("Mechanics preset loaded. You can reset or restore your original snapshot.");
+    return true;
+  }
+  $("loadFavoritePreset").addEventListener("click",async()=>{
+    try{
+      const response=await fetch("./presets/dor-loved-v08-mechanics.json");
+      if(!response.ok)throw Error("Cannot load favorite preset");
+      applyMechanicsPreset(await response.json());
+      message("Restored favorite V0.8 snapshot: wave height 1.3, detail 36, push 1.7, wake 1.4.");
+    }catch(err){message("Favorite preset unavailable: "+err.message);}
+  });
+  $("importMechanicsPresetButton").addEventListener("click",()=>$("importMechanicsPreset").click());
+  $("importMechanicsPreset").addEventListener("change",async e=>{
+    const file=e.target.files?.[0];if(!file)return;
+    try{
+      if(file.size>500000)throw Error("Maximum preset file size 500 KB");
+      applyMechanicsPreset(JSON.parse(await file.text()));
+    }catch(err){message("Preset import error: "+err.message);}
+    e.target.value="";
+  });
   $("savePreset").addEventListener("click", () => {
     const exportData = {
-      title: "All Aboard Mechanics Lab tuning", version: 3,
+      title: "All Aboard Mechanics Lab tuning", version: 4,
       settings, upgrades: state.upgrades,
       hudLayout: window.AllAboardUILayoutInstance?.snapshot()||null,
-      note: "Concept parameters, not physically measured units"
+      flag: flagWorkshop?.exportPreset?.()||null,
+      audioDirection:"playful-to-cinematic-combat",
+      note: "Concept parameters, not physically measured units; GIF flags export a still poster."
     };
     const file = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(file);
@@ -1574,7 +1626,7 @@
   if(ocean&&world)ocean.setWaterMask((x,y)=>!world||world.isWater(x,y));
   window.AllAboardLiveBridge={
     getWorld:()=>world,getShip:()=>state.ship,getOcean:()=>ocean,
-    getSettings:()=>settings,getState:()=>state
+    getSettings:()=>settings,getState:()=>state,setTab
   };
   syncSettings();
   resizeCanvas();
