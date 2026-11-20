@@ -23,6 +23,7 @@ class LayoutStudio{
     this.layout={};
     for(const [id] of targets)this.layout[id]={x:0,y:0,scale:1};
     this.selected="wheelControl";
+    this.theme="classic";
     this.active=false;this.drag=null;
   }
   $(id){return document.getElementById(id);}
@@ -45,6 +46,10 @@ class LayoutStudio{
       const raw=localStorage.getItem("allaboard-ui-layout-v1");
       if(raw)this.restore(JSON.parse(raw));
     }catch(err){}
+    this.$("layoutTheme").addEventListener("change",e=>{
+      this.theme=["classic","glass","compact"].includes(e.target.value)?e.target.value:"classic";
+      this.render();this.save();
+    });
     this.$("layoutElement").addEventListener("change",e=>{
       this.selected=e.target.value;this.render();
     });
@@ -67,7 +72,8 @@ class LayoutStudio{
     });
     this.$("layoutResetAll").addEventListener("click",()=>{
       for(const [id] of targets)this.layout[id]={x:0,y:0,scale:1};
-      this.save();this.render();this.note("All UI positions and scales reset.");
+      this.theme="classic";
+      this.save();this.render();this.note("All UI positions, scales and theme reset.");
     });
     this.$("layoutExport").addEventListener("click",()=>this.export());
     this.$("layoutImport").addEventListener("change",async e=>{
@@ -141,15 +147,20 @@ class LayoutStudio{
     this.$("layoutOutput").textContent=
       targets.find(x=>x[0]===this.selected)?.[1]+" · x "+p.x.toFixed(1)+"% · y "+p.y.toFixed(1)+"% · "+p.scale.toFixed(2)+"×";
   }
-  render(){this.applyAll();this.renderValues();}
+  render(){
+    this.phone.dataset.uiTheme=this.theme;
+    this.$("layoutTheme").value=this.theme;
+    this.applyAll();this.renderValues();
+  }
   note(message){this.$("layoutStatus").textContent=message;}
   snapshot(){
-    return {format:"allaboard-ui-layout",version:1,coordinateSpace:"phone-percent",items:
+    return {format:"allaboard-ui-layout",version:1,coordinateSpace:"phone-percent",theme:this.theme,items:
       Object.fromEntries(targets.map(([id])=>[id,{...this.layout[id]}]))};
   }
   restore(data){
     if(!data||data.format!=="allaboard-ui-layout"||data.version!==1||!data.items)
       throw Error("Unsupported layout preset.");
+    this.theme=["classic","glass","compact"].includes(data.theme)?data.theme:"classic";
     for(const [id] of targets){
       const p=data.items[id];if(!p)continue;
       const x=Number(p.x),y=Number(p.y),scale=Number(p.scale);
