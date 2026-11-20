@@ -277,7 +277,7 @@ const plans=[
     prototype:"V0.9 flag-motion.js and seven textured canvas strips. GIF is still kept as an animated DOM image with a wind transform.",
     mvp:["Relative wind drives extension/sign","Time and speed drive flutter","Always attached to selected mast","Static PNG flag included in export preset"],
     acceptance:["Flag root stays on mast","Moving ship and wind change direction","No large memory/per-frame allocations","Animated GIF exported as a poster only"],
-    dependencies:["sailing-feel","flag"],unity:["ShipFlagPresenter","FlagSprite"],jiraType:"Story",postCore:false
+    dependencies:["sailing-feel"],unity:["ShipFlagPresenter","FlagSprite"],jiraType:"Story",postCore:false
   },
   {
     id:"reactive-water-impulses",title:"Water Surface Reacts to Events",category:"World",phase:"Core",priority:"P1",effort:"M",
