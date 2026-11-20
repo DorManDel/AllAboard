@@ -19,7 +19,7 @@
     windDrive: 1, waterDrag: 1,
     sailTrim: 0, sailAutoTrim: true, recoilStrength: .8, cameraShake: .5, waveRoll: 1, windFX: .6,
     anchorGrip: 185, anchorLine: 70, ropeStiffness: 9, ropeDamping: 6, lateralDrag: 5.5, wavePush: .65, vortexStrength: 1,
-    currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
+    currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1, rippleStrength: .8
   });
   let settings = { ...defaultSettings };
   const ocean = typeof window.AllAboardOcean === "function" ? new window.AllAboardOcean() : null;
