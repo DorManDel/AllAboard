@@ -13,7 +13,7 @@ const plans=[
     prototype:"Run a deterministic Loop Lab with an objective, pending rewards, danger level, and a stay/leave checkpoint.",
     mvp:["One objective per stage","Objective reward is guaranteed on completion","After objective, show explicit Stay / Leave decision","Every extra round raises enemy pressure and bonus potential","Leaving banks pending rewards and records the same stage checkpoint"],
     acceptance:["Never force players into an endless round","Clear risk warning and potential reward before Stay","Leaving and returning does not restart a completed objective","If defeated, only unbanked optional loot is lost"],
-    dependencies:["world","sails","damage","stage-save"],
+    dependencies:["world","sailing-feel","damage"],
     unity:["StageSession","ObjectiveDirector","RiskRewardController"],jiraType:"Story",postCore:false
   },
   {
@@ -32,7 +32,7 @@ const plans=[
     prototype:"A tappable four-step tutorial storyboard and a 10-second playback inside Loop Lab.",
     mvp:["Four illustrated contextual prompts","No long text walls or separate tutorial scene","Skip / Replay in Settings","New mechanics introduced only when first encountered"],
     acceptance:["First-time player can steer and finish one stage objective without reading a manual","Tutorial is skippable and no more than 10 seconds of prompts","Tap targets remain comfortable in portrait"],
-    dependencies:["helm","sails","cannons","stage-loop"],unity:["TutorialSequence","HintPresenter"],jiraType:"Story",postCore:false
+    dependencies:["sailing-feel","cannons","stage-loop"],unity:["TutorialSequence","HintPresenter"],jiraType:"Story",postCore:false
   },
   {
     id:"sailing-feel",title:"Ship Feel & Reactive Ocean",category:"Core Sailing",phase:"Core",priority:"P0",effort:"L",
@@ -41,7 +41,7 @@ const plans=[
     prototype:"Keep V0.3/V0.4 vessel and ocean lab; instrument side slip, wake emission and anchor jitter.",
     mvp:["Separate lateral and forward water resistance","Wind TO arrow with no-go zone","Wake intensity from speed and turn","Anchor and projectiles create water impulses","One shared OceanField force + visual contract"],
     acceptance:["No skating or sharp anchor teleporting","Ship motion and wake reflect speed","Fluid-like water remains performant on actual Android"],
-    dependencies:["helm","sails","anchor"],unity:["ShipMotionModel","OceanField","OceanRenderer"],jiraType:"Story",postCore:false
+    dependencies:[],unity:["ShipMotionModel","OceanField","OceanRenderer"],jiraType:"Story",postCore:false
   },
   {
     id:"world",title:"Seeded World / Islands / Ships / Treasure",category:"World",phase:"Core",priority:"P1",effort:"L",
@@ -95,7 +95,7 @@ const plans=[
     prototype:"A reputation meter and unique-friend ledger. Avoid repeatable farming of the same friendship.",
     mvp:["Each unique friendship grants reputation once","Reputation unlocks faction trust and follower capacity","Helping an ally raises trust; attacking friends damages it","Give reasons for reputation changes"],
     acceptance:["No infinite reputation from repeated friendly taps","Player can read what reputation changes","Social perks never invalidate skill-based steering or combat"],
-    dependencies:["befriend"],unity:["ReputationService","RelationshipLedger"],jiraType:"Story",postCore:true
+    dependencies:["world","stage-loop"],unity:["ReputationService","RelationshipLedger"],jiraType:"Story",postCore:true
   },
   {
     id:"followers",title:"Follower Ships / Friendly Fleet",category:"Social",phase:"After Core",priority:"P2",effort:"L",
