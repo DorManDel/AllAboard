@@ -147,6 +147,13 @@ class MechanicsPlanner{
       this.save();this.render();
     });
     this.$("plannerCopyJira").addEventListener("click",()=>this.copyJira(this.selectedId));
+    this.$("plannerCopyHandoff").addEventListener("click",()=>{
+      const handoff=window.AllAboardUnityReadiness?.handoff(byId[this.selectedId])||"Unavailable";
+      if(navigator.clipboard?.writeText){
+        navigator.clipboard.writeText(handoff).then(()=>this.notice("Copied Unity mechanic architecture and implementation prompt."))
+          .catch(()=>this.notice("Clipboard unavailable. Select the text in the review box instead."));
+      }else this.notice("Clipboard unavailable. Select the text in the review box instead.");
+    });
     this.$("plannerExportMd").addEventListener("click",()=>this.download("all-aboard-jira-backlog.md",this.store.exportMarkdown(),"text/markdown"));
     this.$("plannerExportJson").addEventListener("click",()=>this.download("all-aboard-kanban.json",JSON.stringify(this.store.exportData(),null,2),"application/json"));
     this.$("plannerImportJson").addEventListener("change",async event=>{
@@ -225,6 +232,7 @@ class MechanicsPlanner{
     this.$("plannerDetailDecision").textContent=p.player;
     this.$("plannerDetailPrototype").textContent=p.prototype;
     this.$("plannerDetailUnity").textContent=p.unity.join(" + ");
+    this.$("plannerArchitectureText").textContent=window.AllAboardUnityReadiness?.handoff(p)||"Architecture contract unavailable.";
     const deps=p.dependencies.map(id=>byId[id]?.title||id).join(", ")||"None";
     this.$("plannerDetailDependencies").textContent=deps;
     const renderItems=(id,values)=>{

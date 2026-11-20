@@ -21,15 +21,19 @@ const roadmapJs=fs.readFileSync(path.join(root,"roadmap-board.js"),"utf8");
 const layoutJs=fs.readFileSync(path.join(root,"ui-layout.js"),"utf8");
 const mapJs=fs.readFileSync(path.join(root,"map-explorer.js"),"utf8");
 const krakenJs=fs.readFileSync(path.join(root,"kraken-grapple.js"),"utf8");
+const feelJs=fs.readFileSync(path.join(root,"game-feel.js"),"utf8");
+const audioJs=fs.readFileSync(path.join(root,"audio-lab.js"),"utf8");
+const qualityJs=fs.readFileSync(path.join(root,"unity-readiness.js"),"utf8");
+const audioUIJs=fs.readFileSync(path.join(root,"v07-lab-ui.js"),"utf8");
 
 assert.doesNotThrow(() => new vm.Script(js), "JavaScript must parse");
 assert.doesNotThrow(() => new vm.Script(oceanJs), "Ocean engine must parse");
 assert.doesNotThrow(() => new vm.Script(vesselJs), "Vessel physics must parse");
-for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"],[layoutJs,"UI Studio"],[mapJs,"World Map"],[krakenJs,"Kraken Grapple"]])
+for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"],[layoutJs,"UI Studio"],[mapJs,"World Map"],[krakenJs,"Kraken Grapple"],[feelJs,"Game Feel"],[audioJs,"Audio Lab"],[qualityJs,"Unity Readiness"],[audioUIJs,"V0.7 UI"]])
   assert.doesNotThrow(()=>new vm.Script(source),name+" engine must parse");
 assert.match(html, /<script src="\.\/ocean\.js" defer>/);
 assert.match(html, /<script src="\.\/vessel\.js" defer>/);
-for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js","ui-layout.js","map-explorer.js","kraken-grapple.js"])
+for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js","ui-layout.js","map-explorer.js","kraken-grapple.js","game-feel.js","audio-lab.js","unity-readiness.js","v07-lab-ui.js"])
   assert(html.includes('<script src="./'+name+'" defer></script>'));
 for (const part of ["hull","sail_front","sail_rear","anchor","cannon_left_front","cannon_left_rear","cannon_right_front","cannon_right_rear"]) assert(fs.existsSync(path.join(root,"assets","ship-parts",part+".svg")), "Missing ship part "+part);
 assert.match(html, /<meta name="viewport"/);
@@ -44,7 +48,7 @@ for (const id of referencedIds) assert(ids.includes(id), "Missing DOM ID: " + id
 
 const tabs = [...html.matchAll(/\bdata-tab="([^"]+)"/g)].map(m => m[1]);
 const panels = [...html.matchAll(/\bdata-panel="([^"]+)"/g)].map(m => m[1]);
-assert.equal(tabs.length, 14);
+assert.equal(tabs.length, 17);
 assert.deepEqual(tabs.sort(), panels.sort(), "Each tab must have a matching panel");
 
 // Small DOM mock exercises initialization plus main controls without external packages.
@@ -109,6 +113,9 @@ const window = { devicePixelRatio: 1, addEventListener() {},location:{search:"",
 const localStorage={getItem(){return null;},setItem(){}};
 new Function("window",oceanJs)(window);
 new Function("window",vesselJs)(window);
+new Function("window",feelJs)(window);
+new Function("window",audioJs)(window);
+new Function("window",qualityJs)(window);
 new Function("window",worldJs)(window);
 new Function("window",krakenJs)(window);
 new Function("window","document","URL","Image",flagJs)(window,document,URL,undefined);
@@ -123,6 +130,10 @@ const boot = new Function("document", "window", "navigator", "ResizeObserver", "
 assert.doesNotThrow(() => boot(document, window, navigator, ResizeObserver, frame), "App must initialize using all required DOM elements");
 new Function("window","document","localStorage",loopJs)(window,document,localStorage);
 new Function("window","document","localStorage","navigator","URL",roadmapJs)(window,document,localStorage,navigator,URL);
+new Function("window","document","navigator","Blob","URL",audioUIJs)(window,document,navigator,Blob,URL);
+assert.equal(byId.get("audioMoods").children.length,7,"Seven original music moods render");
+assert.equal(byId.get("audioSfxList").children.length,15,"Fifteen synthesized SFX previews render");
+assert(byId.get("plannerArchitectureText").textContent.includes("Unity"),"Selected mechanic must expose an implementation brief");
 function fire(id, event, extra) {
   const el = byId.get(id);
   assert(el.events[event] && el.events[event].length, "Missing handler: " + id + "." + event);
@@ -181,4 +192,4 @@ assert.equal(byId.get("loopPhase").textContent,"CHOICE");
 assert(byId.get("plannerCatalog").children.length>10,"Planner catalog should render");
 fire("plannerAdd","click");
 assert(byId.get("plannerBoardCount").textContent.startsWith("1"),"Selected mechanic should be added to Kanban");
-console.log("PASS: fourteen tabs, sea/land clipping, layout studio, expanded world map, stage loop and Kanban.");
+console.log("PASS: seventeen tabs, sea/land clipping, layout studio, expanded world map, stage loop and Kanban.");

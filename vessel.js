@@ -59,6 +59,14 @@
     const wind=pointOfSail(ship.heading,settings.windDirection);
     const sailArea=limit(settings.sail/100,0,1)*
       (modifiers.sailFactor===undefined?1:modifiers.sailFactor);
+    const windRelative=((settings.windDirection-ship.heading+540)%360)-180;
+    const desiredTrim=limit(windRelative*.38,-42,42);
+    const actualTrim=settings.sailAutoTrim===false?
+      limit(settings.sailTrim||0,-45,45):desiredTrim;
+    const trimFactor=limit(1-.14*Math.abs(actualTrim-desiredTrim)/45,.86,1);
+    ship.sailTrim=actualTrim;
+    ship.idealTrim=desiredTrim;
+    ship.trimFactor=trimFactor;
     let rigEfficiency=wind.efficiency;
     if(modifiers.rig==="lateen"){
       // Lateen rig trades some tailwind power for slightly better crosswind drive.
@@ -72,6 +80,7 @@
     // Tunable slow acceleration. No instantaneous speed set / teleportation.
     // True "boost" comes from alignment, and fades continuously across angles.
     const windDrive=settings.windDrive===undefined?1:settings.windDrive;
+    rigEfficiency*=trimFactor;
     const thrust=(settings.baseThrust*1.4+
       settings.windStrength*2.65*sailArea*rigEfficiency*windDrive)*hullFactor;
     const windLateral=settings.windStrength*sailArea*(modifiers.rig==="storm"?.13:.23)*

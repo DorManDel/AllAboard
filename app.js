@@ -17,11 +17,18 @@
     sail: 72, windStrength: 2.7, windDirection: 35, baseThrust: 0.1,
     steerSensitivity: 1, wheelReturn: 4.8, rudderResponse: 6, yawResponse: 3, deadzone: 2,
     windDrive: 1, waterDrag: 1,
+    sailTrim: 0, sailAutoTrim: true, recoilStrength: .8, cameraShake: .5, waveRoll: 1, windFX: .6,
     anchorGrip: 185, anchorLine: 70, ropeStiffness: 9, ropeDamping: 6, lateralDrag: 5.5, wavePush: .65, vortexStrength: 1,
     currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
   });
   let settings = { ...defaultSettings };
   const ocean = typeof window.AllAboardOcean === "function" ? new window.AllAboardOcean() : null;
+  const feel=window.AllAboardGameFeel?.FeelEngine?new window.AllAboardGameFeel.FeelEngine():null;
+  const playSfx=id=>window.AllAboardPlaySfx?.(id);
+  const fireFeedback=(power=1)=>{
+    feel?.fire(power*settings.recoilStrength);
+    playSfx("shot");
+  };
   // Original Unity ship artwork, copied as SVGs with their original viewBox coordinates.
   // Each is an independently selectable part in the Shipyard tab.
   const shipPartDefinitions = [
@@ -268,6 +275,9 @@
   const titleMap = {
     live: ["Sailing playground", "Live Playground", "Tune the whole vessel. Every change propagates to the other experiments."],
     helm: ["Steer & feel", "Helm Lab", "One wheel, three turns either way, and an adjustable return-to-center feel."],
+    feel: ["Make the ship alive", "FX & Sail Trim Lab", "Tune wave-driven roll, recoil, shake, wind streaks and optional sail-yard tilt."],
+    audio: ["Compose our own sounds", "Music & SFX Lab", "Audition original pirate mood sketches and event sounds; plan licensed final assets."],
+    unity: ["Validate before porting", "Unity Readiness", "Review mechanic contracts, inspect prefab YAML and plan EditMode/PlayMode checks."],
     sails: ["Sails & wind", "Sails & Wind", "Explore how wind direction and sail height influence propulsion."],
     anchor: ["Anchor manoeuvres", "Anchor Lab", "Hold position, drift, or drag your anchor near a current."],
     ocean: ["The living ocean", "Ocean Lab", "Procedural waves, wake trails and ripples powered by the same simulated water."],
@@ -310,7 +320,7 @@
 
   const formatValue = (name, value) => {
     if (name === "sail" || name === "deadzone") return Math.round(value) + "%";
-    if (name === "windDirection") return Math.round(value) + "°";
+    if (name === "windDirection" || name === "sailTrim") return Math.round(value) + "°";
     if (name === "steerSensitivity" || name === "windDrive" || name === "waterDrag") return Number(value).toFixed(2) + "×";
     if (name === "waveDetail" || name === "anchorGrip" || name === "anchorLine") return String(Math.round(value));
     return Number(value).toFixed(1);
@@ -329,6 +339,21 @@
   }
   all("[data-setting]").forEach((control) => control.addEventListener("input", (e) => tune(e.target.dataset.setting, e.target.value)));
   $("sailSlider").addEventListener("input", (e) => tune("sail", e.target.value));
+  $("sailAutoTrim").addEventListener("change",e=>{settings.sailAutoTrim=e.target.checked;});
+  $("reduceMotion").addEventListener("change",e=>{if(feel)feel.reducedMotion=e.target.checked;});
+  $("feelTestShot").addEventListener("click",()=>{
+    fireFeedback(1);
+    const ship=state.ship,heading=rad(ship.heading);
+    const x=ship.x+Math.cos(heading)*40,y=ship.y+Math.sin(heading)*40;
+    ocean?.splash(x,y,.8,"cannon-test");
+    vibrate(12);
+    message("Test shot: recoil + water FX; no damage applied and no projectile physics simulated.");
+  });
+  $("feelTestHit").addEventListener("click",()=>{
+    feel?.hit(1.1*settings.cameraShake);
+    playSfx("damage");vibrate([13,14,16]);
+    message("Test hull hit: visual shake only, real hull health unchanged.");
+  });
 
   function setScenario(which) {
     state.scenario = which;
@@ -361,6 +386,7 @@
       a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0; a.overload = 0;
       a.tension = 0; a.length = 20;
       vibrate([18, 45, 26]);
+      playSfx("anchor");
       message("Anchor thrown! Watch the splash, then the ship can drift until the chain is taut.");
     } else {
       a.status = "Raised"; a.phase = "raised"; a.tension = 0; a.length = 0;
@@ -489,6 +515,7 @@
       message("Collected practice treasure: +75 coins.");
     }
     vibrate([20,30,25]);
+    playSfx("coins");
   });
   const shipInteract=$("worldShipInteract");
   shipInteract.addEventListener("click",()=>{
@@ -500,6 +527,7 @@
       return;
     }
     setTab("encounter");
+    playSfx("friend");
     state.encounter.kind="friendly";
     all("[data-encounter]").forEach(b=>b.classList.toggle("active",b.dataset.encounter==="friendly"));
     renderEncounter();
@@ -817,6 +845,7 @@
     state.time += dt;
     if (ocean) ocean.step(dt);
     state.sailVisual += ((settings.sail/100)-state.sailVisual)*(1-Math.exp(-2.3*dt));
+    feel?.step(dt);
     const s = state.ship;
     const wheel = state.wheel;
     if (!wheel.dragging) wheel.angle *= Math.exp(-settings.wheelReturn * dt);
@@ -887,6 +916,7 @@
         const cannonDamage = (state.upgrades.cannons === "heavy" ? 24 : 16)*state.modules.cannons/100;
         state.enemy.hp = Math.max(0, state.enemy.hp - cannonDamage);
         state.enemy.reload = state.upgrades.cannons === "rapid" ? 1.0 : 1.7;
+        fireFeedback(state.upgrades.cannons==="heavy"?1.4:1);
         state.ripples.push({ x: state.enemy.x, y: state.enemy.y, age: 0 });
         if(ocean)ocean.splash(state.enemy.x,state.enemy.y,1,"cannon");
         vibrate(10);
@@ -919,6 +949,7 @@
         damage.hp=Math.max(0,damage.hp-amount);
         world.shipsState.set(target.item.id,damage);
         state.enemy.reload=state.upgrades.cannons==="rapid"?1:1.7;
+        fireFeedback(state.upgrades.cannons==="heavy"?1.4:1);
         ocean?.splash(target.x,target.y,1.1,"cannon");
         if(damage.hp===0){
           world.markDestroyed(target.item);
@@ -1049,6 +1080,10 @@
         // visibly tied, folded sail — without simply hiding the original art.
         const x=(part[2]-400)*scale,y=(part[3]-605)*scale;
         const w=part[4]*scale,h=part[5]*scale;
+        // Rotate around the sail yard, preserving original SVG image and furling.
+        // This is an artistic arcade tilt, not 3D aerodynamic cloth simulation.
+        const tilt=rad((state.ship.sailTrim||0)*.24);
+        ctx.translate(x+w/2,y+h);ctx.rotate(tilt);ctx.translate(-(x+w/2),-(y+h));
         const damage=clamp(state.modules.sails/100,0,1);
         const open=clamp(state.sailVisual,0,1)*damage;
         const fold=.10+.90*(open*open*(3-2*open));
@@ -1121,9 +1156,12 @@
   function drawShip() {
     const p = project(state.ship.x, state.ship.y);
     ctx.save(); ctx.translate(p.x, p.y);
-    const bob=Math.sin(state.time*2.1+state.ship.x*.008)*settings.waveHeight*.7;
-    ctx.translate(0,bob);
-    ctx.rotate(rad(state.ship.heading)+Math.sin(state.time*1.3)*settings.waveHeight*.008);
+    const pose=feel?.pose(ocean,state.ship,settings,state.time);
+    const bob=(pose?.bob??0)*settings.waveRoll;
+    ctx.translate(pose?.shakeX*settings.cameraShake||0,
+      bob+(pose?.shakeY||0)*settings.cameraShake-(pose?.recoil||0)*1.6);
+    ctx.rotate(rad(state.ship.heading)+(pose?.roll||0)*settings.waveRoll+
+      (pose?.pitch||0)*settings.waveRoll);
     if(drawNativeShip()){
       if(state.modules.rudder<100){
         ctx.strokeStyle="#ff9a78";ctx.lineWidth=2;
@@ -1219,6 +1257,19 @@
     }
     drawVortex();
     if(world)world.render(ctx,project,state.ship,{width:w,height:h});
+    if(settings.windFX>0&&settings.windStrength>0){
+      const a=rad(settings.windDirection),dx=Math.sin(a),dy=-Math.cos(a);
+      ctx.save();
+      ctx.strokeStyle="rgba(209,248,238,"+(Math.min(.2,settings.windFX*.075)) +")";
+      ctx.lineWidth=1;
+      const count=Math.min(24,Math.round(settings.windStrength*2.6*settings.windFX));
+      for(let i=0;i<count;i++){
+        const x=((i*97+state.time*settings.windStrength*21)% (w+100))-50;
+        const y=((i*131+state.time*settings.windStrength*17)% (h+100))-50;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+dx*16,y+dy*16);ctx.stroke();
+      }
+      ctx.restore();
+    }
     if(state.worldGrid&&world)drawWorldChunkGrid(ctx,w,h);
     // Water-only effects are clipped against the island's exact land polygon.
     ctx.save();
@@ -1323,6 +1374,11 @@
     $("forwardSpeedValue").textContent=(ship.forwardSpeed||0).toFixed(1);
     $("sideSpeedValue").textContent=(ship.sideSpeed||0).toFixed(1);
     $("sailEfficiencyValue").textContent=Math.round((ship.sailEfficiency||0)*100)+"%";
+    $("trimIdeal").textContent=Math.round(ship.idealTrim||0)+"°";
+    $("trimBonus").textContent=Math.round((ship.trimFactor||1)*100)+"%";
+    $("feelReadout").textContent="Current ship visual pose is sampled from OceanField. Sail tilt "+
+      Math.round(ship.sailTrim||0)+"°, trim efficiency "+
+      Math.round((ship.trimFactor||1)*100)+"%.";
     $("tailwindBoostInfo").textContent=Math.round((ship.windBoost||0)*100)+"% wind drive";
     $("statAlignment").textContent = (alignment >= 0 ? "+" : "") + alignment.toFixed(2);
     $("speedValue").textContent = speed.toFixed(1);
@@ -1393,6 +1449,8 @@
     state.enemy = { x: -135, y: -275, vx:0,vy:0,hp:50,reload:0,modules:{sails:100,cannons:100,rudder:100,hull:100} };
     state.modules = { sails:100,cannons:100,rudder:100,hull:100 };
     state.waves = []; state.ripples = []; state.sailVisual = .72;
+    if(feel){feel.recoil=0;feel.impact=0;feel.reducedMotion=false;}
+    $("reduceMotion").checked=false;$("sailAutoTrim").checked=true;
     if(ocean) ocean.reset();
     state.paused = false; physicsAccumulator = 0; $("pauseButton").textContent = "⏸ Pause simulation";
     $("anchorButton").classList.remove("pressed"); $("anchorButton").setAttribute("aria-pressed", "false");

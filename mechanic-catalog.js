@@ -178,6 +178,79 @@ const plans=[
     acceptance:["Player can avoid or escape the grab","No surprise invisible damage","No permanent extra game controls required"],
     dependencies:["world","cannons","kraken-arms"],unity:["KrakenGrapple","ArmCoordinator","ArmState"],jiraType:"Story",postCore:true
   }
+,
+  {
+    id:"cannon-recoil",title:"Cannon Recoil & Impact Feedback",category:"Combat",phase:"Core",priority:"P1",effort:"S",
+    summary:"Every real shot creates a small decaying ship recoil, optional haptic pulse, smoke/water splash and semantic sound event.",
+    player:"Read the direction and weight of a broadside without additional controls.",
+    prototype:"FX & Sail Trim tab: test broadside or hull hit; live automatic broadside triggers recoil only after it fires.",
+    mvp:["Decaying recoil impulse","Separate visual wobble from gameplay hull velocity","Reduced-motion and shake intensity controls","Fire/splash audio event hooks"],
+    acceptance:["Ship does not teleport when firing","Recoil decays and repeated volleys remain readable","Disable camera shake without changing gameplay"],
+    dependencies:["cannons","sailing-feel"],unity:["BroadsideFeedback","ShipPosePresenter","FeedbackSettings"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"sail-tilt",title:"Sail Yard Tilt & Auto Trim",category:"Core Sailing",phase:"Core",priority:"P1",effort:"M",
+    summary:"Rotate the mast yard to capture more wind; automatic trim is the safe default, manual trim offers a small precision reward.",
+    player:"Keep controls simple: sail up/down is core, small manual tilt is optional for advanced players.",
+    prototype:"FX & Sail Trim tab: compare automatic yard alignment with optional -45 to +45 degree trim.",
+    mvp:["Auto trim chooses desired relative-wind angle","Manual trim bounded to ±45 degrees","Propulsion penalty capped to keep casual controls viable","Sail SVG visibly tilts at yard hinge"],
+    acceptance:["Auto trim is a usable baseline","Manual trim affects thrust but not steering input","Lowered sails stay visibly furled and tilt works"],
+    dependencies:["sailing-feel"],unity:["SailTrimController","SailRigView","SailPolar"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"wave-rock",title:"Wave-Driven Bob / Roll / Pitch",category:"Core Sailing",phase:"Core",priority:"P1",effort:"M",
+    summary:"Sample the same water field at four points around the hull to move the ship visually in response to waves.",
+    player:"Large waves feel large; small waves feel calm while controls stay stable.",
+    prototype:"FX & Sail Trim tab: change Wave Height and Wave-Induced Tilt with visual-only pose.",
+    mvp:["Sample bow, stern, port, starboard","Compute and clamp bob/roll/pitch","Wave visual effects do not alter simulation position","Reduced motion supported"],
+    acceptance:["Bigger waves create bigger but bounded tilt","No random camera jitter from unrelated effects","Beach land masks remain intact"],
+    dependencies:["water-shore-mask","sailing-feel"],unity:["WavePoseSampler","ShipPosePresenter"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"audio-moods",title:"Original Pirate Music & SFX Event Bus",category:"Game Loop",phase:"Core",priority:"P1",effort:"M",
+    summary:"Mood-adaptive music and semantic SFX for steering, shots, allies, repairs, stage completion and Krakens.",
+    player:"Hear calm sailing music transition to tension and victory without an overwhelming soundtrack.",
+    prototype:"Music & SFX tab: seven original procedural mood sketches, fifteen SFX and generator-ready prompts.",
+    mvp:["Define original music identity and licensing ledger","Separate AudioDirector from gameplay mechanics","Music / UI / SFX volume controls","Mute and pause without affecting simulation"],
+    acceptance:["Audio starts only after user gesture on the web","No copyrighted game soundtrack copied","Unity plays overlapping one-shots without abrupt music restarts"],
+    dependencies:["stage-loop","cannons"],unity:["AudioDirector","AudioMixer","AudioEventDefinition","MusicMood"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"unity-health",title:"Unity Prefab Audit & Automated Test Contracts",category:"Game Loop",phase:"Core",priority:"P0",effort:"M",
+    summary:"Find missing references early, track prefab expectations, and run EditMode/PlayMode tests in the actual Unity Editor.",
+    player:"Development quality tool, no new player control.",
+    prototype:"Unity Checks tab: advisory YAML scanner, quality checklist, mechanic-specific code prompt and test contract.",
+    mvp:["Static missing-script warning for text prefabs","Editor test plan with AssetDatabase GUID resolution","Unity Test Framework EditMode/PlayMode tests","Profiler and phone-check list","Changelog after each tested mechanic"],
+    acceptance:["Never claim browser checks passed Unity PlayMode","Reports are reproducible and identify exact assets","Tests remain consistent with course milestone requirements"],
+    dependencies:["sailing-feel"],unity:["PrefabAuditWindow","EditModeTests","PlayModeTests"],jiraType:"Task",postCore:false
+  },
+  {
+    id:"wind-shadow",title:"Wind Shadow Behind Islands",category:"World",phase:"After Core",priority:"P2",effort:"M",
+    summary:"Islands block or redirect wind locally, creating navigational decisions and sheltered positions.",
+    player:"Sail around an island's lee, lose wind temporarily, or hide from an enemy's approach.",
+    prototype:"Visualize local wind vector and speed behind procedural island masks; retain clear feedback.",
+    mvp:["Simple lee cone from island bounds","Smooth wind factor interpolation","Arrow feedback before slowdown"],
+    acceptance:["Wind shadow is predictable","The ship can escape without stalling forever"],
+    dependencies:["world","sailing-feel"],unity:["WindShadowField"],jiraType:"Story",postCore:true
+  },
+  {
+    id:"enemy-tells",title:"Readable Enemy Intent / Telegraphs",category:"Combat",phase:"After Core",priority:"P2",effort:"S",
+    summary:"A subtle cannon-glow and broadside highlight show when an enemy is about to fire, allowing skillful dodges.",
+    player:"See incoming danger and steer intelligently instead of guessing or memorizing HP.",
+    prototype:"Compare short amber warning arc vs. no indicator in a controlled encounter.",
+    mvp:["One warning per enemy action","Optional intensity and reduced-motion setting","No permanent UI buttons"],
+    acceptance:["Enemy attacks are fair and readable","Effects do not obscure ship or minimap"],
+    dependencies:["cannons","damage"],unity:["EnemyIntentPresenter"],jiraType:"Story",postCore:true
+  },
+  {
+    id:"boarding-puzzle",title:"Boarding Mini-Puzzle (Optional)",category:"Social",phase:"After Core",priority:"P3",effort:"L",
+    summary:"A 5–10 second tactical puzzle during boarding or rescue. Inspiration: puzzle-driven pirate cooperation, not copied content.",
+    player:"Choose one short combo or repair sequence to earn a social/combat outcome.",
+    prototype:"A self-contained test puzzle that can be skipped or auto-resolved in casual mode.",
+    mvp:["One small grid or timing challenge","Clear time limit","Meaningful reward but no mandatory grind"],
+    acceptance:["Can finish quickly on mobile","Works for friendly rescue as well as hostile boarding","Does not break sailing flow"],
+    dependencies:["intercept","damage"],unity:["BoardingMiniGame"],jiraType:"Story",postCore:true
+  }
 
 ];
 const byId=Object.freeze(Object.fromEntries(plans.map(plan=>[plan.id,plan])));
