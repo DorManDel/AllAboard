@@ -1,0 +1,60 @@
+/* All Aboard V0.8 — UI schema migration, advanced transforms and gradual reeling. */
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const {LayoutStudio,targets,normalizeItem,DOR_V07}=require("../ui-layout.js");
+const Vessel=require("../vessel.js");
+const source=JSON.parse(fs.readFileSync(path.join(__dirname,"..","presets/dor-v07-original-layout.json"),"utf8"));
+assert.deepEqual(DOR_V07,source,"Bundled user's layout must remain byte-for-byte semantically equivalent");
+const studio=new LayoutStudio();
+assert.equal(studio.snapshot().version,2);
+assert(targets.some(([id])=>id==="anchorControl"),"Anchor + chain must be a single HUD layout target");
+assert(!targets.some(([id])=>id==="anchorRopeHud"),"Standalone chain meter must not be draggable separately");
+assert(studio.restore(source));
+let item=studio.snapshot().items;
+assert.equal(item.headingHud.x,-12);
+assert.equal(item.headingHud.y,-12.5);
+assert.equal(item.headingHud.scaleX,.65);
+assert.equal(item.headingHud.scaleY,.65);
+assert.equal(item.anchorControl.x,1,"Old anchorButton position must migrate to unified anchor widget");
+assert.equal(item.anchorControl.scaleX,1);
+assert.equal(item.miniMap.scaleY,1.05);
+assert.equal(item.healthHud.y,-3);
+studio.selected="wheelControl";
+studio.change("scaleX",1.23);
+item=studio.snapshot().items.wheelControl;
+assert.equal(item.scaleX,1.23);
+assert.equal(item.scaleY,1.23,"Lock aspect ratio must preserve equal axes");
+studio.ratioLocked=false;
+studio.change("scaleY",.74);
+studio.change("rotation",-24.5);
+studio.change("opacity",.47);
+studio.change("layer",23);
+studio.change("x",10.1);
+studio.change("y",-7.6);
+item=studio.snapshot().items.wheelControl;
+assert.deepEqual(item,{x:10.1,y:-7.6,scaleX:1.23,scaleY:.74,rotation:-24.5,opacity:.47,layer:23});
+const exported=studio.snapshot();
+const reloaded=new LayoutStudio();reloaded.restore(exported);
+assert.deepEqual(reloaded.snapshot().items.wheelControl,item,"V2 export/import must preserve all advanced fields");
+const clamped=normalizeItem({x:100,y:-100,scaleX:9,scaleY:-5,rotation:999,opacity:-1,layer:300});
+assert.deepEqual(clamped,{x:48,y:-48,scaleX:2.5,scaleY:.3,rotation:180,opacity:.15,layer:30});
+assert.throws(()=>studio.restore({format:"random",version:3,items:{}}),/Unsupported/);
+const ship={x:80,y:0,vx:0,vy:0,heading:0,angularVelocity:0};
+const anchor={down:true,phase:"set",point:{x:0,y:0},lineLength:120,overload:0,tension:0,length:80};
+const settings={sail:0,windStrength:0,windDirection:0,baseThrust:0,steerSensitivity:1,waterDrag:1,lateralDrag:6,
+ yawResponse:3,anchorLine:20,anchorGrip:185,ropeStiffness:9,ropeDamping:6};
+const position=ship.x;
+Vessel.step(ship,anchor,{rudder:0},settings,{x:0,y:0},1/60);
+assert(anchor.lineLength<120&&anchor.lineLength>119.7,"Reeling should progress by 12 units/s");
+assert(Math.abs(ship.x-position)<.5,"Shortening chain must not instantly snap ship to chosen radius");
+for(let i=0;i<600;i++)Vessel.step(ship,anchor,{rudder:0},settings,{x:0,y:0},1/60);
+assert(Math.abs(anchor.lineLength-20)<.01,"Chain reaches chosen 20-unit length over time");
+assert(Math.hypot(ship.x-anchor.point.x,ship.y-anchor.point.y)<=20.001,"Chain cannot extend past deployed limit");
+const html=fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8");
+for(const id of ["anchorControl","anchorChainToggle","anchorChainQuickSlider","sailTrimToggle","sailTrimQuickSlider","layoutScaleXRange",
+"layoutScaleYRange","layoutRotationRange","layoutOpacityRange","layoutLayerRange","layoutRatioLock","layoutApplyDor"]){
+ assert(html.includes('id="'+id+'"'),"V0.8 UI ID absent: "+id);
+}
+console.log("PASS: imported Dor v1 layout, V2 advanced HUD, chain fusion, smooth reeling and context sail tilt.");
