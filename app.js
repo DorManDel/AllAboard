@@ -330,16 +330,46 @@
     all("[data-value]").forEach((output) => { output.textContent = formatValue(output.dataset.value, settings[output.dataset.value]); });
     $("sailSlider").value = settings.sail;
     $("sailPercent").textContent = Math.round(settings.sail) + "%";
+    $("anchorChainQuickSlider").value = settings.anchorLine;
+    $("anchorChainQuickValue").textContent = Math.round(settings.anchorLine);
+    $("anchorChainEditValue").textContent = Math.round(settings.anchorLine);
+    $("sailQuickAuto").checked = settings.sailAutoTrim;
+    $("sailAutoTrim").checked = settings.sailAutoTrim;
+    $("sailTrimQuickSlider").disabled = settings.sailAutoTrim;
+    if(!settings.sailAutoTrim)$("sailTrimQuickSlider").value = settings.sailTrim;
+    $("sailTrimToggle").textContent = settings.sailAutoTrim ? "↪ AUTO" : "↪ MANUAL";
     $("dialWind").style.transform = "rotate(" + (settings.windDirection - 90) + "deg)";
   }
   function tune(name, value) {
     if (!(name in settings)) return;
     settings[name] = Number(value);
+    if(name==="sailTrim")settings.sailAutoTrim=false;
     syncSettings();
   }
   all("[data-setting]").forEach((control) => control.addEventListener("input", (e) => tune(e.target.dataset.setting, e.target.value)));
   $("sailSlider").addEventListener("input", (e) => tune("sail", e.target.value));
-  $("sailAutoTrim").addEventListener("change",e=>{settings.sailAutoTrim=e.target.checked;});
+  $("sailAutoTrim").addEventListener("change",e=>{
+    settings.sailAutoTrim=e.target.checked;syncSettings();
+  });
+  $("sailQuickAuto").addEventListener("change",e=>{
+    settings.sailAutoTrim=e.target.checked;syncSettings();
+  });
+  $("sailTrimQuickSlider").addEventListener("input",e=>tune("sailTrim",e.target.value));
+  $("sailTrimToggle").addEventListener("click",()=>{
+    const popup=$("sailTrimQuick"),open=popup.hidden;
+    popup.hidden=!open;
+    $("sailTrimToggle").setAttribute("aria-expanded",String(open));
+  });
+  $("anchorChainQuickSlider").addEventListener("input",e=>tune("anchorLine",e.target.value));
+  $("anchorChainToggle").addEventListener("click",()=>{
+    const editor=$("anchorChainEditor"),open=editor.hidden;
+    editor.hidden=!open;
+    $("anchorChainToggle").setAttribute("aria-expanded",String(open));
+  });
+  $("anchorChainClose").addEventListener("click",()=>{
+    $("anchorChainEditor").hidden=true;
+    $("anchorChainToggle").setAttribute("aria-expanded","false");
+  });
   $("reduceMotion").addEventListener("change",e=>{if(feel)feel.reducedMotion=e.target.checked;});
   $("feelTestShot").addEventListener("click",()=>{
     fireFeedback(1);
@@ -384,7 +414,7 @@
       // The line starts from the stern and the dropped anchor sinks close behind the hull.
       a.point = { x: ship.x - fwdX * 20, y: ship.y - fwdY * 20 };
       a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0; a.overload = 0;
-      a.tension = 0; a.length = 20;
+      a.tension = 0; a.length = 20; a.lineLength=settings.anchorLine;
       vibrate([18, 45, 26]);
       playSfx("anchor");
       message("Anchor thrown! Watch the splash, then the ship can drift until the chain is taut.");
@@ -1387,11 +1417,17 @@
     $("statAnchorInfo").textContent = state.anchor.down
       ? "Chain " + Math.round(state.anchor.length) + " / " + settings.anchorLine + " · Tension " + Math.round(state.anchor.tension*100) + "%"
       : "Free to sail";
-    $("anchorDistance").textContent = Math.round(state.anchor.length) + " / " + settings.anchorLine;
+    const deployedLine=Math.round(state.anchor.lineLength??settings.anchorLine);
+    $("anchorDistance").textContent = Math.round(state.anchor.length) + " / " + deployedLine;
     $("anchorDistanceInspector").textContent = Math.round(state.anchor.length) + " / " + settings.anchorLine;
     $("anchorTension").textContent = Math.round(state.anchor.tension*100) + "%";
-    $("anchorCondition").textContent = state.anchor.status;
-    $("chainFill").style.width = Math.min(100, state.anchor.length/settings.anchorLine*100) + "%";
+    $("anchorCondition").textContent = Math.abs(deployedLine-settings.anchorLine)>1?
+      "Reeling "+deployedLine+" → "+settings.anchorLine+" · "+state.anchor.status:state.anchor.status;
+    $("sailQuickTrimValue").textContent=Math.round(ship.sailTrim||0)+"° / ideal "+
+      Math.round(ship.idealTrim||0)+"°";
+    if(settings.sailAutoTrim&&$("sailTrimQuick").hidden===false)
+      $("sailTrimQuickSlider").value=ship.sailTrim||0;
+    $("chainFill").style.width = Math.min(100, state.anchor.length/Math.max(1,deployedLine)*100) + "%";
     drawMiniMap();
     $("windArrow").style.transform = "rotate(" + (settings.windDirection - 90) + "deg)";
     $("windValue").textContent = settings.windStrength.toFixed(1);
@@ -1444,12 +1480,14 @@
     settings = { ...defaultSettings };
     state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, forwardSpeed: 0, sideSpeed: 0, sailEfficiency: 0, hull: 100, score: 0, coins: 1250 };
     state.wheel = { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 };
-    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0 };
+    state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0, lineLength: 70 };
     state.chest = { x: 85, y: -265, collected: false };
     state.enemy = { x: -135, y: -275, vx:0,vy:0,hp:50,reload:0,modules:{sails:100,cannons:100,rudder:100,hull:100} };
     state.modules = { sails:100,cannons:100,rudder:100,hull:100 };
     state.waves = []; state.ripples = []; state.sailVisual = .72;
     if(feel){feel.recoil=0;feel.impact=0;feel.reducedMotion=false;}
+    $("anchorChainEditor").hidden=true;$("anchorChainToggle").setAttribute("aria-expanded","false");
+    $("sailTrimQuick").hidden=true;$("sailTrimToggle").setAttribute("aria-expanded","false");
     $("reduceMotion").checked=false;$("sailAutoTrim").checked=true;
     if(ocean) ocean.reset();
     state.paused = false; physicsAccumulator = 0; $("pauseButton").textContent = "⏸ Pause simulation";
