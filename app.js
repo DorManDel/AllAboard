@@ -255,7 +255,9 @@
     encounter: ["Meet another vessel", "Encounter Lab", "Befriend or battle using short, meaningful interactions."],
     shipyard: ["Pimp my ship", "Shipyard", "Toggle the original Unity ship pieces and experiment with upgrades."],
     ideas: ["The ideas workshop", "Ideas Board", "Shortlist small mechanics that create interesting player decisions."],
-    review: ["Review for Unity", "Mechanics Review", "Choose Keep, Refine, Test, Later or Reject and export a Unity implementation brief."]
+    review: ["Review for Unity", "Mechanics Review", "Choose Keep, Refine, Test, Later or Reject and export a Unity implementation brief."],
+    loop: ["Stage & Stay Loop", "Stage Loop Lab", "Test Eilon's fused objective + escalating stay-or-leave reward system."],
+    planner: ["Build the plan together", "Roadmap & Kanban", "Inspect mechanic specifications, select promising ideas and prepare Jira-ready implementation tickets."]
   };
 
   function message(text) {
