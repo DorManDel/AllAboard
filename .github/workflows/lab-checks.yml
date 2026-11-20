@@ -44,3 +44,5 @@ jobs:
         run: node tests/hud-v08.cjs
       - name: Test V0.9 phone HUD, water, flag and repair
         run: node tests/v09-experiments.cjs
+      - name: Test V0.10 Sail and HUD editor
+        run: node tests/sail-hud-v010.cjs
