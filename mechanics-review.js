@@ -19,7 +19,15 @@ const catalog=[
 ["kraken","Secret Kraken","Later","KrakenEncounter","Rare, avoidable and readable world event"],
 ["intercept","Intercept / Catch Ship","After Core","InterceptObjective","Predict an NPC's future trajectory"],
 ["rescue","Rescue / Escort","After Core","EscortObjective","Assist a friend during a hazard"],
-["fleet","Sail Together / Ally Fleet","After Core","AllyShipCoordinator","Allies follow without blocking player"]
+["fleet","Sail Together / Ally Fleet","After Core","AllyShipCoordinator","Allies follow without blocking player"],
+["stage-loop","Eilon Stage + Endless Stay/Leave Loop","Core","StageSession, ObjectiveDirector","Finish stage objective, optionally stay for harder waves and better loot"],
+["stage-save","Resume Same-Stage Checkpoint","Core","RunCheckpointService","Preserve banked loot and finished objective when leaving"],
+["tutorial10","Ten-Second First-Run Tutorial","Core","TutorialSequence","Steer, sail, auto-cannon and stay/leave in ten seconds"],
+["cannon-trajectory","Cannonball Flight Paths","Combat","ProjectileMotor, HitResolver","Cannon shells travel visibly; no instant-hit teleports"],
+["ammo-variety","Barrels / Chain Shot / Chicken Ammo","After Core","AmmoDefinition, ProjectileEffect","Different ammo creates tactical trade-offs with no extra real-time controls"],
+["popularity","Popularity / Reputation","After Core","ReputationService, RelationshipLedger","Each unique friendship increases meaningful reputation without farming"],
+["followers","Friendly Follower Ships","After Core","FollowerCoordinator, AllyDefenseRule","Befriended ships follow and assist without automatically winning fights"],
+["kraken-arms","Kraken Tentacle Coordination","After Core","KrakenBrain, ArmCoordinator, ArmController","Eight local arm states react with a shared controller and readable attacks"]
 ].map(([id,title,group,unity,criteria])=>({id,title,group,unity,criteria}));
 const values=["keep","refine","test","later","reject"];
 class MechanicsReview{
@@ -127,7 +135,7 @@ class MechanicsReview{
       "",
       "Browser lab numbers are arcade units. They are not calibrated marine physics.",
       "GIF image display in a browser does not mean Unity supports GIF sprites natively.",
-      "Intercept, Rescue and Sail Together are after-core concepts until explicitly approved."
+      "Intercept, Rescue, Follower Ships, special ammo and Kraken tentacles are after-core concepts until explicitly approved."
     );
     return lines.join("\n");
   }
