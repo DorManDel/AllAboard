@@ -15,7 +15,8 @@
 
   const defaultSettings = Object.freeze({
     sail: 72, windStrength: 2.7, windDirection: 35, baseThrust: 0.1,
-    steerSensitivity: 1, wheelReturn: 4.8, rudderResponse: 6, yawResponse: 5, deadzone: 2,
+    steerSensitivity: 1, wheelReturn: 4.8, rudderResponse: 6, yawResponse: 3, deadzone: 2,
+    windDrive: 1, waterDrag: 1,
     anchorGrip: 185, anchorLine: 70, ropeStiffness: 9, ropeDamping: 6, lateralDrag: 5.5, wavePush: .65, vortexStrength: 1,
     currentStrength: 0.3, waveHeight: 0.7, waveDetail: 22, wakeStrength: 1
   });
@@ -256,6 +257,7 @@
     shipyard: ["Pimp my ship", "Shipyard", "Toggle the original Unity ship pieces and experiment with upgrades."],
     ideas: ["The ideas workshop", "Ideas Board", "Shortlist small mechanics that create interesting player decisions."],
     review: ["Review for Unity", "Mechanics Review", "Choose Keep, Refine, Test, Later or Reject and export a Unity implementation brief."],
+    layout: ["Rearrange the HUD", "UI Layout Studio", "Drag controls by touch or set precise X/Y and scaling."],
     loop: ["Stage & Stay Loop", "Stage Loop Lab", "Test Eilon's fused objective + escalating stay-or-leave reward system."],
     planner: ["Build the plan together", "Roadmap & Kanban", "Inspect mechanic specifications, select promising ideas and prepare Jira-ready implementation tickets."]
   };
@@ -289,7 +291,7 @@
   const formatValue = (name, value) => {
     if (name === "sail" || name === "deadzone") return Math.round(value) + "%";
     if (name === "windDirection") return Math.round(value) + "°";
-    if (name === "steerSensitivity") return Number(value).toFixed(2) + "×";
+    if (name === "steerSensitivity" || name === "windDrive" || name === "waterDrag") return Number(value).toFixed(2) + "×";
     if (name === "waveDetail" || name === "anchorGrip" || name === "anchorLine") return String(Math.round(value));
     return Number(value).toFixed(1);
   };
@@ -1183,8 +1185,12 @@
     drawVortex();
     if(world)world.render(ctx,project,state.ship,{width:w,height:h});
     if(state.worldGrid&&world)drawWorldChunkGrid(ctx,w,h);
+    // Water-only effects are clipped against the island's exact land polygon.
+    ctx.save();
+    if(world)world.clipWater(ctx,project,state.ship,w,h);
     if(ocean)ocean.drawEffects(ctx,{project});
     drawRipples();
+    ctx.restore();
     drawAnchorChain();
     drawChest();
     drawSmallEnemy();
@@ -1282,6 +1288,7 @@
     $("forwardSpeedValue").textContent=(ship.forwardSpeed||0).toFixed(1);
     $("sideSpeedValue").textContent=(ship.sideSpeed||0).toFixed(1);
     $("sailEfficiencyValue").textContent=Math.round((ship.sailEfficiency||0)*100)+"%";
+    $("tailwindBoostInfo").textContent=Math.round((ship.windBoost||0)*100)+"% wind drive";
     $("statAlignment").textContent = (alignment >= 0 ? "+" : "") + alignment.toFixed(2);
     $("speedValue").textContent = speed.toFixed(1);
     $("rudderValue").textContent = Math.round(state.wheel.rudder * 100) + "%";
@@ -1365,6 +1372,7 @@
     const exportData = {
       title: "All Aboard Mechanics Lab tuning", version: 3,
       settings, upgrades: state.upgrades,
+      hudLayout: window.AllAboardUILayoutInstance?.snapshot()||null,
       note: "Concept parameters, not physically measured units"
     };
     const file = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
@@ -1373,6 +1381,47 @@
     anchor.href = url; anchor.download = "all-aboard-mechanics-preset.json";
     document.body.append(anchor); anchor.click(); anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 300);
+  });
+
+
+  // Unmodified V0.5 water implementation saved under water/v0.5-ocean.js.
+  function downloadLabFile(filename,text,mime="application/json"){
+    const blob=new Blob([text],{type:mime}),url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=filename;
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),500);
+  }
+  $("waterBaseline").addEventListener("click",()=>{
+    Object.assign(settings,{waveHeight:.7,waveDetail:22,wavePush:.65,wakeStrength:1});
+    if(ocean)ocean.lastSurface=-100;
+    syncSettings();
+    $("waterBaselineStatus").textContent="V0.5 water profile restored. Island masking remains enabled.";
+    message("Original V0.5 procedural water tuning restored without resetting the ship.");
+  });
+  $("waterJsonExport").addEventListener("click",()=>{
+    const data={kind:"AllAboardOceanBaseline",version:"V0.6",basedOn:"V0.5",
+      seed:world?.seed||"ALL-ABOARD",time:ocean?.time||0,
+      camera:{x:state.ship.x,y:state.ship.y},
+      water:{waveHeight:settings.waveHeight,waveDetail:settings.waveDetail,
+        wavePush:settings.wavePush,wakeStrength:settings.wakeStrength,
+        currentStrength:settings.currentStrength,
+        windStrength:settings.windStrength,windDirection:settings.windDirection},
+      note:"Arcade-tuned, non-SI units. Visual ocean snapshot can be exported separately."};
+    downloadLabFile("all-aboard-water-tuning.json",JSON.stringify(data,null,2));
+  });
+  $("waterSnapshot").addEventListener("click",()=>{
+    if(!ocean||!window.AllAboardOcean)return;
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(viewWidth));
+    c.height=Math.max(1,Math.round(viewHeight));
+    const imageCtx=c.getContext("2d");
+    if(!imageCtx||typeof c.toDataURL!=="function")return;
+    const capture=new window.AllAboardOcean();
+    capture.time=ocean.time;
+    capture.drawBackground(imageCtx,{w:c.width,h:c.height},settings,state.ship);
+    const a=document.createElement("a");a.href=c.toDataURL("image/png");
+    a.download="all-aboard-water-v0.6.png";document.body.append(a);a.click();a.remove();
+    $("waterBaselineStatus").textContent="Clean water PNG captured. Export JSON separately for its tuning values.";
   });
 
   updateUpgradeStats();
@@ -1388,6 +1437,11 @@
     mechanicsReview.mount();
   }
   bindWorldControls();
+  if(ocean&&world)ocean.setWaterMask((x,y)=>!world||world.isWater(x,y));
+  window.AllAboardLiveBridge={
+    getWorld:()=>world,getShip:()=>state.ship,getOcean:()=>ocean,
+    getSettings:()=>settings,getState:()=>state
+  };
   syncSettings();
   resizeCanvas();
   requestAnimationFrame(frame);
