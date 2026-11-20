@@ -156,6 +156,9 @@
   })();
   let world=window.AllAboardWorld?.WorldEngine?
     new window.AllAboardWorld.WorldEngine(initialSeed,initialWorldOptions):null;
+  const grapple=window.AllAboardKrakenGrapple?.KrakenGrapple?
+    new window.AllAboardKrakenGrapple.KrakenGrapple():null;
+  if(world)world.grapple=grapple;
   let flagWorkshop=null,mechanicsReview=null;
   const worldStatus=msg=>{
     const box=$("worldAlert");
@@ -168,6 +171,7 @@
     const old=world?.options||{islands:1,ships:1,treasure:1,kraken:true};
     world?.dispose();
     world=new window.AllAboardWorld.WorldEngine(chosen,options||old);
+    if(grapple){grapple.reset();world.grapple=grapple;}
     world.updateNear(state.ship.x,state.ship.y);
     $("worldSeed").value=chosen;
     refreshWorldStats(true);
@@ -240,8 +244,24 @@
     });
     $("worldSummonKraken").addEventListener("click",()=>{
       const summoned=world.summonKraken(state.ship.x,state.ship.y);
-      worldStatus("A Kraken has awakened at "+Math.round(summoned.x)+", "+Math.round(summoned.y)+"! Sail closer to test it.");
+      grapple?.ensure(summoned.id);
+      worldStatus("Kraken nearby! Watch for arm warning, then try hitting the grabbing arm.");
       if(ocean)ocean.splash(summoned.x,summoned.y,2,"kraken");
+    });
+
+    $("krakenShootArm").addEventListener("click",()=>{
+      const target=world?.nearbyObjects(state.ship.x,state.ship.y,250)
+        .filter(item=>item.type==="kraken")
+        .sort((a,b)=>Math.hypot(a.x-state.ship.x,a.y-state.ship.y)-
+                     Math.hypot(b.x-state.ship.x,b.y-state.ship.y))[0];
+      if(!target||!grapple){
+        worldStatus("No nearby Kraken arm. Summon one using Test Kraken.");return;
+      }
+      if(grapple.hit(target.id)){
+        ocean?.splash(state.ship.x,state.ship.y,.65,"kraken-arm-hit");
+        worldStatus(grapple.lastEvent?.message||"Tentacle hit!");
+        vibrate([12,15,18]);
+      }else worldStatus("Wait for the arm to reach/grab. Shoot only when it is vulnerable.");
     });
     refreshWorldStats(true);
   }
@@ -907,6 +927,21 @@
         }
       }
     }
+
+    // Kraken anti-grapple broadside: no new permanent shoot control.
+    // The World tab also exposes a manual test button while prototyping.
+    if(world&&grapple&&state.mode==="aggressive"&&state.modules.cannons>0&&state.enemy.reload===0){
+      const target=world.nearbyObjects(s.x,s.y,185).find(item=>item.type==="kraken");
+      if(target){
+        const dx=target.x-s.x,dy=target.y-s.y,d=Math.hypot(dx,dy);
+        const broadside=Math.abs(fwdY*dx-fwdX*dy)/Math.max(1,d);
+        if(d<175&&broadside>.58&&grapple.hit(target.id)){
+          state.enemy.reload=state.upgrades.cannons==="rapid"?1:1.6;
+          ocean?.splash(target.x,target.y,1.2,"kraken-hit");
+          worldStatus(grapple.lastEvent?.message||"Kraken arm damaged!");
+        }
+      }
+    }
   }
 
   // Ocean renderer: light 2D procedural waves + localized visuals. No heavy dependencies.
@@ -1321,6 +1356,9 @@
     $("worldShipInteract").hidden=!(nearbyNPC&&state.mode==="friendly");
     if(nearbyNPC)$("worldShipInteract").textContent="♡ Hail "+nearbyNPC.name;
     refreshWorldStats();
+    const nearbyKraken=world?.nearbyObjects(ship.x,ship.y,260).find(item=>item.type==="kraken");
+    $("krakenLabStatus").textContent=grapple?.status(nearbyKraken)||
+      "Kraken arm lab: summon nearby, wait for warning, then shoot its arm.";
     $("fpsValue").textContent = Math.round(state.frameRate) + " FPS";
   }
   let lastFrame = 0, lastHud = 0, physicsAccumulator = 0;
