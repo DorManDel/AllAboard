@@ -8,6 +8,26 @@ const audioData=root.AllAboardAudio;
 const audit=root.AllAboardUnityReadiness;
 if(!audioData)return;
 const lab=new audioData.AudioLab();
+let adaptiveTimer=null;
+function adaptiveMood(){
+ if(!lab.playing||!$("audioAdaptiveMood").checked)return;
+ const bridge=root.AllAboardLiveBridge;if(!bridge)return;
+ const ship=bridge.getShip?.(),state=bridge.getState?.(),world=bridge.getWorld?.();
+ let mood=state?.mode==="aggressive"?"battle":"sailing";
+ if(ship&&world?.nearbyObjects?.(ship.x,ship.y,220).some(p=>p.type==="kraken"))mood="kraken";
+ if(lab.musicId===mood)return;
+ lab.setMood(mood);lab.playMusic();renderMoods();renderPrompt();
+ status("Adaptive mood: "+(mood==="battle"?"cinematic combat sketch":mood==="kraken"?"Kraken warning sketch":"playful sailing sketch")+
+ ". Finished soundtrack transitions will use proper crossfades.");
+}
+function startAdaptive(){
+ if(adaptiveTimer===null)adaptiveTimer=root.setInterval?.(adaptiveMood,900)??null;
+ adaptiveMood();
+}
+function stopAdaptive(){
+ if(adaptiveTimer!==null)root.clearInterval?.(adaptiveTimer);
+ adaptiveTimer=null;
+}
 root.AllAboardAudioInstance=lab;
 const status=text=>{if($("audioStatus"))$("audioStatus").textContent=text;};
 const updateLog=()=>{
@@ -40,6 +60,7 @@ function renderMoods(){
   const info=document.createElement("small");info.textContent=mood.bpm+" BPM · "+mood.description;
   b.append(top,info);
   b.addEventListener("click",()=>{
+    $("audioAdaptiveMood").checked=false;
     lab.setMood(mood.id);renderMoods();renderPrompt();
     if(lab.playing)lab.playMusic();
     status("Mood: "+mood.name+". These are original preview motifs, not finished song files.");
@@ -71,9 +92,16 @@ $("audioEnable").addEventListener("click",async()=>{
 });
 $("audioPlayMusic").addEventListener("click",()=>{
  if(!lab.playMusic()){status("Tap Enable sound first or use a browser with Web Audio.");return;}
- status("Playing original mood sketch: "+lab.musicId);
+ startAdaptive();
+ status("Playing original mood sketch: "+lab.musicId+" · adaptive="+$("audioAdaptiveMood").checked);
 });
-$("audioStopMusic").addEventListener("click",()=>{lab.stopMusic();status("Music stopped.");});
+$("audioStopMusic").addEventListener("click",()=>{
+ lab.stopMusic();stopAdaptive();status("Music stopped.");
+});
+$("audioAdaptiveMood").addEventListener("change",e=>{
+ if(e.target.checked){startAdaptive();status("Adaptive Sailing → Battle → Kraken mood test enabled.");}
+ else status("Adaptive mood off. Select a mood to audition it manually.");
+});
 $("audioVolume").addEventListener("input",e=>{
  const n=Number(e.target.value);lab.setVolume(n/100);$("audioVolumeValue").textContent=n+"%";
 });
@@ -128,5 +156,5 @@ $("unityExportChecklist").addEventListener("click",()=>{
  a.href=url;a.download="all-aboard-unity-qa.md";document.body.append(a);a.click();a.remove();
  root.setTimeout(()=>URL.revokeObjectURL(url),500);
 });
-root.addEventListener?.("pagehide",()=>lab.dispose());
+root.addEventListener?.("pagehide",()=>{stopAdaptive();lab.dispose();});
 })(typeof window!=="undefined"?window:globalThis);
