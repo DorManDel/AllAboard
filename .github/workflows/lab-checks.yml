@@ -28,3 +28,5 @@ jobs:
         run: node tests/vessel.cjs
       - name: Test deterministic world generation
         run: node tests/world.cjs
+      - name: Test Unity mechanics selection export
+        run: node tests/review.cjs
