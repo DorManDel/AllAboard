@@ -144,11 +144,11 @@ const plans=[
   },
   {
     id:"hud-layout",title:"Touch-Editable HUD & Button Design",category:"Core Sailing",phase:"Core",priority:"P0",effort:"M",
-    summary:"Move/scale mobile controls by touch or numeric offsets, compare classic, sea-glass and compact appearances.",
+    summary:"Advanced HUD Studio V0.8: touch move, independent scale X/Y, rotation, opacity, layer order, precise values, presets and overlap hints.",
     player:"Find a thumb-friendly wheel, anchor, sail control, compass, minimap and Friendly toggle layout.",
-    prototype:"V0.6 UI Studio: drag components, tune x/y/scale, export/import presets and compare visual treatments.",
-    mvp:["Touch drag in edit mode only","Numeric X/Y and scaling","Local save and Unity-portable JSON export","Three reversible button themes"],
-    acceptance:["No game-control actions occur while editing","Layouts remain usable on tall and 16:9 portrait screens"],
+    prototype:"V0.8 editor imports legacy V0.7 JSON, includes Dor’s approved test layout, controls X/Y scale/rotation/opacity/layer and saves versioned presets.",
+    mvp:["Touch drag and precision 0.1% X/Y","Independent X/Y + uniform scale","Rotation, transparency and layer priority","V1→V2 JSON migration and local save","Overlap/offscreen warnings and three button themes"],
+    acceptance:["No game-control actions occur while editing","Legacy layout imports without losing anchor position","Unity handoff includes axis scale, rotation, opacity and z order","Layouts remain usable on tall and 16:9 portrait screens"],
     dependencies:["sailing-feel"],unity:["HUDLayoutPreset","SafeAreaUI","ResponsiveControlAnchors"],jiraType:"Story",postCore:false
   },
   {
@@ -192,8 +192,8 @@ const plans=[
     id:"sail-tilt",title:"Sail Yard Tilt & Auto Trim",category:"Core Sailing",phase:"Core",priority:"P1",effort:"M",
     summary:"Rotate the mast yard to capture more wind; automatic trim is the safe default, manual trim offers a small precision reward.",
     player:"Keep controls simple: sail up/down is core, small manual tilt is optional for advanced players.",
-    prototype:"FX & Sail Trim tab: compare automatic yard alignment with optional -45 to +45 degree trim.",
-    mvp:["Auto trim chooses desired relative-wind angle","Manual trim bounded to ±45 degrees","Propulsion penalty capped to keep casual controls viable","Sail SVG visibly tilts at yard hinge"],
+    prototype:"V0.8 sail control combines sail height with an optional compact tilt editor; FX tab keeps full tuning. Auto alignment remains default.",
+    mvp:["Auto trim chooses desired relative-wind angle","Contextual in-game manual tilt ±45 degrees","Wind ideal angle displayed beside slider","Propulsion penalty capped to keep casual controls viable","Sail SVG visibly tilts at yard hinge"],
     acceptance:["Auto trim is a usable baseline","Manual trim affects thrust but not steering input","Lowered sails stay visibly furled and tilt works"],
     dependencies:["sailing-feel"],unity:["SailTrimController","SailRigView","SailPolar"],jiraType:"Story",postCore:false
   },
@@ -210,7 +210,7 @@ const plans=[
     id:"audio-moods",title:"Original Pirate Music & SFX Event Bus",category:"Game Loop",phase:"Core",priority:"P1",effort:"M",
     summary:"Mood-adaptive music and semantic SFX for steering, shots, allies, repairs, stage completion and Krakens.",
     player:"Hear calm sailing music transition to tension and victory without an overwhelming soundtrack.",
-    prototype:"Music & SFX tab: seven original procedural mood sketches, fifteen SFX and generator-ready prompts.",
+    prototype:"V0.8 adaptive audition: calm playful sailing, more dramatic combat, Kraken proximity; seven short original sketches, 15 SFX and prompts.",
     mvp:["Define original music identity and licensing ledger","Separate AudioDirector from gameplay mechanics","Music / UI / SFX volume controls","Mute and pause without affecting simulation"],
     acceptance:["Audio starts only after user gesture on the web","No copyrighted game soundtrack copied","Unity plays overlapping one-shots without abrupt music restarts"],
     dependencies:["stage-loop","cannons"],unity:["AudioDirector","AudioMixer","AudioEventDefinition","MusicMood"],jiraType:"Story",postCore:false
@@ -251,7 +251,16 @@ const plans=[
     acceptance:["Can finish quickly on mobile","Works for friendly rescue as well as hostile boarding","Does not break sailing flow"],
     dependencies:["intercept","damage"],unity:["BoardingMiniGame"],jiraType:"Story",postCore:true
   }
-
+,
+  {
+    id:"unified-anchor-chain",title:"Unified Anchor & Chain Control",category:"Core Sailing",phase:"Core",priority:"P0",effort:"S",
+    summary:"Combine anchor drop/raise, live line tension/status and adjustable deployed-chain length into one compact HUD control.",
+    player:"Tap anchor to deploy/recover; expand the chain segment only when adjusting length. Current direction remains visible.",
+    prototype:"V0.8 one anchor card with inline chain status, a compact slider and continuous reeling with no ship teleport.",
+    mvp:["Anchor action remains one tap","Secondary chain segment opens contextual length slider","Rope length reeled gradually in physics","Single movable/resizable HUD group","No redundant floating chain HUD"],
+    acceptance:["Drop/raise still works with edit mode off","Changing length while anchored never teleports the ship","HUD shows deployed length and target reeling state","Anchor and status move together"],
+    dependencies:["sailing-feel"],unity:["AnchorController","RopeConstraint","AnchorControlView"],jiraType:"Story",postCore:false
+  }
 ];
 const byId=Object.freeze(Object.fromEntries(plans.map(plan=>[plan.id,plan])));
 root.AllAboardMechanicPlans={plans,byId};

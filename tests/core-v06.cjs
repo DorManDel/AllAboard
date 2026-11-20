@@ -67,9 +67,10 @@ if(friend)assert(heatIntensity(world,a,friend.x,friend.y,"friendly")>0,"Ally hea
 assert.equal(heatIntensity(world,a,1e9,1e9,"hostile"),0,"Heat outside all ships is zero");
 const editor=new LayoutStudio();
 assert(targets.some(([id])=>id==="wheelControl"));
-assert.equal(editor.snapshot().items.wheelControl.scale,1);
+assert.equal(editor.snapshot().items.wheelControl.scaleX,1);
 editor.restore({format:"allaboard-ui-layout",version:1,items:{wheelControl:{x:200,y:-200,scale:6}}});
 const adjusted=editor.snapshot().items.wheelControl;
-assert.deepEqual(adjusted,{x:48,y:-48,scale:1.8},"Normalize imported controls to safe range");
+assert.deepEqual(adjusted,{x:48,y:-48,scaleX:2.5,scaleY:2.5,rotation:0,opacity:1,layer:5},
+  "Normalize legacy presets and preserve full V0.8 fields");
 assert.throws(()=>editor.restore({items:{}}),/Unsupported/);
 console.log("PASS: tailwind-first slow motion, two tuning sliders, 30/60Hz stability, shoreline masking, pure map heat and UI layout presets.");

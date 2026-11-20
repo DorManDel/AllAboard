@@ -448,3 +448,105 @@
   font:11px/1.55 ui-monospace,monospace;color:#ddf7ee;background:#092737;
   border:1px solid #54879a;border-radius:11px;padding:12px;white-space:pre-wrap}
 #audioCopyPrompt{min-height:40px;width:100%;margin:7px 0 15px}
+
+
+/* V0.8 • HUD design axes, layer priority and unified compact sail/anchor controls */
+.phone-screen [data-ui-custom]{
+  translate:var(--ui-x,0px) var(--ui-y,0px);
+  scale:var(--ui-scale-x,1) var(--ui-scale-y,1);
+  rotate:var(--ui-rotation,0deg);
+  opacity:var(--ui-opacity,1);
+  z-index:var(--ui-layer,5);
+  transform-origin:center center;
+}
+#coinHud,#healthHud,#scoreHud{position:relative}
+#anchorControl{pointer-events:auto;touch-action:manipulation}
+.side-controls{align-items:center;gap:8px}
+.anchor-control{
+  position:relative;display:flex;flex-direction:column;align-items:stretch;
+  width:77px;padding:0;gap:0;border-radius:13px;
+  border:1px solid #e3d4a78c;box-shadow:0 6px 16px #041b30a9;
+  background:#0d3046df;backdrop-filter:blur(8px)
+}
+.anchor-control>.game-btn{
+  width:100%;height:54px;min-height:54px;border:0;border-bottom:1px solid #8a9ba279;
+  border-radius:12px 12px 0 0;box-shadow:none;
+}
+.anchor-chain-toggle{
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  min-height:24px;width:100%;padding:2px 4px;border:0;
+  border-radius:0 0 12px 12px;background:#133648e8;color:#fae2ad;font-size:10px;
+  letter-spacing:0
+}
+.anchor-chain-toggle strong{font-size:11px;font-variant-numeric:tabular-nums}
+.anchor-chain-toggle span{margin-left:2px;color:#a9e4e1}
+.anchor-rope-hud{
+  position:relative;right:auto;bottom:auto;z-index:auto;
+  display:block;pointer-events:none;min-width:0;width:100%;padding:5px 6px;
+  margin:0;border:0;border-top:1px solid #769da56b;border-radius:0 0 12px 12px;
+  font-size:8px;box-shadow:none;background:#082c3e
+}
+.anchor-rope-hud[hidden]{display:none}
+.anchor-rope-hud>span{font-size:7px;letter-spacing:.04em}
+.anchor-rope-hud>strong{float:none;display:block;text-align:center;font-size:9px}
+.anchor-rope-hud small{font-size:7px;text-align:center;white-space:normal;line-height:1.25}
+.anchor-rope-hud .chain-meter{margin-top:4px}
+.anchor-chain-editor{
+  position:absolute;right:calc(100% + 8px);bottom:0;width:180px;max-width:60vw;
+  padding:12px;border:1px solid #b7dcb9ad;border-radius:12px;
+  background:#0d2939f5;box-shadow:0 8px 25px #001723a8;
+  color:#eafcf4;z-index:30;display:flex;flex-direction:column;gap:9px;
+}
+.anchor-chain-editor[hidden]{display:none}
+.anchor-chain-editor label{font-size:11px;line-height:1.4}
+.anchor-chain-editor input{width:100%;accent-color:#f5bf77;touch-action:auto}
+.anchor-chain-editor strong{color:#f0d794;font-variant-numeric:tabular-nums}
+.chain-help{font-size:9px;color:#b4d1d6;line-height:1.35}
+#anchorChainClose{min-height:30px;background:#18584f;border:1px solid #8ddbc1;
+  border-radius:8px;font-size:10px}
+.sail-control{z-index:6}
+.sail-trim-toggle{width:100%;min-height:21px;padding:2px 3px;
+  background:#174959c5;color:#d5ffef;border:1px solid #99d9d0ab;
+  border-radius:7px;font-size:9px;font-weight:800;white-space:nowrap}
+.sail-trim-popup{
+  position:absolute;right:calc(100% + 9px);bottom:0;
+  width:156px;max-width:60vw;padding:11px;border:1px solid #82bfc3;
+  border-radius:12px;box-shadow:0 8px 24px #001d31a6;
+  background:#0e2f43f3;color:#eafaf4;z-index:30;
+  display:flex;flex-direction:column;gap:8px
+}
+.sail-trim-popup[hidden]{display:none}
+.sail-trim-popup .quick-title{font-size:9px;font-weight:900;color:#f6d3a0}
+.sail-trim-popup .quick-auto{font-size:10px;display:flex;align-items:center;gap:6px;line-height:1.4}
+.sail-trim-popup input[type=range]{writing-mode:horizontal-tb;appearance:auto;
+  width:100%;height:20px;accent-color:#9fe9d0;direction:ltr}
+.sail-trim-popup input[type=checkbox]{accent-color:#9fe9d0}
+#sailQuickTrimValue{font-size:10px;color:#e0c694;text-align:center;font-variant-numeric:tabular-nums}
+.layout-fine-step{display:flex;align-items:center;justify-content:space-between;
+  gap:9px;margin:6px 0;border:1px solid #486d7a;background:#12394b;
+  padding:10px;border-radius:10px;font-size:10px;color:#bbdadb}
+.layout-fine-step>div{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.layout-fine-step button{background:#1c5061;border:1px solid #76b8ba;
+  border-radius:6px;min-height:30px;min-width:35px;padding:4px 6px;font-size:10px}
+.layout-controls .layout-setting{margin-bottom:4px}
+.layout-controls .layout-setting input[type=range]{width:100%;accent-color:#99efd2}
+.layout-controls .layout-setting .setting-head input{min-width:72px;width:80px}
+.layout-preset-caption{color:#b9d4d6;font-size:10px;margin:7px 0}
+.layout-preset-caption strong{color:#ffe0ad}
+#layoutApplyDor{width:100%;margin:8px 0;min-height:40px}
+.phone-screen.layout-editing .anchor-chain-editor,
+.phone-screen.layout-editing .sail-trim-popup{display:none!important}
+.phone-screen.layout-editing .anchor-control{cursor:grab}
+@media(max-width:420px){
+  .anchor-control{width:72px}
+  .anchor-control>.game-btn{height:50px}
+  .anchor-chain-editor{width:155px}
+  .sail-trim-popup{width:145px}
+  .layout-fine-step{flex-direction:column;align-items:stretch}
+}
+
+/* V0.8: keep the taller unified anchor away from the sail raise slider. */
+.phone-screen .sail-control{bottom:237px}
+.phone-screen .side-controls{bottom:43px}
+.layout-validation{border:1px solid #64898f;border-radius:10px;padding:10px 12px;
+  background:#103a47;color:#c4e4da;font-size:10px;line-height:1.55;margin:9px 0}

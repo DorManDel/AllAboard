@@ -58,7 +58,7 @@ drawingContext.createLinearGradient = () => ({ addColorStop() {} });
 drawingContext.createRadialGradient = () => ({ addColorStop() {} });
 function makeElement(tag, attributes) {
   const element = {
-    tagName: tag.toUpperCase(), dataset: {}, style: {}, value: "0", textContent: "", innerHTML: "",
+    tagName: tag.toUpperCase(), dataset: {}, style: {setProperty(k,v){this[k]=v;}}, value: "0", textContent: "", innerHTML: "",
     children: [], events: {}, attributes: {}, className: attributes.class || "",
     disabled: false, hidden: false, width:Number(attributes.width||0),height:Number(attributes.height||0),
     firstChild: { textContent: "" },
@@ -128,6 +128,8 @@ const frame = (cb) => frameCallbacks.push(cb);
 function step(time) { assert(frameCallbacks.length>0, "Animation frame should be scheduled"); frameCallbacks.shift()(time); }
 const boot = new Function("document", "window", "navigator", "ResizeObserver", "requestAnimationFrame", js);
 assert.doesNotThrow(() => boot(document, window, navigator, ResizeObserver, frame), "App must initialize using all required DOM elements");
+new Function("window","document","localStorage","URL",layoutJs)(window,document,localStorage,URL);
+assert.equal(window.AllAboardUILayoutInstance.snapshot().version,2,"V0.8 layout studio must mount and migrate presets");
 new Function("window","document","localStorage",loopJs)(window,document,localStorage);
 new Function("window","document","localStorage","navigator","URL",roadmapJs)(window,document,localStorage,navigator,URL);
 new Function("window","document","navigator","Blob","URL",audioUIJs)(window,document,navigator,Blob,URL);
@@ -139,6 +141,22 @@ function fire(id, event, extra) {
   assert(el.events[event] && el.events[event].length, "Missing handler: " + id + "." + event);
   for (const fn of el.events[event]) fn({ target: el, preventDefault() {}, pointerId: 1, clientX: 100, clientY: 100, ...extra });
 }
+fire("layoutScaleXRange","input",{target:{value:"1.35"}});
+assert.equal(window.AllAboardUILayoutInstance.snapshot().items.wheelControl.scaleY,1.35,
+ "Ratio lock must scale both axes when editing the HUD");
+fire("layoutRatioLock","change",{target:{checked:false}});
+fire("layoutScaleYRange","input",{target:{value:".75"}});
+fire("layoutRotationRange","input",{target:{value:"22.5"}});
+fire("layoutOpacityRange","input",{target:{value:".65"}});
+fire("layoutLayerRange","input",{target:{value:"21"}});
+const edited=window.AllAboardUILayoutInstance.snapshot().items.wheelControl;
+assert.equal(edited.scaleX,1.35);assert.equal(edited.scaleY,.75);
+assert.equal(edited.rotation,22.5);assert.equal(edited.opacity,.65);assert.equal(edited.layer,21);
+fire("anchorChainQuickSlider","input",{target:{value:"99"}});
+assert.equal(byId.get("anchorChainQuickValue").textContent,"99","Inline chain slider must update target");
+fire("sailQuickAuto","change",{target:{checked:false}});
+fire("sailTrimQuickSlider","input",{target:{value:"17.5"}});
+assert.equal(byId.get("sailTrimToggle").textContent,"↪ MANUAL","Optional sail tilt must disable Auto");
 fire("anchorButton", "click");
 assert.equal(byId.get("anchorButton").attributes["aria-pressed"], "true");
 fire("anchorButton", "click");

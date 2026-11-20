@@ -7,6 +7,7 @@ const catalog=[
 ["helm","Steering / Helm","Core","ShipMotionModel, WheelInputUI","Stable turn control, return-to-center, no sideways skating"],
 ["sails","Sails / Wind","Core","SailController, WindField","Meaningful heading-to-wind behavior and visible furling"],
 ["anchor","Anchor / Chain","Core","AnchorController, RopeConstraint","No snapping, clear slack-to-taut behavior"],
+["unified-anchor-chain","Unified Anchor + Adjustable Chain","Core","AnchorControlView, RopeConstraint","One grouped HUD control, gradual reeling and integrated tension display"],
 ["ocean","Procedural Water Engine","Core","OceanField, SplashEmitter","Reactive water and speed-dependent wake at phone frame rates"],
 ["world","Seeded Endless World","Core","WorldGenerator, ChunkStreamer","Same seed and location generate same island/ship/treasure contents"],
 ["friend","Friendly / Aggressive Toggle","Core","EncounterCoordinator","Mode has clear meaning and affects actions"],
