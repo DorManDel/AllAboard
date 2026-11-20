@@ -210,10 +210,11 @@ class LayoutStudio{
   target.style.setProperty("--ui-opacity",p.opacity.toFixed(3));
   target.style.setProperty("--ui-layer",String(p.layer));
   const a=this.appearance[id]||defaultAppearance();
-  target.style.visibility=a.visible?"visible":"hidden";
+  target.style.display=a.visible?"":"none";
   target.style.border=a.borderWidth>0?a.borderWidth+"px solid "+a.borderColor:"";
   target.style.background=a.useBackground?a.background:"";
-  target.classList.toggle("layout-selected",this.active&&this.selected===id);
+  const inStudio=root.AllAboardLiveBridge?.getState?.()?.activeTab==="layout";
+  target.classList.toggle("layout-selected",(this.active||inStudio)&&this.selected===id);
  }
  applyAll(){for(const [id] of targets)this.apply(id);}
  renderValues(){
@@ -257,7 +258,7 @@ class LayoutStudio{
   const phone=this.phone.getBoundingClientRect();
   const boxes=targets.map(([id,label])=>{
    const element=this.$(id);
-   if(!element||element.hidden)return null;
+   if(!element||element.hidden||this.appearance[id]?.visible===false)return null;
    const rect=element.getBoundingClientRect();
    return{id,label,rect,area:Math.max(1,rect.width*rect.height)};
   }).filter(Boolean);
