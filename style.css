@@ -410,3 +410,36 @@
 .phone-screen[data-ui-theme="compact"] .helm-control img{
   filter:brightness(1.2) saturate(.8) drop-shadow(0 2px 3px #071b2a6e)
 }
+
+
+/* V0.7 — Feel controls, original audio audition, and Unity readiness. */
+.audio-mood-list,.audio-sfx-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:11px 0 17px}
+.audio-mood,.audio-sfx{display:flex;flex-direction:column;align-items:flex-start;text-align:left;
+  min-height:59px;gap:6px;padding:11px 12px;border:1px solid #4c7c92;
+  border-radius:12px;background:#113449;color:#ecf8ef;cursor:pointer;min-width:0}
+.audio-mood strong,.audio-sfx strong{font-size:11px;line-height:1.35}
+.audio-mood small,.audio-sfx small{font-size:9px;color:#add4dc;line-height:1.45}
+.audio-mood.selected{background:#205747;border:1px solid #80d9bf}
+.audio-mood:focus-visible,.audio-sfx:focus-visible{outline:2px solid #e5d29f}
+.audio-event-log,.planner-code-block{white-space:pre-wrap;overflow-wrap:anywhere;
+  max-height:240px;overflow-y:auto;color:#d4eceb;background:#071f2f;
+  border:1px solid #40697e;border-radius:11px;padding:12px;font:11px/1.6 ui-monospace,monospace}
+.planner-code-block{max-height:320px;min-height:110px;text-align:left}
+#plannerCopyHandoff{margin-top:8px;width:100%;min-height:38px}
+.fx-toggle{display:flex;align-items:center;gap:8px;line-height:1.5;
+  color:#d9f6ed;font-size:12px;border:1px solid #3c7183;
+  border-radius:11px;background:#12384d;padding:10px 12px;margin:10px 0}
+.fx-toggle input{accent-color:#8ee8ce;width:17px;height:17px}
+.unity-checklist{display:flex;flex-direction:column;gap:8px;margin:11px 0}
+.unity-checklist label{display:flex;gap:9px;align-items:flex-start;color:#d5ebec;
+  background:#12384c;border:1px solid #477487;padding:10px;border-radius:9px;font-size:11px;line-height:1.6}
+.unity-checklist input{accent-color:#93efce;flex-shrink:0;margin-top:3px}
+.unity-audit-results{display:flex;flex-direction:column;gap:7px;margin:10px 0}
+.unity-audit-results>div,.unity-audit-results>p{
+  font-size:11px;line-height:1.5;padding:10px;border-radius:10px;
+  background:#102d41;border:1px solid #486b81;color:#b7dee6}
+.unity-audit-results .audit-error{border-color:#af696d;color:#ffc9c1;background:#4c263040}
+.unity-audit-results .audit-warning{border-color:#ad995a;color:#f0dca6;background:#58472a55}
+.unity-audit-results .audit-info{border-color:#62b8ac;color:#b1ebd9}
+#unityAssetUpload{max-width:100%;font-size:10px;color:#a7d0d3;margin-top:8px}
+@media(max-width:400px){.audio-mood-list,.audio-sfx-list{grid-template-columns:1fr 1fr;gap:6px}.audio-mood,.audio-sfx{padding:9px}}
