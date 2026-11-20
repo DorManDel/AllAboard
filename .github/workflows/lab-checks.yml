@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: "22"
       - name: Check JavaScript syntax
-        run: node --check app.js && node --check ocean.js && node --check vessel.js && node --check world.js && node --check flag-workshop.js && node --check mechanics-review.js
+        run: node --check app.js && node --check ocean.js && node --check vessel.js && node --check world.js && node --check flag-workshop.js && node --check mechanics-review.js && node --check mechanic-catalog.js && node --check stage-loop.js && node --check roadmap-board.js
       - name: Run lab smoke tests
         run: node tests/smoke.cjs
       - name: Run vessel and ocean physics tests
@@ -30,3 +30,7 @@ jobs:
         run: node tests/world.cjs
       - name: Test Unity mechanics selection export
         run: node tests/review.cjs
+      - name: Test stage and stay-or-leave checkpoint
+        run: node tests/stage-loop.cjs
+      - name: Test mechanic catalog and Kanban board
+        run: node tests/planner.cjs
