@@ -22,7 +22,18 @@ const fields={
  layer:{min:1,max:30,step:1,digits:0,unit:""}
 };
 const defaultItem=()=>({x:0,y:0,scaleX:1,scaleY:1,rotation:0,opacity:1,layer:5});
-const defaultAppearance=()=>({visible:true,borderWidth:0,borderColor:"#8be8d6",background:"#103b51",useBackground:false});
+const defaultAppearance=()=>({
+ visible:true,borderEnabled:true,borderWidth:0,borderRadius:12,
+ borderColor:"#8be8d6",backgroundEnabled:true,background:"#103b51",
+ backgroundStyle:"glass",backgroundOpacity:.75,useBackground:false
+});
+const safeStyle=value=>["solid","glass","gradient"].includes(value)?value:"glass";
+const rgba=(hex,alpha)=>"rgba("+[1,3,5].map(x=>parseInt(hex.slice(x,x+2),16)).join(",")+","+clamp(alpha,0,1)+")";
+const backgroundCSS=a=>{
+ const color=rgba(a.background,a.backgroundOpacity);
+ if(a.backgroundStyle==="gradient")return "linear-gradient(145deg,"+color+","+rgba(a.background,a.backgroundOpacity*.26)+")";
+ return color;
+};
 const iconPaths={
  wheelControl:"./assets/ship-wheel.svg",sailControl:"./assets/ship-parts/sail_front.svg",
  anchorControl:"./assets/ship-parts/anchor.svg",modeButton:"./assets/ship-parts/hull.svg",
@@ -91,7 +102,12 @@ class LayoutStudio{
   this.$("layoutEditToggle").addEventListener("click",()=>this.toggle());
   const appearanceEvents=[
     ["layoutVisible","visible","change",e=>e.target.checked],
-    ["layoutBorderWidth","borderWidth","input",e=>Math.max(0,Math.min(8,Number(e.target.value)))],
+    ["layoutBorderEnabled","borderEnabled","change",e=>e.target.checked],
+    ["layoutBorderRadius","borderRadius","input",e=>clamp(Number(e.target.value),0,32)],
+    ["layoutBackgroundEnabled","backgroundEnabled","change",e=>e.target.checked],
+    ["layoutBackgroundStyle","backgroundStyle","change",e=>safeStyle(e.target.value)],
+    ["layoutBackgroundOpacity","backgroundOpacity","input",e=>clamp(Number(e.target.value)/100,0,1)],
+    ["layoutBorderWidth","borderWidth","input",e=>Math.max(0,Math.min(12,Number(e.target.value)))],
     ["layoutBorderColor","borderColor","input",e=>e.target.value],
     ["layoutBackgroundColor","background","input",e=>e.target.value],
     ["layoutUseBackground","useBackground","change",e=>e.target.checked]
@@ -123,6 +139,15 @@ class LayoutStudio{
   }
   this.$("layoutLayerBack").addEventListener("click",()=>stepMove("layer",-1));
   this.$("layoutLayerFront").addEventListener("click",()=>stepMove("layer",1));
+  // Independent resets: preserve appearance when restoring geometry, and vice versa.
+  this.$("layoutResetPosition").addEventListener("click",()=>{
+   this.layout[this.selected]=defaultItem();this.save();this.render();
+   this.note("Position and scale reset. Your colors, border, visibility and background are unchanged.");
+  });
+  this.$("layoutResetAppearance").addEventListener("click",()=>{
+   this.appearance[this.selected]=defaultAppearance();this.save();this.render();
+   this.note("Appearance reset. Your position, rotation, scale and layering are unchanged.");
+  });
   this.$("layoutResetItem").addEventListener("click",()=>{
    this.layout[this.selected]=defaultItem();this.appearance[this.selected]=defaultAppearance();this.save();this.render();this.note("Selected component restored.");
   });
@@ -211,8 +236,11 @@ class LayoutStudio{
   target.style.setProperty("--ui-layer",String(p.layer));
   const a=this.appearance[id]||defaultAppearance();
   target.style.display=a.visible?"":"none";
-  target.style.border=a.borderWidth>0?a.borderWidth+"px solid "+a.borderColor:"";
-  target.style.background=a.useBackground?a.background:"";
+  target.style.border=!a.borderEnabled?"none":a.borderWidth>0?a.borderWidth+"px solid "+a.borderColor:"";
+  target.style.borderRadius=a.borderEnabled&&a.borderWidth>0?a.borderRadius+"px":"";
+  target.style.background=!a.backgroundEnabled?"transparent":a.useBackground?backgroundCSS(a):"";
+  target.style.backdropFilter=a.backgroundEnabled&&a.useBackground&&a.backgroundStyle==="glass"?
+    "blur(9px)":"";
   const inStudio=root.AllAboardLiveBridge?.getState?.()?.activeTab==="layout";
   target.classList.toggle("layout-selected",(this.active||inStudio)&&this.selected===id);
  }
@@ -228,6 +256,13 @@ class LayoutStudio{
   }
   const appearance=this.appearance[this.selected]||defaultAppearance();
   if(this.$("layoutVisible"))this.$("layoutVisible").checked=appearance.visible;
+  if(this.$("layoutBorderEnabled"))this.$("layoutBorderEnabled").checked=appearance.borderEnabled;
+  if(this.$("layoutBorderRadius"))this.$("layoutBorderRadius").value=appearance.borderRadius;
+  if(this.$("layoutRadiusValue"))this.$("layoutRadiusValue").textContent=appearance.borderRadius+" px";
+  if(this.$("layoutBackgroundEnabled"))this.$("layoutBackgroundEnabled").checked=appearance.backgroundEnabled;
+  if(this.$("layoutBackgroundStyle"))this.$("layoutBackgroundStyle").value=appearance.backgroundStyle;
+  if(this.$("layoutBackgroundOpacity"))this.$("layoutBackgroundOpacity").value=Math.round(appearance.backgroundOpacity*100);
+  if(this.$("layoutBackgroundOpacityValue"))this.$("layoutBackgroundOpacityValue").textContent=Math.round(appearance.backgroundOpacity*100)+"%";
   if(this.$("layoutBorderWidth"))this.$("layoutBorderWidth").value=appearance.borderWidth;
   if(this.$("layoutBorderValue"))this.$("layoutBorderValue").textContent=appearance.borderWidth+" px";
   if(this.$("layoutBorderColor"))this.$("layoutBorderColor").value=appearance.borderColor;
@@ -300,9 +335,15 @@ class LayoutStudio{
    const base=defaultAppearance();
    this.appearance[id]={
     visible:raw.visible!==false,
-    borderWidth:Number.isFinite(Number(raw.borderWidth))?clamp(Number(raw.borderWidth),0,8):0,
+    borderEnabled:raw.borderEnabled!==false,
+    borderWidth:Number.isFinite(Number(raw.borderWidth))?clamp(Number(raw.borderWidth),0,12):0,
+    borderRadius:Number.isFinite(Number(raw.borderRadius))?clamp(Number(raw.borderRadius),0,32):base.borderRadius,
     borderColor:safeColor(raw.borderColor,base.borderColor),
+    backgroundEnabled:raw.backgroundEnabled!==false,
     background:safeColor(raw.background,base.background),
+    backgroundStyle:safeStyle(raw.backgroundStyle),
+    backgroundOpacity:Number.isFinite(Number(raw.backgroundOpacity))?
+      clamp(Number(raw.backgroundOpacity),0,1):base.backgroundOpacity,
     useBackground:raw.useBackground===true
    };
   }
@@ -312,10 +353,10 @@ class LayoutStudio{
  export(){
   const blob=new Blob([JSON.stringify(this.snapshot(),null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download="all-aboard-ui-layout-v08.json";
+  a.href=url;a.download="all-aboard-ui-layout-v010.json";
   document.body.append(a);a.click();a.remove();
   root.setTimeout?.(()=>URL.revokeObjectURL(url),500);
-  this.note("V0.8 preset exported, including axis scales, rotation, alpha and layer order.");
+  this.note("V0.10 preset exported, including independent geometry and reversible border/background appearance.");
  }
 }
 root.AllAboardUILayout={LayoutStudio,targets,normalizeItem,DOR_V07};

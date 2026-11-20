@@ -144,10 +144,10 @@ const plans=[
   },
   {
     id:"hud-layout",title:"Touch-Editable HUD & Button Design",category:"Core Sailing",phase:"Core",priority:"P0",effort:"M",
-    summary:"V0.9 HUD Studio adds show/hide (including heading degrees), borders/background colors and SVG selection preview to V0.8 geometry editing.",
+    summary:"V0.10 adds reversible border/background on/off, corner radius, alpha, gradient/glass/solid and separate Reset Position versus Reset Appearance to the full HUD editor.",
     player:"Find a thumb-friendly wheel, anchor, sail control, compass, minimap and Friendly toggle layout.",
-    prototype:"V0.8 editor imports legacy V0.7 JSON, includes Dor’s approved test layout, controls X/Y scale/rotation/opacity/layer and saves versioned presets.",
-    mvp:["Touch drag and precision 0.1% X/Y","Independent X/Y + uniform scale","Rotation, transparency and layer priority","V1→V2 JSON migration and local save","Overlap/offscreen warnings and three button themes"],
+    prototype:"V0.10 UI Studio: move/scale each HUD element, tune appearance independently, compare three background styles, export/load legacy V1/V2-compatible JSON.",
+    mvp:["Touch drag and precision 0.1% X/Y","Independent X/Y + uniform scale","Rotation, transparency and layer priority","V1→V2 JSON migration and local save","Overlap/offscreen warnings and three button themes","Border/background off keeps their stored values","Independent Reset Appearance and Reset Position"],
     acceptance:["No game-control actions occur while editing","Legacy layout imports without losing anchor position","Unity handoff includes axis scale, rotation, opacity and z order","Layouts remain usable on tall and 16:9 portrait screens"],
     dependencies:["sailing-feel"],unity:["HUDLayoutPreset","SafeAreaUI","ResponsiveControlAnchors"],jiraType:"Story",postCore:false
   },
@@ -190,10 +190,10 @@ const plans=[
   },
   {
     id:"sail-tilt",title:"Sail Yard Tilt & Auto Trim",category:"Core Sailing",phase:"Core",priority:"P1",effort:"M",
-    summary:"Rotate the mast yard to capture more wind; automatic trim is the safe default, manual trim offers a small precision reward.",
+    summary:"V0.10 approved default: Raise/Lower + STANDING manual tilt slider that stays where released; alternate standing sail-area slider with auto tilt, both on one vessel model.",
     player:"Keep controls simple: sail up/down is core, small manual tilt is optional for advanced players.",
-    prototype:"V0.8 sail control combines sail height with an optional compact tilt editor; FX tab keeps full tuning. Auto alignment remains default.",
-    mvp:["Auto trim chooses desired relative-wind angle","Contextual in-game manual tilt ±45 degrees","Wind ideal angle displayed beside slider","Propulsion penalty capped to keep casual controls viable","Sail SVG visibly tilts at yard hinge"],
+    prototype:"V0.10 default standing ±45° tilt, Raise/Lower returns last positive sail area. Alternate standing 0–100% sail-area slider plus automatic trim. Same physics, shared settings/presets.",
+    mvp:["Default manual standing tilt stays at chosen angle after release","Raise/Lower button preserves last positive sail area","Alternative standing sail-area slider with auto trim","Switching modes retains stored trim and area","Shared sail/wind model and visual yard rotation"],
     acceptance:["Auto trim is a usable baseline","Manual trim affects thrust but not steering input","Lowered sails stay visibly furled and tilt works"],
     dependencies:["sailing-feel"],unity:["SailTrimController","SailRigView","SailPolar"],jiraType:"Story",postCore:false
   },

@@ -12,7 +12,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.9</span><button class="subtle-button" id="loadFavoritePreset" title="Restore saved favorite water/ship tuning">★ Favorite</button><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="importMechanicsPresetButton" title="Import a saved mechanics and flag preset">↑ Import</button><input type="file" id="importMechanicsPreset" accept=".json,application/json" hidden><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.10</span><button class="subtle-button" id="loadFavoritePreset" title="Restore saved favorite water/ship tuning">★ Favorite</button><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="importMechanicsPresetButton" title="Import a saved mechanics and flag preset">↑ Import</button><input type="file" id="importMechanicsPreset" accept=".json,application/json" hidden><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
     <nav class="nav-shell" aria-label="Mechanics navigation">
@@ -74,15 +74,15 @@
                 </div>
                 <div class="sail-control" id="sailControl">
                   <div class="control-caption">SAILS</div>
-                  <input id="sailSlider" type="range" min="0" max="100" step="1" value="72" orient="vertical" aria-label="Sail height">
+                  <input id="sailSlider" type="range" min="0" max="100" step=".5" value="72" orient="vertical" aria-label="Sail area, vertical standing slider">
                   <div class="sail-percent" id="sailPercent">72%</div>
                   <button type="button" id="sailHeightToggle" class="sail-height-toggle" hidden aria-label="Raise or furl all sails">FULL</button>
-                  <button type="button" class="sail-trim-toggle" id="sailTrimToggle" aria-expanded="false" aria-controls="sailTrimQuick">↪ AUTO</button>
+                  <button type="button" class="sail-trim-toggle" id="sailTrimToggle" aria-expanded="false" aria-controls="sailTrimQuick" hidden>↪ AUTO</button>
                   <div class="sail-trim-popup" id="sailTrimQuick" hidden>
-                    <div class="quick-title">⛵ SAIL YARD TILT</div>
-                    <label class="quick-auto"><input type="checkbox" id="sailQuickAuto" checked> Automatic wind trim</label>
-                    <input id="sailTrimQuickSlider" type="range" min="-45" max="45" step=".5" value="0" aria-label="Manual sail tilt in degrees">
-                    <span id="sailQuickTrimValue">0° / ideal 0°</span>
+                    <div class="quick-title" id="sailQuickTitle">YARD TILT</div>
+                    <label class="quick-auto" id="sailQuickAutoLabel" hidden><input type="checkbox" id="sailQuickAuto"> Automatic wind trim</label>
+                    <input id="sailTrimQuickSlider" type="range" min="-45" max="45" step=".5" value="0" orient="vertical" aria-label="Sail yard tilt, standing vertical slider that holds its position">
+                    <span id="sailQuickTrimValue">0°</span>
                   </div>
                 </div>
                 <div class="side-controls">
@@ -145,12 +145,20 @@
           <div class="layout-icon-preview"><img id="layoutIconPreview" alt="Selected HUD component icon" src="./assets/ship-wheel.svg"><div><strong id="layoutIconName">Helm wheel</strong><small>Matching game artwork. Selected component glows in the phone preview.</small></div></div>
           <div class="layout-appearance">
             <div class="mini-heading">APPEARANCE · GAME HUD</div>
+            <p class="tipline">Disabling a border or background keeps its color and values for re-enabling. Reset appearance never resets position.</p>
+            <label class="fx-toggle"><input type="checkbox" id="layoutBorderEnabled" checked> Enable border (unchecked = none)</label>
+            <label class="fx-toggle"><input type="checkbox" id="layoutBackgroundEnabled" checked> Enable background (unchecked = transparent)</label>
             <label class="fx-toggle"><input type="checkbox" id="layoutVisible" checked> Show selected component (hide/remove from HUD)</label>
             <div class="setting"><div class="setting-head"><label for="layoutBorderWidth">Border thickness</label><output id="layoutBorderValue">0 px</output></div>
-              <input type="range" id="layoutBorderWidth" min="0" max="8" step=".5" value="0"></div>
+              <input type="range" id="layoutBorderWidth" min="0" max="12" step=".25" value="0"></div>
+            <div class="setting"><div class="setting-head"><label for="layoutBorderRadius">Border corner radius</label><output id="layoutRadiusValue">Original</output></div>
+              <input type="range" id="layoutBorderRadius" min="0" max="32" step="1" value="12"></div>
             <div class="layout-colors"><label>Border <input type="color" id="layoutBorderColor" value="#8be8d6"></label>
               <label>Background <input type="color" id="layoutBackgroundColor" value="#103b51"></label></div>
-            <label class="fx-toggle"><input type="checkbox" id="layoutUseBackground"> Custom background color</label>
+            <label class="fx-toggle"><input type="checkbox" id="layoutUseBackground"> Edit background (override original style)</label>
+            <div class="setting"><label for="layoutBackgroundStyle">Background style</label><select id="layoutBackgroundStyle" class="layout-select"><option value="solid">Solid</option><option value="glass">Glass</option><option value="gradient">Gradient</option></select></div>
+            <div class="setting"><div class="setting-head"><label for="layoutBackgroundOpacity">Background alpha</label><output id="layoutBackgroundOpacityValue">75%</output></div>
+              <input id="layoutBackgroundOpacity" type="range" min="0" max="100" step="1" value="75"></div>
           </div>
           <div class="layout-preset-caption">Current preset: <strong id="layoutPresetName">Default</strong> · V0.8 supports legacy V0.7 JSON imports.</div>
           <div class="setting"><label for="layoutElement">Select UI component</label><select id="layoutElement" class="layout-select"></select></div>
@@ -177,7 +185,8 @@
           </div>
           <div class="layout-value-readout" id="layoutOutput">Helm wheel · X 0% · Y 0% · 1×1 · 0° · 100% opacity · layer 5</div>
           <div class="layout-validation" id="layoutValidation" role="status">Layout check: no known overlaps yet. Check on a physical phone too.</div>
-          <div class="button-pair"><button id="layoutResetItem" class="outline-button">↺ Reset selected</button><button id="layoutResetAll" class="outline-button">↺ Reset all UI</button></div>
+          <div class="button-pair"><button id="layoutResetPosition" class="outline-button">↺ Reset position / scale</button><button id="layoutResetAppearance" class="outline-button">↺ Reset appearance only</button></div>
+          <div class="button-pair"><button id="layoutResetItem" class="outline-button">↺ Reset selected (both)</button><button id="layoutResetAll" class="outline-button">↺ Reset all UI</button></div>
           <div class="button-pair"><button id="layoutExport" class="wide-button">↓ Export UI preset (.json)</button><label class="outline-button import-label" for="layoutImport">↑ Import preset</label><input id="layoutImport" type="file" accept="application/json,.json" hidden></div>
           <div class="world-alert" id="layoutStatus" role="status">Enable editing and drag a highlighted UI component by touch. The layout is saved locally on this device.</div>
           <div class="callout">Coordinates are relative to the phone preview; layer order applies within HUD stacking groups. Rotation, independent scaling and transparency are design-only transforms, not finished Unity RectTransforms or accessibility validation. Test all thumb targets and safe areas.</div>
@@ -188,24 +197,24 @@
             <p>Cannon fire should trigger a short recoil, a water splash and a sound event. Waves drive the ship's visual roll/bob using real samples of OceanField. No gameplay-position teleports.</p>
           </div>
           <div class="mini-heading">CANNON &amp; CAMERA FEEL</div>
-          <div class="setting"><div class="setting-head"><label for="recoilStrength">Cannon recoil</label><output data-value="recoilStrength">0.8</output></div><input id="recoilStrength" type="range" min="0" max="2" step=".1" value=".8" data-setting="recoilStrength"></div>
-          <div class="setting"><div class="setting-head"><label for="cameraShake">Camera shake</label><output data-value="cameraShake">0.5</output></div><input id="cameraShake" type="range" min="0" max="2" step=".1" value=".5" data-setting="cameraShake"></div>
-          <div class="setting"><div class="setting-head"><label for="waveRoll">Wave-induced ship tilt</label><output data-value="waveRoll">1.0</output></div><input id="waveRoll" type="range" min="0" max="2" step=".1" value="1" data-setting="waveRoll"></div>
+          <div class="setting"><div class="setting-head"><label for="recoilStrength">Cannon recoil</label><output data-value="recoilStrength">0.8</output><input class="feel-number" id="recoilStrengthNumber" type="number" min="0" max="3" step=".05" value="0.8" aria-label="Cannon recoil numeric tuning"></div><input id="recoilStrength" type="range" min="0" max="3" step=".05" value=".8" data-setting="recoilStrength"></div>
+          <div class="setting"><div class="setting-head"><label for="cameraShake">Camera shake</label><output data-value="cameraShake">0.5</output><input class="feel-number" id="cameraShakeNumber" type="number" min="0" max="3" step=".05" value="0.5" aria-label="Camera shake numeric tuning"></div><input id="cameraShake" type="range" min="0" max="3" step=".05" value=".5" data-setting="cameraShake"></div>
+          <div class="setting"><div class="setting-head"><label for="waveRoll">Wave-induced ship tilt</label><output data-value="waveRoll">1.0</output><input class="feel-number" id="waveRollNumber" type="number" min="0" max="3" step=".05" value="0.8" aria-label="Wave-induced ship tilt numeric tuning"></div><input id="waveRoll" type="range" min="0" max="3" step=".05" value="1" data-setting="waveRoll"></div>
           <div class="button-pair"><button class="wide-button" id="feelTestShot">✹ Fire test broadside</button><button class="outline-button" id="feelTestHit">✦ Test hull impact</button></div>
           <div class="mini-heading">SAIL CONTROL DESIGN</div>
           <div class="setting"><label for="sailControlStyle">Mobile sail control</label>
             <select id="sailControlStyle" class="layout-select">
-              <option value="classic">Height slider + compact AUTO button</option>
-              <option value="toggle-tilt">Up/Down toggle + wind trim mini dial</option>
+              <option value="toggle-tilt">Default: Raise/Lower button + standing manual tilt slider</option>
+              <option value="classic">Alternative: standing sail-area slider + automatic tilt</option>
             </select>
           </div>
           <div class="mini-heading">SAIL TRIM (OPTIONAL ONE-THUMB SKILL)</div>
-          <div class="explain"><strong>Tilt the yard to catch wind</strong><p>Auto-trim stays enabled by default. Manual trim adds a small skill advantage but is not a new mandatory game button. A visual yard rotation follows the selected trim.</p></div>
+          <div class="explain"><strong>One vertical slider, two control assignments</strong><p>Default: tap Raise/Lower, and drag the standing tilt slider up/down. It stays exactly where released. Alternative: standing sail-area slider with automatic tilt. Both share one vessel model; switching modes never resets angle or sail area. The default manual tilt is an intentionally optional advanced strategy.</p></div>
           <div class="setting"><div class="setting-head"><label for="sailTrim">Sail tilt / yard angle</label><output data-value="sailTrim">0°</output></div><input id="sailTrim" type="range" min="-45" max="45" step="1" value="0" data-setting="sailTrim"></div>
           <label class="fx-toggle"><input id="sailAutoTrim" type="checkbox" checked> Automatic sail trim (recommended)</label>
           <div class="physics-readout">IDEAL TILT <strong id="trimIdeal">0°</strong> · SAIL TRIM BONUS <strong id="trimBonus">100%</strong></div>
           <div class="mini-heading">WIND &amp; OCEAN VISUALS</div>
-          <div class="setting"><div class="setting-head"><label for="windFX">Wind streak intensity</label><output data-value="windFX">0.6</output></div><input id="windFX" type="range" min="0" max="2" step=".1" value=".6" data-setting="windFX"></div>
+          <div class="setting"><div class="setting-head"><label for="windFX">Wind streak intensity</label><output data-value="windFX">0.6</output><input class="feel-number" id="windFXNumber" type="number" min="0" max="3" step=".05" value="0.6" aria-label="Wind streak intensity numeric tuning"></div><input id="windFX" type="range" min="0" max="3" step=".05" value=".6" data-setting="windFX"></div>
           <label class="fx-toggle"><input id="reduceMotion"> Reduce motion / visual shake</label>
           <div class="physics-readout" id="feelReadout">Sail trim, ship pitch and sound events stay decoupled from world physics.</div>
           <div class="callout">Unity integration candidate: ShipPosePresenter for waves, BroadsideFeedback for recoil, SailTrimController for rigging, OceanEffectBus for water FX. Only real shots should trigger automatic feedback.</div>

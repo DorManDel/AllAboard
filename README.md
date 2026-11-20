@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.9 (experimental, stacked on unmerged V0.8)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.10 (experimental, stacked on unmerged V0.9)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -187,3 +187,18 @@ Keep this branch separate; do not merge into main or port into Unity until mobil
 - **Architecture:** REFINEMENT_V09.md gives independent review and Unity/Codex handoff for each take.
 
 Run node tests/v09-experiments.cjs alongside the existing smoke/V0.6–V0.8 regression suites. No Unity scene/prefab was changed. Real phone gesture, safe-area overlap, FPS and final sound quality still require Dor/Eilon playtesting. Do not merge before approval.
+
+## V0.10 — Sail Control + HUD Appearance (no Unity changes)
+
+**Scope agreed with Dor:** develop standing (vertical) sail control variants and a fully reversible HUD editor. Keep anchor reel / seeded WindField / ocean shader for separate takes.
+
+- **Default mode:** Raise/Lower button and vertical manual tilt slider (-45..45°, 0.5° steps). Slider holds its position when released.
+- **Alternate mode:** standing sail-area slider (0–100%, 0.5% steps) plus automatic wind trim. Selecting a mode does not overwrite last tilt or sail area; Raise restores the last positive sail area after lowering.
+- **Same physics:** existing vessel step owns effective sail area and trim for both modes. Switching does not create or reset a second SailController.
+- **FX lab:** higher adjustable range (0–3) and finer steps (0.05) with exact number entry for recoil, camera shake, wave tilt and wind streaks. These are deliberately uncalibrated experimental visual intensity values.
+- **HUD editor:** visibility, border on/off, thickness (0–12), corner radius (0–32), color; background on/off, solid/glass/gradient, alpha (0–100%) and color. Disabling a style does not delete its stored values.
+- **Independent reset:** Reset Position/Scale and Reset Appearance are separate; Reset selected (both) remains. V1/V2 layouts can still import and V0.10 exports preserve appearance.
+- **Saved state:** the full mechanics preset includes the chosen sail-control mode (version 5). V0.9 presets infer the chosen mode from prior auto-trim state. Favorite presets and prior previews are left unchanged.
+- **Tests & Unity handoff:** `tests/sail-hud-v010.cjs`, expanded DOM smoke tests and `REFINEMENT_V010.md`.
+
+Review touch reach, slider stay-in-place, both modes, border/background toggles, independent resets and save/load on a real phone before merging.
