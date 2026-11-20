@@ -15,15 +15,18 @@ const vesselJs = fs.readFileSync(path.join(root,"vessel.js"),"utf8");
 const worldJs = fs.readFileSync(path.join(root,"world.js"),"utf8");
 const flagJs = fs.readFileSync(path.join(root,"flag-workshop.js"),"utf8");
 const reviewJs = fs.readFileSync(path.join(root,"mechanics-review.js"),"utf8");
+const catalogJs=fs.readFileSync(path.join(root,"mechanic-catalog.js"),"utf8");
+const loopJs=fs.readFileSync(path.join(root,"stage-loop.js"),"utf8");
+const roadmapJs=fs.readFileSync(path.join(root,"roadmap-board.js"),"utf8");
 
 assert.doesNotThrow(() => new vm.Script(js), "JavaScript must parse");
 assert.doesNotThrow(() => new vm.Script(oceanJs), "Ocean engine must parse");
 assert.doesNotThrow(() => new vm.Script(vesselJs), "Vessel physics must parse");
-for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"]])
+for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"]])
   assert.doesNotThrow(()=>new vm.Script(source),name+" engine must parse");
 assert.match(html, /<script src="\.\/ocean\.js" defer>/);
 assert.match(html, /<script src="\.\/vessel\.js" defer>/);
-for(const name of ["world.js","flag-workshop.js","mechanics-review.js"])
+for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js"])
   assert(html.includes('<script src="./'+name+'" defer></script>'));
 for (const part of ["hull","sail_front","sail_rear","anchor","cannon_left_front","cannon_left_rear","cannon_right_front","cannon_right_rear"]) assert(fs.existsSync(path.join(root,"assets","ship-parts",part+".svg")), "Missing ship part "+part);
 assert.match(html, /<meta name="viewport"/);
@@ -38,7 +41,7 @@ for (const id of referencedIds) assert(ids.includes(id), "Missing DOM ID: " + id
 
 const tabs = [...html.matchAll(/\bdata-tab="([^"]+)"/g)].map(m => m[1]);
 const panels = [...html.matchAll(/\bdata-panel="([^"]+)"/g)].map(m => m[1]);
-assert.equal(tabs.length, 11);
+assert.equal(tabs.length, 13);
 assert.deepEqual(tabs.sort(), panels.sort(), "Each tab must have a matching panel");
 
 // Small DOM mock exercises initialization plus main controls without external packages.
@@ -106,6 +109,7 @@ new Function("window",vesselJs)(window);
 new Function("window",worldJs)(window);
 new Function("window","document","URL","Image",flagJs)(window,document,URL,undefined);
 new Function("window","document","localStorage","URL",reviewJs)(window,document,localStorage,URL);
+new Function("window",catalogJs)(window);
 const navigator = { vibrate() { return true; } };
 class ResizeObserver { observe() {} }
 const frameCallbacks = [];
@@ -113,6 +117,8 @@ const frame = (cb) => frameCallbacks.push(cb);
 function step(time) { assert(frameCallbacks.length>0, "Animation frame should be scheduled"); frameCallbacks.shift()(time); }
 const boot = new Function("document", "window", "navigator", "ResizeObserver", "requestAnimationFrame", js);
 assert.doesNotThrow(() => boot(document, window, navigator, ResizeObserver, frame), "App must initialize using all required DOM elements");
+new Function("window","document","localStorage",loopJs)(window,document,localStorage);
+new Function("window","document","localStorage","navigator","URL",roadmapJs)(window,document,localStorage,navigator,URL);
 function fire(id, event, extra) {
   const el = byId.get(id);
   assert(el.events[event] && el.events[event].length, "Missing handler: " + id + "." + event);
@@ -156,4 +162,19 @@ fire("worldSummonKraken","click");
 for(let i=180;i<210;i++)step((i+1)*16.667);
 assert(Number(byId.get("worldChunks").textContent)>0,"World must generate cached chunks");
 assert(byId.get("worldAlert").textContent.includes("Kraken"),"Kraken test button must respond");
-console.log("PASS: eleven tabs, procedural world, original ship, flag painter, mechanics review, anchor, ocean and Canvas frames.");
+fire("loopCompleteObjective","click");
+assert.equal(byId.get("loopPhase").textContent,"CHOICE");
+assert.equal(byId.get("loopBanked").textContent,"50");
+fire("loopStay","click");
+assert.equal(byId.get("loopPhase").textContent,"RISK");
+fire("loopAdvance10","click");
+fire("loopSurvive","click");
+assert(Number(byId.get("loopPending").textContent)>0,"Survival should award unbanked loot");
+fire("loopLeave","click");
+assert.equal(byId.get("loopPhase").textContent,"AT PORT");
+fire("loopResume","click");
+assert.equal(byId.get("loopPhase").textContent,"CHOICE");
+assert(byId.get("plannerCatalog").children.length>10,"Planner catalog should render");
+fire("plannerAdd","click");
+assert(byId.get("plannerBoardCount").textContent.startsWith("1"),"Selected mechanic should be added to Kanban");
+console.log("PASS: thirteen tabs, ship/world, stage checkpoint/risk, 10s tutorial and Kanban planning controls.");
