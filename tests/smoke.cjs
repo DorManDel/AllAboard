@@ -20,15 +20,16 @@ const loopJs=fs.readFileSync(path.join(root,"stage-loop.js"),"utf8");
 const roadmapJs=fs.readFileSync(path.join(root,"roadmap-board.js"),"utf8");
 const layoutJs=fs.readFileSync(path.join(root,"ui-layout.js"),"utf8");
 const mapJs=fs.readFileSync(path.join(root,"map-explorer.js"),"utf8");
+const krakenJs=fs.readFileSync(path.join(root,"kraken-grapple.js"),"utf8");
 
 assert.doesNotThrow(() => new vm.Script(js), "JavaScript must parse");
 assert.doesNotThrow(() => new vm.Script(oceanJs), "Ocean engine must parse");
 assert.doesNotThrow(() => new vm.Script(vesselJs), "Vessel physics must parse");
-for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"],[layoutJs,"UI Studio"],[mapJs,"World Map"]])
+for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"],[layoutJs,"UI Studio"],[mapJs,"World Map"],[krakenJs,"Kraken Grapple"]])
   assert.doesNotThrow(()=>new vm.Script(source),name+" engine must parse");
 assert.match(html, /<script src="\.\/ocean\.js" defer>/);
 assert.match(html, /<script src="\.\/vessel\.js" defer>/);
-for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js","ui-layout.js","map-explorer.js"])
+for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js","ui-layout.js","map-explorer.js","kraken-grapple.js"])
   assert(html.includes('<script src="./'+name+'" defer></script>'));
 for (const part of ["hull","sail_front","sail_rear","anchor","cannon_left_front","cannon_left_rear","cannon_right_front","cannon_right_rear"]) assert(fs.existsSync(path.join(root,"assets","ship-parts",part+".svg")), "Missing ship part "+part);
 assert.match(html, /<meta name="viewport"/);
@@ -109,6 +110,7 @@ const localStorage={getItem(){return null;},setItem(){}};
 new Function("window",oceanJs)(window);
 new Function("window",vesselJs)(window);
 new Function("window",worldJs)(window);
+new Function("window",krakenJs)(window);
 new Function("window","document","URL","Image",flagJs)(window,document,URL,undefined);
 new Function("window","document","localStorage","URL",reviewJs)(window,document,localStorage,URL);
 new Function("window",catalogJs)(window);
