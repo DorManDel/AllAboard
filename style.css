@@ -388,3 +388,25 @@
 
 /* Keep the helm centered in the default phone layout; UI Studio can shift it. */
 .helm-control{left:50%}
+
+/* UI Studio button-theme comparisons. Classic preserves existing ship art. */
+.phone-screen[data-ui-theme="glass"] .game-btn,
+.phone-screen[data-ui-theme="glass"] .sail-control{
+  border:1px solid #c4e8eeaf;border-radius:21px;
+  background:linear-gradient(145deg,rgba(118,227,221,.24),rgba(6,40,66,.65));
+  color:#f2fffc;backdrop-filter:blur(11px);
+  box-shadow:0 6px 18px rgba(0,30,58,.25),inset 0 1px 0 #ffffff69
+}
+.phone-screen[data-ui-theme="glass"] .anchor-btn,
+.phone-screen[data-ui-theme="glass"] .mode-btn{background:rgba(16,93,106,.78);color:#eefef9}
+.phone-screen[data-ui-theme="compact"] .game-btn,
+.phone-screen[data-ui-theme="compact"] .sail-control{
+  border-radius:9px;background:#082c43e8;border:1px solid #8cbdc8a6;
+  box-shadow:0 3px 7px #031a36a6
+}
+.phone-screen[data-ui-theme="compact"] .game-btn{
+  min-height:48px;font-size:10px
+}
+.phone-screen[data-ui-theme="compact"] .helm-control img{
+  filter:brightness(1.2) saturate(.8) drop-shadow(0 2px 3px #071b2a6e)
+}
