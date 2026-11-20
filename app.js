@@ -331,8 +331,8 @@
     $("sailSlider").value = settings.sail;
     $("sailPercent").textContent = Math.round(settings.sail) + "%";
     $("anchorChainQuickSlider").value = settings.anchorLine;
-    $("anchorChainQuickValue").textContent = Math.round(settings.anchorLine);
-    $("anchorChainEditValue").textContent = Math.round(settings.anchorLine);
+    $("anchorChainQuickValue").textContent = String(Math.round(settings.anchorLine));
+    $("anchorChainEditValue").textContent = String(Math.round(settings.anchorLine));
     $("sailQuickAuto").checked = settings.sailAutoTrim;
     $("sailAutoTrim").checked = settings.sailAutoTrim;
     $("sailTrimQuickSlider").disabled = settings.sailAutoTrim;
