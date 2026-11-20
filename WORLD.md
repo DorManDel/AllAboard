@@ -6,9 +6,9 @@
 
 ## Generating the map
 
-A 32-bit FNV-1a hash converts any UTF-8-style JS seed string into an integer, then a mixing function combines seed + signed chunk coordinates + generator version. Each chunk is independent: generation does not depend on the order in which chunks are visited. A 32-bit PRNG places small lists of features within the chunk.
+A 32-bit FNV-1a hash converts any JavaScript UTF-16 code-unit seed string into an integer, then a mixing function combines seed + signed chunk coordinates + generator version. Each chunk is independent: generation does not depend on the order in which chunks are visited. A 32-bit PRNG places small lists of features within the chunk.
 
-- Seed field: share the seed text or use the \`?seed=NAME\` URL parameter.
+- Seed field: share the seed text or use the `?seed=NAME` URL parameter (share links also include island/ship/treasure densities and Kraken toggle).
 - World coordinates: lab units, not meters. Negative coordinates supported via mathematical floor.
 - Chunk size: 540 × 540 lab units.
 - Cache: 5 × 5 chunk neighborhood around the ship; distant chunks are evicted.
@@ -22,7 +22,7 @@ This isn't a complete physics world. Chunk memory is bounded, but session-level 
 
 ## Independent modules
 
-\`\`\`mermaid
+```mermaid
 flowchart TD
     INPUT[Seed + coordinates] --> WG[WorldEngine]
     WG --> CH[Active chunk cache]
@@ -36,14 +36,14 @@ flowchart TD
     MOTION --> WORLD[Ship world position]
     WORLD --> WG
     CONTENT --> MINI[Mini-map]
-\`\`\`
+```
 
-- \`world.js\`: pure seeded generation, bounded chunk cache, feature state, drawing, basic collision and Kraken effects.
-- \`ocean.js\`: shared wind-oriented wave-height function; current/vortex sample and interactive splashes, bubbles, stern wake.
-- \`vessel.js\`: hull forces, lateral resistance, sails, rudder and soft anchor line.
-- \`app.js\`: browser UI, scene interactions and glue code. Unity should NOT reuse it directly.
-- \`flag-workshop.js\`: pixel painter, local photo or GIF preview, selectable mast and PNG export.
-- \`mechanics-review.js\`: decisions, local notes, Markdown export for Unity handoff.
+- `world.js`: pure seeded generation, bounded chunk cache, feature state, drawing, basic collision and Kraken effects.
+- `ocean.js`: shared wind-oriented wave-height function; current/vortex sample and interactive splashes, bubbles, stern wake.
+- `vessel.js`: hull forces, lateral resistance, sails, rudder and soft anchor line.
+- `app.js`: browser UI, scene interactions and glue code. Unity should NOT reuse it directly.
+- `flag-workshop.js`: pixel painter, local photo or GIF preview, selectable mast and PNG export.
+- `mechanics-review.js`: decisions, local notes, Markdown export for Unity handoff.
 
 ## Water Engine: build our own, use references only
 
@@ -81,22 +81,22 @@ Later (not implemented): Intercept mission, Rescue & Escort, allied fleet format
 Decisions must come from joint playtests by Dor and Eilon, **not** from this prototype automatically. On the Mechanics Review tab, each mechanic is Test / Refine / Keep / Later / Reject with local notes. Export the Markdown brief after selecting the actual behavior you approve.
 
 Recommended implementation boundaries:
-- \`WorldGenerator\`: deterministic functions of seed/chunk/version only.
-- \`ChunkStreamer\`: active chunks around player; pooling and eviction.
-- \`WorldObjectState\`: stable IDs, collected/destroyed states, NPC identity.
-- \`OceanField\`: shared water sampling and ripple emitter.
-- \`ShipMotionModel\`: game-feel sailing with fixed timestep.
-- \`ShipFlagRenderer\`: linked to front/rear mast transforms.
-- \`EncounterCoordinator\`: aggressive or friendly, later escort/fleet missions.
-- \`DamageResolver\`: part-specific health, ongoing fire/flood and repair turns.
+- `WorldGenerator`: deterministic functions of seed/chunk/version only.
+- `ChunkStreamer`: active chunks around player; pooling and eviction.
+- `WorldObjectState`: stable IDs, collected/destroyed states, NPC identity.
+- `OceanField`: shared water sampling and ripple emitter.
+- `ShipMotionModel`: game-feel sailing with fixed timestep.
+- `ShipFlagRenderer`: linked to front/rear mast transforms.
+- `EncounterCoordinator`: aggressive or friendly, later escort/fleet missions.
+- `DamageResolver`: part-specific health, ongoing fire/flood and repair turns.
 
 Do not change Unity scenes, build profiles or repository settings until the mechanics are selected and accepted.
 
 ## Testing and QA
 
-- \`node tests/world.cjs\`: reproducibility, negative coordinates, bounded cache, collected treasure persistence, Kraken and disabled densities.
-- \`node tests/vessel.cjs\`: sailing, keel drag, anchor and ocean response.
-- \`node tests/smoke.cjs\`: page wiring, basic interactions and simulated Canvas frames.
+- `node tests/world.cjs`: reproducibility, negative coordinates, bounded cache, collected treasure persistence, Kraken and disabled densities.
+- `node tests/vessel.cjs`: sailing, keel drag, anchor and ocean response.
+- `node tests/smoke.cjs`: page wiring, basic interactions and simulated Canvas frames.
 - Real-device visual testing is still required. Automated checks cannot prove water beauty or haptic feel.
 
 References (for technique only): [seeded 2D worlds](https://github.com/danieljose/2dworld), [chunked deterministic generation](https://spin.atomicobject.com/infinite-procedurally-generated-world/), [procedural waves and shoreline research](https://onlinelibrary.wiley.com/doi/10.1111/cgf.14100). We did not copy those projects' source code.
