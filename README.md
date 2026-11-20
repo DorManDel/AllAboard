@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.8 (experimental, stacked on unmerged V0.7)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.9 (experimental, stacked on unmerged V0.8)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -171,3 +171,19 @@ This unmerged browser lab branch extends V0.7 without changing Unity course file
 - **Tests:** node tests/hud-v08.cjs, node tests/smoke.cjs, and prior suite. Live Android device feel, click targets, Unity safe areas and real prefab behavior remain for Dor/Eilon review.
 
 Keep this branch separate; do not merge into main or port into Unity until mobile validation.
+
+## V0.9 — Phone Navigation, Wind Flag, Tutorial, Compact HUD & Water/Repair
+
+**Original favorite baseline preserved before editing:** presets/dor-loved-v08-mechanics.json includes Dor's uploaded ship settings and legacy UI layout. water/v0.8-ocean-snapshot.js is an exact frozen copy of the prior soft procedural sea implementation. The header **★ Favorite** restores tuning, upgrades and HUD positions. Import/Export mechanics presets preserve a still PNG flag poster when the flag workshop can export it. Animated GIFs must be saved separately for true animation.
+
+- **No more long sideways tabs:** five categories (Sail, Adventure, World, Create, Build), a direct-jump mechanic selector and wrapped visible sub-tabs for desktop/mobile. Existing 17 routes unchanged.
+- **Reactive wind flag:** seven strips of custom flag texture animated using wind-relative heading and time. Original painted/image flags remain; GIF gets a lightweight wind transform.
+- **Live 10-second tutorial:** five highlighted real controls with glowing frame, steering arrows, small instructional bubble and Skip/Replay (?). Actual gameplay remains interactive.
+- **Compact anchor:** one Drop/Raise action; when down, show inline chain distance/stretch state only. No numeric length editing on the real mobile button; lab settings remain adjustable.
+- **Sails variants:** classic height-slider/AUTO or optional Up/Down toggle plus compact manual wind-trim control. Both share ship sail area and trim model.
+- **HUD appearance:** each component can be shown/hidden, given border thickness/color and optional background color. Heading degree pill is independently hideable. Ship SVG thumbnails identify selection.
+- **More responsive ocean:** old water stays as untouched source snapshot; new low-cost damped local wave impulses from splash/wake/anchor share OceanField's height samples, with island masking and an intensity slider (0 for baseline comparison).
+- **Quick repair experiment:** a short three-rivet tap puzzle inside Damage Lab. Center→left→right, 20 coins, quick +35% / slow +25% repair to a real damaged module. Optional lab experiment, not a mandatory main-game mechanic.
+- **Architecture:** REFINEMENT_V09.md gives independent review and Unity/Codex handoff for each take.
+
+Run node tests/v09-experiments.cjs alongside the existing smoke/V0.6–V0.8 regression suites. No Unity scene/prefab was changed. Real phone gesture, safe-area overlap, FPS and final sound quality still require Dor/Eilon playtesting. Do not merge before approval.
