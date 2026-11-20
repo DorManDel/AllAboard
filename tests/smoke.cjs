@@ -12,12 +12,19 @@ const js = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
 const oceanJs = fs.readFileSync(path.join(root, "ocean.js"), "utf8");
 const vesselJs = fs.readFileSync(path.join(root,"vessel.js"),"utf8");
+const worldJs = fs.readFileSync(path.join(root,"world.js"),"utf8");
+const flagJs = fs.readFileSync(path.join(root,"flag-workshop.js"),"utf8");
+const reviewJs = fs.readFileSync(path.join(root,"mechanics-review.js"),"utf8");
 
 assert.doesNotThrow(() => new vm.Script(js), "JavaScript must parse");
 assert.doesNotThrow(() => new vm.Script(oceanJs), "Ocean engine must parse");
 assert.doesNotThrow(() => new vm.Script(vesselJs), "Vessel physics must parse");
+for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"]])
+  assert.doesNotThrow(()=>new vm.Script(source),name+" engine must parse");
 assert.match(html, /<script src="\.\/ocean\.js" defer>/);
 assert.match(html, /<script src="\.\/vessel\.js" defer>/);
+for(const name of ["world.js","flag-workshop.js","mechanics-review.js"])
+  assert(html.includes('<script src="./'+name+'" defer></script>'));
 for (const part of ["hull","sail_front","sail_rear","anchor","cannon_left_front","cannon_left_rear","cannon_right_front","cannon_right_rear"]) assert(fs.existsSync(path.join(root,"assets","ship-parts",part+".svg")), "Missing ship part "+part);
 assert.match(html, /<meta name="viewport"/);
 assert.match(html, /<canvas id="seaCanvas"/);
@@ -31,19 +38,20 @@ for (const id of referencedIds) assert(ids.includes(id), "Missing DOM ID: " + id
 
 const tabs = [...html.matchAll(/\bdata-tab="([^"]+)"/g)].map(m => m[1]);
 const panels = [...html.matchAll(/\bdata-panel="([^"]+)"/g)].map(m => m[1]);
-assert.equal(tabs.length, 9);
+assert.equal(tabs.length, 11);
 assert.deepEqual(tabs.sort(), panels.sort(), "Each tab must have a matching panel");
 
 // Small DOM mock exercises initialization plus main controls without external packages.
 const drawingContext = {};
-for (const name of ["setTransform","clearRect","fillRect","strokeRect","beginPath","closePath","stroke","fill","lineTo","moveTo","quadraticCurveTo","bezierCurveTo","arc","ellipse","save","restore","translate","rotate","fillText","setLineDash","drawImage"]) drawingContext[name] = () => {};
+for (const name of ["setTransform","clearRect","fillRect","strokeRect","beginPath","closePath","stroke","fill","lineTo","moveTo","quadraticCurveTo","bezierCurveTo","arc","ellipse","save","restore","translate","rotate","fillText","setLineDash","drawImage","clip"]) drawingContext[name] = () => {};
 drawingContext.createLinearGradient = () => ({ addColorStop() {} });
 drawingContext.createRadialGradient = () => ({ addColorStop() {} });
 function makeElement(tag, attributes) {
   const element = {
     tagName: tag.toUpperCase(), dataset: {}, style: {}, value: "0", textContent: "", innerHTML: "",
     children: [], events: {}, attributes: {}, className: attributes.class || "",
-    disabled: false, firstChild: { textContent: "" },
+    disabled: false, hidden: false, width:Number(attributes.width||0),height:Number(attributes.height||0),
+    firstChild: { textContent: "" },
     setAttribute(k, v) { this.attributes[k] = String(v); },
     addEventListener(k, fn) { (this.events[k] ||= []).push(fn); },
     append(...nodes) { this.children.push(...nodes); },
@@ -90,9 +98,13 @@ const document = {
   activeElement: { tagName: "BODY" }, hidden: false,
   body: makeElement("body", {}), addEventListener() {}
 };
-const window = { devicePixelRatio: 1, addEventListener() {} };
+const window = { devicePixelRatio: 1, addEventListener() {},location:{search:"",href:"https://example.com/lab/"} };
+const localStorage={getItem(){return null;},setItem(){}};
 new Function("window",oceanJs)(window);
 new Function("window",vesselJs)(window);
+new Function("window",worldJs)(window);
+new Function("window","document","URL","Image",flagJs)(window,document,URL,undefined);
+new Function("window","document","localStorage","URL",reviewJs)(window,document,localStorage,URL);
 const navigator = { vibrate() { return true; } };
 class ResizeObserver { observe() {} }
 const frameCallbacks = [];
@@ -129,11 +141,18 @@ assert(byId.get("anchorDistance").textContent.includes("/"));
 fire("anchorButton","click");
 assert.equal(byId.get("anchorButton").attributes["aria-pressed"],"false");
 // Verify the Ideas and Shipyard tabs can build their dynamic controls.
-for(const tabName of ["shipyard","ideas"]){
+for(const tabName of ["shipyard","ideas","world","review"]){
   const button=elements.find(el=>el.dataset.tab===tabName);
   assert(button&&button.events.click);
   button.events.click[0]();
 }
 assert(byId.get("ideasList").children.length>=5,"Ideas should be populated");
 assert(byId.get("shipPartsGallery").children.length===8,"Original ship parts should be selectable");
-console.log("PASS: JS and OceanField syntax, nine tabs, ship assets, DOM, controls, rendered frames, chain and ideas.");
+assert(byId.get("flagPaintCanvas").events.pointerdown,"Flag painter should accept pointer input");
+assert(byId.get("mechanicsReviewList").children.length>10,"Mechanics review must populate");
+fire("worldExplore","click");
+fire("worldSummonKraken","click");
+for(let i=180;i<210;i++)step((i+1)*16.667);
+assert(Number(byId.get("worldChunks").textContent)>0,"World must generate cached chunks");
+assert(byId.get("worldAlert").textContent.includes("Kraken"),"Kraken test button must respond");
+console.log("PASS: eleven tabs, procedural world, original ship, flag painter, mechanics review, anchor, ocean and Canvas frames.");
