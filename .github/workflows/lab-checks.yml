@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: "22"
       - name: Check JavaScript syntax
-        run: node --check app.js && node --check ocean.js && node --check vessel.js && node --check world.js && node --check flag-workshop.js && node --check mechanics-review.js && node --check mechanic-catalog.js && node --check stage-loop.js && node --check roadmap-board.js && node --check ui-layout.js && node --check map-explorer.js && node --check kraken-grapple.js && node --check game-feel.js && node --check audio-lab.js && node --check unity-readiness.js && node --check v07-lab-ui.js
+        run: node --check app.js && node --check ocean.js && node --check vessel.js && node --check world.js && node --check flag-workshop.js && node --check mechanics-review.js && node --check mechanic-catalog.js && node --check stage-loop.js && node --check roadmap-board.js && node --check ui-layout.js && node --check map-explorer.js && node --check kraken-grapple.js && node --check game-feel.js && node --check audio-lab.js && node --check unity-readiness.js && node --check v07-lab-ui.js && node --check nav-ui.js && node --check quick-tutorial.js && node --check flag-motion.js && node --check repair-mini.js
       - name: Run lab smoke tests
         run: node tests/smoke.cjs
       - name: Run vessel and ocean physics tests
@@ -42,3 +42,5 @@ jobs:
         run: node tests/game-feel-audio.cjs
       - name: Test V0.8 HUD advanced editor and rope reeling
         run: node tests/hud-v08.cjs
+      - name: Test V0.9 phone HUD, water, flag and repair
+        run: node tests/v09-experiments.cjs
