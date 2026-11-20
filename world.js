@@ -31,6 +31,7 @@
       this.discovered=new Set();
       this.shipsState=new Map();
       this.krakenState=new Map();
+      this.grapple=null;this.lastGrappleEvent=null;
       this.lastCenter=null;
       this.elapsed=0;
       this.frame=0;
@@ -165,16 +166,24 @@
     }
     summonKraken(x,y){
       const p={id:"summoned:"+this.seed+":"+Math.floor(x/100)+":"+Math.floor(y/100),type:"kraken",
-        x:x+130,y:y-200,radius:95,phase:2,summoned:true};
+        x:x+120,y:y-90,radius:95,phase:2,summoned:true};
       const c=this.chunkAt(p.x,p.y),chunk=this.getChunk(c.x,c.y);
       chunk.features=chunk.features.filter(f=>!f.summoned);chunk.features.push(p);
       return p;
     }
     applyKraken(monster,dt,ship,ocean){
+      if(this.grapple){
+        this.grapple.update(monster,dt,ship,ocean);
+        const event=this.grapple.lastEvent;
+        if(event&&event!==this.lastGrappleEvent){
+          this.lastGrappleEvent=event;
+          this.lastEncounter={kind:"kraken",message:event.message,when:this.elapsed};
+        }
+      }
       const kraken=this.krakenState.get(monster.id)||{attackClock:0,shipsEaten:0};
       kraken.attackClock+=dt;
       const d=Math.hypot(monster.x-ship.x,monster.y-ship.y);
-      if(d<monster.radius*.75 && kraken.attackClock>1.6){
+      if(!this.grapple&&d<monster.radius*.75 && kraken.attackClock>1.6){
         kraken.attackClock=0;
         ship.hull=Math.max(0,(ship.hull||100)-8);
         if(ocean)ocean.splash(ship.x,ship.y,1.8,"kraken");
@@ -327,13 +336,14 @@
             ctx.fillRect(p.x-14,p.y-26,28*clamp(dynamic.hp/100,0,1),4);
           }
         }else if(item.type==="kraken"){
+          if(this.grapple)this.grapple.draw(ctx,project,item,player);
           const pulse=Math.sin(this.elapsed*2+item.phase);
           const radius=22+3*pulse;
           ctx.save();ctx.translate(p.x,p.y);
           const g=ctx.createRadialGradient(0,0,3,0,0,70);
           g.addColorStop(0,"rgba(12,17,45,.85)");g.addColorStop(1,"rgba(7,39,79,0)");
           ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,70,0,Math.PI*2);ctx.fill();
-          for(let arm=0;arm<6;arm++){
+          if(!this.grapple)for(let arm=0;arm<6;arm++){
             const a=arm*Math.PI/3+this.elapsed*.35;
             ctx.strokeStyle="rgba(135,82,161,.8)";ctx.lineWidth=5;
             ctx.beginPath();ctx.moveTo(Math.cos(a)*10,Math.sin(a)*10);
