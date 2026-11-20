@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.6 (experimental, stacked on unmerged V0.5)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.7 (experimental, stacked on unmerged V0.6)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -14,12 +14,15 @@
 
 The web lab lives in this repository. The **real Unity project** remains in [Eilon343/AllAboard](https://github.com/Eilon343/AllAboard) and is not modified by this experiment.
 
-## Fourteen experimentation tabs
+## Seventeen experimentation tabs
 
 | Tab | Try it |
 |---|---|
 | Live Playground | Steer while adjusting sails, anchor, wind and Friendly/Aggressive mode |
 | UI Studio | Drag/scale HUD, exact X/Y values, compare three button themes, export/import JSON |
+| FX & Sail Trim | Decaying recoil and hull impact, wave-driven ship roll/bob, wind streaks, auto/manual sail tilt |
+| Music & SFX | Seven original procedural pirate mood sketches, 15 SFX events and production generation prompts |
+| Unity Checks | Unity YAML scan, manual QA checklist and per-mechanic architecture & implementation prompts |
 | Helm | Centered ±1080° wheel, responsive controls, separate rudder/yaw response, **adjustable keel drag** and live forward/side speeds |
 | Sails & Wind | Tune wind TO-direction, sail area and headwind/tailwind effects |
 | Anchor | Throw with splash, soft spring-damper rope, adjustable **chain stiffness/damping**, anchoring radius and delayed dragging on sustained force |
@@ -139,3 +142,18 @@ This unmerged branch extends V0.5 without modifying the real Unity project.
 Run node tests/core-v06.cjs and node tests/kraken-grapple.cjs alongside the existing smoke, vessel, world, stage, planner and review tests. CI checks logical behavior, not actual phone haptics, frame-time or aesthetics.
 
 No Unity source, scene or Android build setting is changed. Do not merge before Dor and Eilon playtest the mobile version.
+
+## V0.7 — FX, Original Pirate Audio and Unity Readiness
+
+New experimental tabs:
+- **FX & Sail Trim:** test realistic-feeling cannon recoil/shake (presentation only), wind streaks, wave-height-driven hull pitch/roll/bob and optional sail-yard tilt. Auto-trim is on by default, while manual trim remains a minor optional optimization. No new permanent play button.
+- **Music & SFX:** seven short ORIGINAL programmatically synthesized pirate mood sketches and fifteen short sound effects, plus one-click prompts for external music generators. Browser sound stays muted until activated by a user gesture. Sketches are not polished final song files. Preserve asset licensing documents for external generated music.
+- **Unity Checks:** advisory static YAML check for obvious missing MonoBehaviour scripts/zero scale/disabled components, local QA checklist export, and planned tests. A proposed Unity Editor prefab audit source is in unity-tools/Editor/AllAboardPrefabAudit.cs and is NOT installed into the separate course Unity repository.
+
+**Every Roadmap mechanic now has an Architecture & Implementation Review**: algorithm, class boundaries, acceptance checks, C# integration candidates, copyable Codex prompt and change-log discipline.
+
+See [GAME_FEEL_V07.md](./GAME_FEEL_V07.md) for the take-by-take architecture review, sound asset pipeline, Unity test guidance and the four pirate game design references. The original water baseline from V0.5 and all earlier previews remain unchanged.
+
+V0.7 code modules: game-feel.js, audio-lab.js, v07-lab-ui.js and unity-readiness.js. Run node tests/game-feel-audio.cjs plus the existing test suites. A green browser CI does **not** certify Unity PlayMode tests, audio fidelity or phone frame-time.
+
+Do not merge until Dor and Eilon approve the player experience in mobile Chrome and decide which modules belong in the actual Milestone 4 course scope.
