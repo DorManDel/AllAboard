@@ -9,7 +9,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const targets=[
  ["wheelControl","Helm wheel"],["sailControl","Sails / trim"],["anchorControl","Anchor + chain"],
  ["modeButton","Friendly / Aggressive"],["headingHud","Compass + wind"],["miniMap","Minimap"],
- ["coinHud","Coin counter"],["healthHud","Hull health"],["scoreHud","Run score"]
+ ["coinHud","Coin counter"],["healthHud","Hull health"],["scoreHud","Run score"],["headingPill","Heading degrees meter"]
 ];
 const fields={
  x:{min:-48,max:48,step:.1,digits:1,unit:"%"},
@@ -22,6 +22,15 @@ const fields={
  layer:{min:1,max:30,step:1,digits:0,unit:""}
 };
 const defaultItem=()=>({x:0,y:0,scaleX:1,scaleY:1,rotation:0,opacity:1,layer:5});
+const defaultAppearance=()=>({visible:true,borderWidth:0,borderColor:"#8be8d6",background:"#103b51",useBackground:false});
+const iconPaths={
+ wheelControl:"./assets/ship-wheel.svg",sailControl:"./assets/ship-parts/sail_front.svg",
+ anchorControl:"./assets/ship-parts/anchor.svg",modeButton:"./assets/ship-parts/hull.svg",
+ headingHud:"./assets/ship-wheel.svg",headingPill:"./assets/ship-wheel.svg",
+ miniMap:"./assets/ship-parts/hull.svg",coinHud:"./assets/ship-parts/hull.svg",
+ healthHud:"./assets/ship-parts/hull.svg",scoreHud:"./assets/ship-parts/hull.svg"
+};
+const safeColor=(value,fallback)=>/^#[a-fA-F0-9]{6}$/.test(value||"")?value:fallback;
 const DOR_V07={
  format:"allaboard-ui-layout",version:1,coordinateSpace:"phone-percent",theme:"classic",
  items:{
@@ -51,6 +60,7 @@ function normalizeItem(raw){
 class LayoutStudio{
  constructor(){
   this.layout=Object.fromEntries(targets.map(([id])=>[id,defaultItem()]));
+  this.appearance=Object.fromEntries(targets.map(([id])=>[id,defaultAppearance()]));
   this.selected="wheelControl";this.theme="classic";this.active=false;this.drag=null;
   this.ratioLocked=true;this.loadedPreset="Default";
  }
@@ -79,6 +89,19 @@ class LayoutStudio{
    this.render();this.save();
   });
   this.$("layoutEditToggle").addEventListener("click",()=>this.toggle());
+  const appearanceEvents=[
+    ["layoutVisible","visible","change",e=>e.target.checked],
+    ["layoutBorderWidth","borderWidth","input",e=>Math.max(0,Math.min(8,Number(e.target.value)))],
+    ["layoutBorderColor","borderColor","input",e=>e.target.value],
+    ["layoutBackgroundColor","background","input",e=>e.target.value],
+    ["layoutUseBackground","useBackground","change",e=>e.target.checked]
+  ];
+  for(const [id,key,event,read] of appearanceEvents){
+    this.$(id)?.addEventListener(event,e=>{
+      this.appearance[this.selected][key]=read(e);
+      this.save();this.apply(this.selected);this.renderValues();
+    });
+  }
   this.$("layoutRatioLock").addEventListener("change",e=>{this.ratioLocked=e.target.checked;});
   for(const name of Object.keys(fields)){
    for(const suffix of ["Range","Value"]){
@@ -101,10 +124,10 @@ class LayoutStudio{
   this.$("layoutLayerBack").addEventListener("click",()=>stepMove("layer",-1));
   this.$("layoutLayerFront").addEventListener("click",()=>stepMove("layer",1));
   this.$("layoutResetItem").addEventListener("click",()=>{
-   this.layout[this.selected]=defaultItem();this.save();this.render();this.note("Selected component restored.");
+   this.layout[this.selected]=defaultItem();this.appearance[this.selected]=defaultAppearance();this.save();this.render();this.note("Selected component restored.");
   });
   this.$("layoutResetAll").addEventListener("click",()=>{
-   for(const [id] of targets)this.layout[id]=defaultItem();
+   for(const [id] of targets){this.layout[id]=defaultItem();this.appearance[id]=defaultAppearance();}
    this.theme="classic";this.loadedPreset="Default";this.save();this.render();
    this.note("All positions, transforms and theme restored.");
   });
@@ -186,6 +209,10 @@ class LayoutStudio{
   target.style.setProperty("--ui-rotation",p.rotation.toFixed(2)+"deg");
   target.style.setProperty("--ui-opacity",p.opacity.toFixed(3));
   target.style.setProperty("--ui-layer",String(p.layer));
+  const a=this.appearance[id]||defaultAppearance();
+  target.style.visibility=a.visible?"visible":"hidden";
+  target.style.border=a.borderWidth>0?a.borderWidth+"px solid "+a.borderColor:"";
+  target.style.background=a.useBackground?a.background:"";
   target.classList.toggle("layout-selected",this.active&&this.selected===id);
  }
  applyAll(){for(const [id] of targets)this.apply(id);}
@@ -198,6 +225,17 @@ class LayoutStudio{
    if(range)range.value=n;
    if(value)value.value=n.toFixed(spec.digits);
   }
+  const appearance=this.appearance[this.selected]||defaultAppearance();
+  this.$("layoutVisible").checked=appearance.visible;
+  this.$("layoutBorderWidth").value=appearance.borderWidth;
+  this.$("layoutBorderValue").textContent=appearance.borderWidth+" px";
+  this.$("layoutBorderColor").value=appearance.borderColor;
+  this.$("layoutBackgroundColor").value=appearance.background;
+  this.$("layoutUseBackground").checked=appearance.useBackground;
+  const svg=this.$("layoutIconPreview");
+  if(svg)svg.src=iconPaths[this.selected]||"./assets/ship-wheel.svg";
+  const title=this.$("layoutIconName");
+  if(title)title.textContent=targets.find(x=>x[0]===this.selected)?.[1]||"HUD component";
   const readout=this.$("layoutOutput");
   if(!readout)return;
   readout.textContent=(targets.find(x=>x[0]===this.selected)?.[1]||"Component")+
@@ -246,7 +284,8 @@ class LayoutStudio{
  snapshot(){
   return{format:"allaboard-ui-layout",version:2,coordinateSpace:"phone-percent",
    theme:this.theme,presetName:this.loadedPreset,
-   items:Object.fromEntries(targets.map(([id])=>[id,{...this.layout[id]}]))};
+   items:Object.fromEntries(targets.map(([id])=>[id,{...this.layout[id]}])),
+   appearance:Object.fromEntries(targets.map(([id])=>[id,{...this.appearance[id]}]))};
  }
  restore(data){
   if(!data||data.format!=="allaboard-ui-layout"||![1,2].includes(data.version)||
@@ -256,6 +295,15 @@ class LayoutStudio{
   for(const [id] of targets){
    const legacy=id==="anchorControl"?"anchorButton":id;
    this.layout[id]=normalizeItem(data.items[id]||data.items[legacy]);
+   const raw=data.appearance?.[id]||data.appearance?.[legacy]||{};
+   const base=defaultAppearance();
+   this.appearance[id]={
+    visible:raw.visible!==false,
+    borderWidth:Number.isFinite(Number(raw.borderWidth))?clamp(Number(raw.borderWidth),0,8):0,
+    borderColor:safeColor(raw.borderColor,base.borderColor),
+    background:safeColor(raw.background,base.background),
+    useBackground:raw.useBackground===true
+   };
   }
   this.applyAll();return true;
  }
