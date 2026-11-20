@@ -145,3 +145,8 @@
 .review-choices button.selected{background:#74d6c0;color:#0c2631;border-color:#92efd7;font-weight:900}
 .review-card textarea{width:100%;min-height:58px;resize:vertical;border:1px solid #425e73;border-radius:9px;background:#081d2e;color:#f5faf7;font:12px/1.5 inherit;padding:10px}
 @media(max-width:400px){.flag-workshop-preview{grid-template-columns:1.4fr 1fr}.review-choices button{padding:9px 7px}.world-counters strong{font-size:18px}.seed-row .wide-button{padding:12px 10px;font-size:11px}}
+
+/* Context action shown only when the world detector finds a friendly NPC. */
+.world-ship-action{display:block;top:53%;z-index:7}
+.world-ship-action button{background:#92e0bd;color:#143a32;font-size:11px}
+.world-ship-action button[hidden]{display:none}
