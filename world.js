@@ -231,7 +231,10 @@
           }
           ctx.closePath();ctx.fillStyle=color;ctx.fill();
         };
-        drawRidge(1.38,"rgba(115,225,211,.17)");
+        // Shoreline wash reacts to the world wave clock, including when the
+        // wind changes: the outer surf ring breathes subtly around the island.
+        const shoreline=1.36+Math.sin(this.elapsed*(1.1+(settings.windStrength||2)*.13)+island.tone*12)*.035;
+        drawRidge(shoreline,"rgba(146,242,218,.22)");
         drawRidge(1.19,"rgba(185,239,211,.44)");
         drawRidge(1.03,"#dfc78d");
         drawRidge(.88,island.tone>.5?"#72a470":"#7dad76");
@@ -267,6 +270,11 @@
           const rig=(dynamic?.sails??100)/100;
           if(rig>0){ctx.fillStyle="#f1e5bd";ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(9*rig,8);ctx.lineTo(-8*rig,8);ctx.closePath();ctx.fill();}
           ctx.restore();
+          if(dynamic&&dynamic.hp<100){
+            ctx.fillStyle="#17303a";ctx.fillRect(p.x-14,p.y-26,28,4);
+            ctx.fillStyle=dynamic.hp<35?"#f08c78":"#f3d17c";
+            ctx.fillRect(p.x-14,p.y-26,28*clamp(dynamic.hp/100,0,1),4);
+          }
         }else if(item.type==="kraken"){
           const pulse=Math.sin(this.elapsed*2+item.phase);
           const radius=22+3*pulse;
