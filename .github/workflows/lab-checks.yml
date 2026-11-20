@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: "22"
       - name: Check JavaScript syntax
-        run: node --check app.js && node --check ocean.js && node --check vessel.js && node --check world.js && node --check flag-workshop.js && node --check mechanics-review.js && node --check mechanic-catalog.js && node --check stage-loop.js && node --check roadmap-board.js && node --check ui-layout.js && node --check map-explorer.js
+        run: node --check app.js && node --check ocean.js && node --check vessel.js && node --check world.js && node --check flag-workshop.js && node --check mechanics-review.js && node --check mechanic-catalog.js && node --check stage-loop.js && node --check roadmap-board.js && node --check ui-layout.js && node --check map-explorer.js && node --check kraken-grapple.js
       - name: Run lab smoke tests
         run: node tests/smoke.cjs
       - name: Run vessel and ocean physics tests
@@ -36,3 +36,5 @@ jobs:
         run: node tests/planner.cjs
       - name: Test V0.6 sea/land/map/UI and slower vessel
         run: node tests/core-v06.cjs
+      - name: Test Kraken grappling encounter
+        run: node tests/kraken-grapple.cjs
