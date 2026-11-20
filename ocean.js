@@ -47,8 +47,9 @@
       if(vortex&&vortex.active){
         const dx=vortex.x-x,dy=vortex.y-y,d=Math.max(1,Math.hypot(dx,dy));
         const field=Math.pow(Math.max(0,1-d/275),1.55)*(settings.vortexStrength||0);
-        fx+=(dx/d)*115*field+(-dy/d)*76*field;
-        fy+=(dy/d)*115*field+(dx/d)*76*field;
+        // Arcade vortex: readable pull and swirl, without near-instant speed cap.
+        fx+=(dx/d)*42*field+(-dy/d)*31*field;
+        fy+=(dy/d)*42*field+(dx/d)*31*field;
         vortexAmount=field;
       }
       return{x:fx,y:fy,vortexAmount};
