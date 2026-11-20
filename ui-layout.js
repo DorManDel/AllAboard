@@ -134,7 +134,7 @@ class LayoutStudio{
   this.note(this.active?
    "Edit mode: drag highlighted components. All anchor and sail interactions are locked while editing.":
    "Edit mode off. Test the new control positions on the ship.");
-  this.applyAll();
+  this.applyAll();this.validateLayout();
  }
  change(field,value){
   const spec=fields[field];if(!spec)return;
@@ -146,7 +146,7 @@ class LayoutStudio{
   }else if((field==="scaleX"||field==="scaleY")&&this.ratioLocked){
    p.scaleX=n;p.scaleY=n;
   }else p[field]=n;
-  this.save();this.apply(this.selected);this.renderValues();
+  this.save();this.apply(this.selected);this.renderValues();this.validateLayout();
  }
  startDrag(e,id){
   if(!this.active)return;
@@ -163,7 +163,7 @@ class LayoutStudio{
    const p=this.layout[id],d=this.drag;
    p.x=Math.round(clamp(d.originX+(event.clientX-d.startX)*100/d.width,-48,48)*10)/10;
    p.y=Math.round(clamp(d.originY+(event.clientY-d.startY)*100/d.height,-48,48)*10)/10;
-   this.apply(id);this.renderValues();
+   this.apply(id);this.renderValues();this.validateLayout();
   };
   const finish=event=>{
    if(this.drag?.pointer!==event.pointerId)return;
@@ -211,7 +211,36 @@ class LayoutStudio{
   this.phone.dataset.uiTheme=this.theme;
   this.$("layoutTheme").value=this.theme;
   this.$("layoutRatioLock").checked=this.ratioLocked;
-  this.applyAll();this.renderValues();
+  this.applyAll();this.renderValues();this.validateLayout();
+ }
+ validateLayout(){
+  const output=this.$("layoutValidation");
+  if(!output||!this.phone)return;
+  const phone=this.phone.getBoundingClientRect();
+  const boxes=targets.map(([id,label])=>{
+   const element=this.$(id);
+   if(!element||element.hidden)return null;
+   const rect=element.getBoundingClientRect();
+   return{id,label,rect,area:Math.max(1,rect.width*rect.height)};
+  }).filter(Boolean);
+  const warnings=[];
+  for(const box of boxes){
+   const r=box.rect;
+   if(r.left<phone.left-4||r.top<phone.top-4||
+      r.right>phone.right+4||r.bottom>phone.bottom+4)
+    warnings.push(box.label+" outside phone bounds");
+  }
+  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
+   const a=boxes[i],b=boxes[j];
+   const width=Math.max(0,Math.min(a.rect.right,b.rect.right)-Math.max(a.rect.left,b.rect.left));
+   const height=Math.max(0,Math.min(a.rect.bottom,b.rect.bottom)-Math.max(a.rect.top,b.rect.top));
+   if(width*height/Math.min(a.area,b.area)>.25)
+    warnings.push(a.label+" overlaps "+b.label);
+  }
+  output.textContent=warnings.length?
+    "Layout warnings ("+warnings.length+"): "+warnings.slice(0,4).join(" · ")+
+    (warnings.length>4?" · …":""):
+    "No major overlaps detected in this preview. Check thumb targets, safe areas and layering on a physical phone.";
  }
  note(text){const el=this.$("layoutStatus");if(el)el.textContent=text;}
  snapshot(){
