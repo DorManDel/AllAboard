@@ -386,6 +386,7 @@
       a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0; a.overload = 0;
       a.tension = 0; a.length = 20;
       vibrate([18, 45, 26]);
+      playSfx("anchor");
       message("Anchor thrown! Watch the splash, then the ship can drift until the chain is taut.");
     } else {
       a.status = "Raised"; a.phase = "raised"; a.tension = 0; a.length = 0;
@@ -514,6 +515,7 @@
       message("Collected practice treasure: +75 coins.");
     }
     vibrate([20,30,25]);
+    playSfx("coins");
   });
   const shipInteract=$("worldShipInteract");
   shipInteract.addEventListener("click",()=>{
@@ -525,6 +527,7 @@
       return;
     }
     setTab("encounter");
+    playSfx("friend");
     state.encounter.kind="friendly";
     all("[data-encounter]").forEach(b=>b.classList.toggle("active",b.dataset.encounter==="friendly"));
     renderEncounter();
