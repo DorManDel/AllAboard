@@ -153,6 +153,7 @@
             <div class="layout-fine-step"><span>Layer order within HUD groups</span><div><button id="layoutLayerBack">Send back −</button><button id="layoutLayerFront">Bring forward +</button></div></div>
           </div>
           <div class="layout-value-readout" id="layoutOutput">Helm wheel · X 0% · Y 0% · 1×1 · 0° · 100% opacity · layer 5</div>
+          <div class="layout-validation" id="layoutValidation" role="status">Layout check: no known overlaps yet. Check on a physical phone too.</div>
           <div class="button-pair"><button id="layoutResetItem" class="outline-button">↺ Reset selected</button><button id="layoutResetAll" class="outline-button">↺ Reset all UI</button></div>
           <div class="button-pair"><button id="layoutExport" class="wide-button">↓ Export UI preset (.json)</button><label class="outline-button import-label" for="layoutImport">↑ Import preset</label><input id="layoutImport" type="file" accept="application/json,.json" hidden></div>
           <div class="world-alert" id="layoutStatus" role="status">Enable editing and drag a highlighted UI component by touch. The layout is saved locally on this device.</div>
@@ -189,6 +190,7 @@
           <div class="mini-heading">MUSIC MOOD TESTS</div>
           <div class="audio-mood-list" id="audioMoods"></div>
           <div class="button-pair"><button class="wide-button" id="audioPlayMusic">▶ Play current mood</button><button class="outline-button" id="audioStopMusic">■ Stop</button></div>
+          <label class="fx-toggle"><input id="audioAdaptiveMood" type="checkbox" checked> Adaptive music: playful sailing → cinematic combat (selected direction)</label>
           <div class="mini-heading">PRODUCTION MUSIC PROMPT</div>
           <textarea id="audioGenerationPrompt" rows="5" class="audio-prompt" aria-label="Generated track production prompt" readonly></textarea>
           <button class="outline-button" id="audioCopyPrompt">⧉ Copy prompt for Stable Audio / Suno</button>
