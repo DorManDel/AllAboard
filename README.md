@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.7 (experimental, stacked on unmerged V0.6)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.8 (experimental, stacked on unmerged V0.7)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -157,3 +157,17 @@ See [GAME_FEEL_V07.md](./GAME_FEEL_V07.md) for the take-by-take architecture rev
 V0.7 code modules: game-feel.js, audio-lab.js, v07-lab-ui.js and unity-readiness.js. Run node tests/game-feel-audio.cjs plus the existing test suites. A green browser CI does **not** certify Unity PlayMode tests, audio fidelity or phone frame-time.
 
 Do not merge until Dor and Eilon approve the player experience in mobile Chrome and decide which modules belong in the actual Milestone 4 course scope.
+
+## V0.8 — Advanced UI Layout, Unified Anchor + Chain, Optional Sail Tilt
+
+This unmerged browser lab branch extends V0.7 without changing Unity course files.
+
+- **Precision UI Studio:** X and Y with 0.1% steps and nudge buttons; uniform and independently adjustable scale X/Y to 0.01; rotation to 0.5 degrees; 15–100% opacity; layer order 1–30. Includes major overlap/out-of-bounds detection (advisory) and three existing button themes.
+- **User layout imported:** exact uploaded V0.7 JSON at presets/dor-v07-original-layout.json; one-click Apply Dor's uploaded V0.7 layout. V1 presets migrate automatically to V2; old anchorButton becomes the single anchorControl. Old standalone anchorRopeHud position is intentionally discarded because that meter is now embedded.
+- **Unified Anchor + Chain:** Drop/Raise plus a small chain-length segment and live chain status, all within one grouped moveable widget. Length changes reel gradually at up to 12 lab units/sec so the ship cannot instantly snap from changing the slider.
+- **Sail trim:** player's choice is **automatic by default with an optional advanced control in-game**. The popup next to sail Up/Down offers manual ±45° tilt, current ideal angle and Auto toggle, sharing physics state with the existing FX & Sail Trim tab.
+- **Music preference:** player's selected direction is **playful pirate sailing becoming cinematic during combat**. Music tab includes opt-in adaptive audition for Friendly Sailing, Aggressive Battle and Kraken proximity, using procedural sketches. This is not a finished crossfading soundtrack.
+- **Architecture handoff:** [HUD_V08.md](./HUD_V08.md) documents each mechanic's model, Unity mapping, migration and test contract.
+- **Tests:** node tests/hud-v08.cjs, node tests/smoke.cjs, and prior suite. Live Android device feel, click targets, Unity safe areas and real prefab behavior remain for Dor/Eilon review.
+
+Keep this branch separate; do not merge into main or port into Unity until mobile validation.
