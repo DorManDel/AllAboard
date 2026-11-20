@@ -315,6 +315,7 @@
     if (name === "encounter") renderEncounter();
     if (name === "shipyard") renderPartsGallery();
     window.AllAboardNavInstance?.sync(name);
+    window.AllAboardUILayoutInstance?.applyAll();
     if (name === "ideas") renderIdeas();
   }
   all(".tab").forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
