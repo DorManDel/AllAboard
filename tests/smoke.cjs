@@ -53,6 +53,7 @@ function makeElement(tag, attributes) {
     disabled: false, hidden: false, width:Number(attributes.width||0),height:Number(attributes.height||0),
     firstChild: { textContent: "" },
     setAttribute(k, v) { this.attributes[k] = String(v); },
+    removeAttribute(k) { delete this.attributes[k]; },
     addEventListener(k, fn) { (this.events[k] ||= []).push(fn); },
     append(...nodes) { this.children.push(...nodes); },
     remove() {},
