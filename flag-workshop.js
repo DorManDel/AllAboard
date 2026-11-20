@@ -236,27 +236,32 @@
         this.mode==="gif"?"Animated GIF":this.mode==="image"?"Photo":this.mode==="text"?"Monogram":"Pixel painting";
       this.element("flagMastStatus").textContent=this.mast==="front"?"Front mast":"Rear mast";
     }
-    drawOnShip(ctx){
-      // We are already in ship-local rotated canvas coordinates.
+    drawOnShip(ctx,ship={heading:0},settings={windDirection:0,windStrength:0},time=0){
       const poleY=this.mast==="front"?-28:18;
       ctx.save();
       ctx.strokeStyle="#553521";ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(0,poleY+6);ctx.lineTo(0,poleY-26);ctx.stroke();
-      // Tiny attachment + wind-shaped cloth silhouette.
-      const x=2,y=poleY-25,w=25,h=17;
-      ctx.fillStyle=this.baseColor;
-      ctx.beginPath();
-      ctx.moveTo(x,y);ctx.lineTo(x+w,y+2);ctx.lineTo(x+w-2,y+h);ctx.lineTo(x,y+h-3);
-      ctx.closePath();ctx.fill();
-      if(this.mode!=="gif"){
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(x,y);ctx.lineTo(x+w,y+2);ctx.lineTo(x+w-2,y+h);ctx.lineTo(x,y+h-3);
-        ctx.closePath();ctx.clip();
-        this.paintPixels(ctx,x,y,w,h);
-        ctx.restore();
+      const motion=root.AllAboardFlagMotion?.flagPose;
+      const sample=t=>motion?
+        motion(ship.heading,settings.windDirection,settings.windStrength,time,t):
+        {x:25*t,y:Math.sin(time*4-t*8)*2*t,scaleX:1,reach:25};
+      const originY=poleY-25;
+      const base=sample(1),direction=base.scaleX||1;
+      const height=17;
+      // Seven adjacent textured strips: fixed mast edge, fluttering free edge.
+      ctx.save();ctx.translate(2,originY);ctx.scale(direction,1);
+      const source=this.preview,slices=7;
+      for(let i=0;i<slices;i++){
+        const p0=sample(i/slices),p1=sample((i+1)/slices);
+        const x0=Math.abs(p0.x),x1=Math.abs(p1.x);
+        const w=Math.max(1.4,x1-x0+.9);
+        ctx.fillStyle=this.baseColor;ctx.fillRect(x0,p0.y,w,height-.6);
+        if(this.mode!=="gif"&&source&&source.width){
+          const sx=source.width*i/slices,sw=source.width/slices+1;
+          ctx.drawImage(source,sx,0,sw,source.height,x0,p0.y,w,height);
+        }
       }
-      ctx.restore();
+      ctx.restore();ctx.restore();
     }
     positionGif(ship,sea,project){
       if(!this.liveGif||this.mode!=="gif"){if(this.liveGif)this.liveGif.hidden=true;return;}
@@ -268,8 +273,35 @@
       const y=p.y+bob+Math.sin(angle)*localX+Math.cos(angle)*localY;
       this.liveGif.style.left=x.toFixed(2)+"px";
       this.liveGif.style.top=y.toFixed(2)+"px";
-      this.liveGif.style.transform="translate(-50%,-50%) rotate("+angle+"rad)";
+      const wind=root.AllAboardFlagMotion?.flagPose?.(
+        ship.heading,sea.windDirection??0,sea.windStrength??0,sea.time,1);
+      const sign=wind?.scaleX||1,flutter=wind?.flutter||0;
+      this.liveGif.style.transform="translate(-50%,-50%) rotate("+
+        angle+"rad) scaleX("+sign+") skewY("+(flutter*1.4)+"deg)";
       this.liveGif.hidden=false;
+    }
+    exportPreset(){
+      try{
+        // PNG/JPEG/paint and GIF are exported as a portable static PNG poster.
+        // Original GIF animation needs the original user-owned file.
+        return{
+          format:"allaboard-flag-png",version:1,mast:this.mast,
+          sourceMode:this.mode,png:this.preview?.toDataURL?.("image/png")||null,
+          note:this.mode==="gif"?"Animated GIF exported as a still PNG poster; keep the original GIF separately.":"Portable static flag texture."
+        };
+      }catch(err){return{format:"allaboard-flag-png",version:1,mast:this.mast,png:null,note:"Flag export unavailable."};}
+    }
+    restorePreset(data){
+      if(!data||data.format!=="allaboard-flag-png"||typeof data.png!=="string"||
+         !data.png.startsWith("data:image/png;base64,"))return false;
+      const img=new Image();
+      img.onload=()=>{
+        this.clearFile();this.fileImage=img;this.fileType="image/png";this.mode="image";
+        this.setMast(data.mast==="front"?"front":"rear");this.render();
+        this.note("Custom flag restored from saved preset.");
+      };
+      img.src=data.png;
+      return true;
     }
     summary(){
       return{mode:this.mode,mast:this.mast,
