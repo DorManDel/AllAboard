@@ -128,14 +128,15 @@
         anchor.point.y+=ny*dragRate*t;
         anchor.status="Dragging";
       }else anchor.status=stretch>0?"Taut":"Slack";
-      // Last-resort guard for large dt: never exceed rope length by more than
-      // 1.5 units when anchored. This is not the primary motion solver.
+      // Final exact rope-length guard after smooth force integration.
+      // Needed so the HUD never reports 142 / 140. Normal movement still
+      // uses the gradual spring/damper, not a hard position snap.
       const finalDx=ship.x-anchor.point.x,finalDy=ship.y-anchor.point.y;
       const finalDist=length(finalDx,finalDy);
-      if(finalDist>ropeLength+1.5){
+      if(finalDist>ropeLength){
         const ux=finalDx/finalDist,uy=finalDy/finalDist;
-        ship.x=anchor.point.x+ux*(ropeLength+1.5);
-        ship.y=anchor.point.y+uy*(ropeLength+1.5);
+        ship.x=anchor.point.x+ux*ropeLength;
+        ship.y=anchor.point.y+uy*ropeLength;
         const outgoing=ship.vx*ux+ship.vy*uy;
         if(outgoing>0){ship.vx-=ux*outgoing;ship.vy-=uy*outgoing;}
       }
