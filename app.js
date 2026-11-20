@@ -23,6 +23,7 @@
   });
   let settings = { ...defaultSettings };
   let sailControlMode="toggle-tilt"; // manual standing tilt is the V0.10 default
+  let lastRaisedSailArea=72;
   const ocean = typeof window.AllAboardOcean === "function" ? new window.AllAboardOcean() : null;
   const feel=window.AllAboardGameFeel?.FeelEngine?new window.AllAboardGameFeel.FeelEngine():null;
   const playSfx=id=>window.AllAboardPlaySfx?.(id);
@@ -323,7 +324,9 @@
 
   const formatValue = (name, value) => {
     if (name === "sail" || name === "deadzone") return Math.round(value) + "%";
-    if (name === "windDirection" || name === "sailTrim") return Math.round(value) + "°";
+    if (name === "windDirection") return Math.round(value) + "°";
+    if (name === "sailTrim") return Number(value).toFixed(1) + "°";
+    if (["recoilStrength","cameraShake","waveRoll","windFX"].includes(name)) return Number(value).toFixed(2);
     if (name === "steerSensitivity" || name === "windDrive" || name === "waterDrag") return Number(value).toFixed(2) + "×";
     if (name === "waveDetail" || name === "anchorGrip" || name === "anchorLine") return String(Math.round(value));
     return Number(value).toFixed(1);
@@ -354,7 +357,11 @@
     const range=$((name==="sail"?"sailSlider":name==="sailTrim"?"sailTrim":name));
     const min=range?Number(range.min):NaN,max=range?Number(range.max):NaN;
     settings[name]=Number.isFinite(min)&&Number.isFinite(max)?clamp(input,min,max):input;
-    if(name==="sailTrim")settings.sailAutoTrim=false;
+    if(name==="sail"&&settings.sail>0)lastRaisedSailArea=settings.sail;
+    if(name==="sailTrim"){
+      settings.sailAutoTrim=false;
+      if(sailControlMode!=="toggle-tilt")setSailControlStyle("toggle-tilt");
+    }
     syncSettings();
   }
   all("[data-setting]").forEach((control) => control.addEventListener("input", (e) => tune(e.target.dataset.setting, e.target.value)));
@@ -362,12 +369,8 @@
     $(key+"Number")?.addEventListener("input",e=>tune(key,e.target.value));
   }
   $("sailSlider").addEventListener("input", (e) => tune("sail", e.target.value));
-  $("sailAutoTrim").addEventListener("change",e=>{
-    settings.sailAutoTrim=e.target.checked;syncSettings();
-  });
-  $("sailQuickAuto").addEventListener("change",e=>{
-    settings.sailAutoTrim=e.target.checked;syncSettings();
-  });
+  $("sailAutoTrim").addEventListener("change",e=>setSailControlStyle(e.target.checked?"classic":"toggle-tilt"));
+  $("sailQuickAuto").addEventListener("change",e=>setSailControlStyle(e.target.checked?"classic":"toggle-tilt"));
   $("sailTrimQuickSlider").addEventListener("input",e=>tune("sailTrim",e.target.value));
   // One Sail state, two interchangeable layouts. No slider spring-back.
   const setSailControlStyle=mode=>{
@@ -389,7 +392,7 @@
     syncSettings();
   };
   $("sailControlStyle").addEventListener("change",e=>setSailControlStyle(e.target.value));
-  $("sailHeightToggle").addEventListener("click",()=>tune("sail",settings.sail>0?0:100));
+  $("sailHeightToggle").addEventListener("click",()=>tune("sail",settings.sail>0?0:lastRaisedSailArea));
   $("sailTrimToggle").addEventListener("click",()=>message("Automatic wind trim is active. Change the sail control mode in FX & Sail Trim to edit tilt manually."));
   setSailControlStyle("toggle-tilt");
   $("anchorChainQuickSlider").addEventListener("input",e=>tune("anchorLine",e.target.value));
@@ -1510,6 +1513,7 @@
   }
   function resetEverything() {
     settings = { ...defaultSettings };
+    lastRaisedSailArea=72;
     state.ship = { x: 0, y: 0, vx: 0, vy: 0, heading: 0, angularVelocity: 0, forwardSpeed: 0, sideSpeed: 0, sailEfficiency: 0, hull: 100, score: 0, coins: 1250 };
     state.wheel = { angle: 0, dragging: false, pointerAngle: 0, rudder: 0, lastTick: 0 };
     state.anchor = { down: false, point: { x: 0, y: 0 }, status: "Raised", phase: "raised", fallTime: 0, overload: 0, tension: 0, length: 0, lineLength: 70 };
@@ -1539,6 +1543,7 @@
     const filtered=Object.fromEntries(Object.entries(data.settings).filter(([key,v])=>
       key in defaultSettings&&typeof v==="number"&&Number.isFinite(v)));
     settings={...defaultSettings,...filtered};
+    lastRaisedSailArea=settings.sail>0?settings.sail:72;
     if(typeof data.settings.sailAutoTrim==="boolean")settings.sailAutoTrim=data.settings.sailAutoTrim;
     // Legacy presets had no mode: infer the old auto/manual choice.
     setSailControlStyle(data.sailControlMode==="classic"||data.sailControlMode==="toggle-tilt"?
