@@ -132,7 +132,53 @@ const plans=[
     mvp:["One sentence maximum per hint","Replay in settings","Respect reduced-motion","Don't hide the action behind tutorial overlays"],
     acceptance:["Skippable in one tap","Playtest on notch and narrow screens"],
     dependencies:["onboarding"],unity:["TutorialPresenter"],jiraType:"Task",postCore:false
+  },
+  {
+    id:"wind-polar-v06",title:"Slow Tailwind-Driven Vessel",category:"Core Sailing",phase:"Core",priority:"P0",effort:"M",
+    summary:"Tame the high-speed skating feel with controlled acceleration, water resistance and a readable wind-TO boost.",
+    player:"Steer into the wind direction for the strongest simple boost; slow down smoothly by furling sails.",
+    prototype:"V0.6 helm and sails lab. Compare settings in identical wind scenarios before Unity port.",
+    mvp:["Smooth windDrive acceleration","Tailwind-first sail polar and little headwind thrust","Adjustable forward waterDrag and strong keel drag","Speed-dependent yaw authority"],
+    acceptance:["No instant changes of velocity or hull heading","Smooth stop/coast when sails close","Phone testers agree default speed feels boat-like"],
+    dependencies:["sailing-feel"],unity:["SailPolar","VesselMotion","VesselTuning"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"hud-layout",title:"Touch-Editable HUD & Button Design",category:"Core Sailing",phase:"Core",priority:"P0",effort:"M",
+    summary:"Move/scale mobile controls by touch or numeric offsets, compare classic, sea-glass and compact appearances.",
+    player:"Find a thumb-friendly wheel, anchor, sail control, compass, minimap and Friendly toggle layout.",
+    prototype:"V0.6 UI Studio: drag components, tune x/y/scale, export/import presets and compare visual treatments.",
+    mvp:["Touch drag in edit mode only","Numeric X/Y and scaling","Local save and Unity-portable JSON export","Three reversible button themes"],
+    acceptance:["No game-control actions occur while editing","Layouts remain usable on tall and 16:9 portrait screens"],
+    dependencies:["sailing-feel"],unity:["HUDLayoutPreset","SafeAreaUI","ResponsiveControlAnchors"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"world-map-intel",title:"Expanded Seed Map / POI & Faction Heat Layers",category:"World",phase:"Core",priority:"P1",effort:"M",
+    summary:"Inspect the infinite seeded sea without moving the ship; reveal islands, treasure, ally and hostile density.",
+    player:"Pan/zoom world overview, filter interests, distinguish friendly and enemy groups.",
+    prototype:"V0.6 world map modal with density overlays and read-only chunk creation.",
+    mvp:["Island silhouettes and seed-stable locations","POI category toggles, pan and zoom","Approximate hostile/friendly density layers","Avoid mutating active streaming cache"],
+    acceptance:["Map browsing never relocates or evicts live chunks","POI positions remain reproducible for matching seed and generation settings"],
+    dependencies:["world"],unity:["MapPresenter","WorldPOIQuery","FactionDensityLayer"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"water-shore-mask",title:"Separate Land from Procedural Water",category:"Core Sailing",phase:"Core",priority:"P0",effort:"M",
+    summary:"Keep the soft V0.5 sea art and make waves/splashes respect actual polygon island boundaries.",
+    player:"See land as solid and water effects as a coherent environment reacting to the ship.",
+    prototype:"V0.6 preserved water snapshot, water-only PNG, tuning JSON and shore-clipped ripples.",
+    mvp:["Reusable pointInIsland test","Skip foam and splash on land","Clip water effect layer around islands","Save V0.5 water baseline and make tuning reproducible"],
+    acceptance:["No visible water bubbles or ripple lines on sand","Water engine visual still performs well on Android"],
+    dependencies:["world","sailing-feel"],unity:["WorldSurfaceMask","OceanField","OceanEffectClipper"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"kraken-grapple",title:"Kraken Tentacle Grab & Shoot-to-Release",category:"World",phase:"After Core",priority:"P2",effort:"M",
+    summary:"Single coordinator controlling eight independently animated arm records with a fair grab-and-escape minigame.",
+    player:"Read the warning, evade the reaching arm or align automatic broadsides and shoot to break free.",
+    prototype:"V0.6 World tab manual summon and arm-fire experiment; still only one active grabbing arm.",
+    mvp:["Visible warning before arm contact","Gradual pulling force rather than teleport","Periodic bounded hull damage","Two arm shots cause release","Shared coordinated arm state"],
+    acceptance:["Player can avoid or escape the grab","No surprise invisible damage","No permanent extra game controls required"],
+    dependencies:["world","cannons","kraken-arms"],unity:["KrakenGrapple","ArmCoordinator","ArmState"],jiraType:"Story",postCore:true
   }
+
 ];
 const byId=Object.freeze(Object.fromEntries(plans.map(plan=>[plan.id,plan])));
 root.AllAboardMechanicPlans={plans,byId};
