@@ -291,3 +291,122 @@
   .loop-meter>div,.tutorial-progress>div{transition:none}
   .planner-board{scroll-behavior:auto}
 }
+
+
+/* V0.6 — Tuneable touch HUD, no new controls during actual gameplay. */
+.phone-screen [data-ui-custom]{
+  translate:var(--ui-x,0px) var(--ui-y,0px);
+  scale:var(--ui-scale,1);
+  transform-origin:center center;
+}
+.phone-screen.layout-editing [data-ui-custom]{
+  pointer-events:auto!important;
+  outline:2px dashed rgba(145,252,213,.95);
+  outline-offset:4px;
+  cursor:grab;
+  touch-action:none!important;
+  background-clip:padding-box;
+}
+.phone-screen.layout-editing [data-ui-custom].layout-selected{
+  outline:3px solid #f4cb82;
+  outline-offset:5px;
+}
+.phone-screen.layout-editing .hud{pointer-events:auto}
+.phone-screen.layout-editing [data-ui-custom]::selection{background:transparent}
+.layout-select,.layout-controls input[type="number"]{
+  border:1px solid #567f91;background:#0b2f43;color:#ecfaf4;border-radius:9px;
+  padding:9px 10px;font-size:12px
+}
+.layout-select{width:100%;margin-top:8px}
+.layout-controls{display:flex;flex-direction:column;gap:6px;margin:9px 0}
+.layout-controls .setting-head input{width:82px;text-align:right;font-variant-numeric:tabular-nums}
+.layout-value-readout{padding:12px 11px;border-radius:11px;color:#f7e0b1;
+  background:#5645274a;border:1px solid #ad976466;font-size:12px;
+  font-variant-numeric:tabular-nums;margin:12px 0}
+.layout-controls input[type=range]{accent-color:#a2ebd5}
+#layoutEditToggle[aria-pressed=true]{background:#e8bb72;color:#2d2c25}
+#mapOpenMini{pointer-events:auto;position:absolute;right:3px;top:3px;
+  z-index:2;min-width:23px;min-height:23px;background:#102e40bb;
+  color:#f2fcff;border:1px solid #c4eded78;border-radius:6px;font-size:13px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+#mapOpenMini:focus-visible{outline:2px solid #f7cb8d}
+.world-map-modal[hidden]{display:none!important}
+.world-map-modal{position:fixed;inset:0;z-index:90;background:rgba(2,14,24,.86);
+  display:flex;align-items:center;justify-content:center;padding:12px;
+  backdrop-filter:blur(10px)}
+.world-map-window{width:min(1040px,100%);max-height:min(94vh,960px);
+  overflow-y:auto;display:flex;flex-direction:column;gap:12px;
+  border:1px solid #4e8b99;border-radius:19px;padding:16px;
+  background:#0c2535;box-shadow:0 16px 60px #0009}
+.world-map-header{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.world-map-header small{font-size:9px;letter-spacing:.16em;font-weight:900;color:#8bdbd5}
+.world-map-header h2{font-size:19px;margin:4px 0;color:#e8f9ea}
+.world-map-header p{margin:0;font-size:10px;color:#9bbdc9}
+.world-map-header p strong{color:#f0d69d}
+#mapClose{min-height:40px;min-width:43px;border:1px solid #6c97a4;
+  background:#1a4153;color:#f8f9f1;border-radius:12px;font-size:16px}
+.world-map-main{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(245px,1fr);gap:12px;min-height:360px}
+.world-map-canvas-wrap{position:relative;border:1px solid #5e94a2;
+  border-radius:13px;overflow:hidden;background:#0b5075;min-height:350px}
+#mapExplorerCanvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#mapExplorerCanvas:active{cursor:grabbing}
+.world-map-options{display:flex;flex-direction:column;gap:11px;overflow-y:auto}
+.map-options-line{display:flex;align-items:center;gap:9px;color:#d5ede9;font-size:11px}
+.map-options-line input{flex:1;min-width:0;accent-color:#a5eed1}
+.map-options-line strong{min-width:39px;text-align:right;color:#efdaae}
+.map-option-buttons,.map-layer-list{display:flex;flex-wrap:wrap;gap:7px}
+.map-option-buttons{align-items:center}
+.map-option-buttons button{border:1px solid #6eada7;color:#edfff7;border-radius:9px;
+  background:#1c514c;padding:9px;font-size:10px}
+.map-option-buttons label,.map-layer-list label{font-size:10px;display:flex;gap:6px;
+  align-items:center;color:#c5e4e5;border:1px solid #457c87;
+  background:#11364a;border-radius:8px;padding:7px 8px}
+.world-map-modal input[type=checkbox]{accent-color:#93ecd1}
+.map-swatch{width:9px;height:9px;border-radius:50%;display:inline-block}
+.map-swatch.hostile{background:#f17c81}.map-swatch.friendly{background:#79eab9}
+.map-selection{font-size:11px;color:#f1dfb2;background:#473d2e99;
+  border:1px solid #bc965971;padding:9px;border-radius:9px;line-height:1.4}
+.map-poi-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.map-poi{font-size:10px;text-align:left;color:#d8eee9;background:#0e3546;
+  border:1px solid #487b88;border-radius:8px;padding:9px;line-height:1.35}
+.map-poi:active{background:#276b68}
+.map-disclaimer{font-size:10px;line-height:1.5;color:#8bb4bf}
+@media(max-width:700px){
+ .world-map-modal{padding:0;align-items:stretch}
+ .world-map-window{border-radius:0;max-height:100dvh;width:100%;padding:12px;gap:9px}
+ .world-map-main{display:flex;flex-direction:column;gap:10px}
+ .world-map-canvas-wrap{height:min(50dvh,490px);min-height:250px;flex:none}
+ .world-map-options{overflow:visible}
+ .map-layer-list label{flex:0 1 auto}
+ .map-poi-list{grid-template-columns:1fr 1fr}
+}
+
+.kraken-lab-status{border:1px solid #9677a9;border-radius:11px;
+  background:linear-gradient(125deg,#282044,#173444);
+  padding:12px;margin:12px 0;color:#e5cff3;font-size:11px;line-height:1.6}
+#krakenShootArm{width:100%;min-height:42px;color:#efc7fc;border-color:#8c71a1}
+
+/* Keep the helm centered in the default phone layout; UI Studio can shift it. */
+.helm-control{left:50%}
+
+/* UI Studio button-theme comparisons. Classic preserves existing ship art. */
+.phone-screen[data-ui-theme="glass"] .game-btn,
+.phone-screen[data-ui-theme="glass"] .sail-control{
+  border:1px solid #c4e8eeaf;border-radius:21px;
+  background:linear-gradient(145deg,rgba(118,227,221,.24),rgba(6,40,66,.65));
+  color:#f2fffc;backdrop-filter:blur(11px);
+  box-shadow:0 6px 18px rgba(0,30,58,.25),inset 0 1px 0 #ffffff69
+}
+.phone-screen[data-ui-theme="glass"] .anchor-btn,
+.phone-screen[data-ui-theme="glass"] .mode-btn{background:rgba(16,93,106,.78);color:#eefef9}
+.phone-screen[data-ui-theme="compact"] .game-btn,
+.phone-screen[data-ui-theme="compact"] .sail-control{
+  border-radius:9px;background:#082c43e8;border:1px solid #8cbdc8a6;
+  box-shadow:0 3px 7px #031a36a6
+}
+.phone-screen[data-ui-theme="compact"] .game-btn{
+  min-height:48px;font-size:10px
+}
+.phone-screen[data-ui-theme="compact"] .helm-control img{
+  filter:brightness(1.2) saturate(.8) drop-shadow(0 2px 3px #071b2a6e)
+}

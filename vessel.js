@@ -12,9 +12,12 @@
   const degrees=theta=>theta*180/Math.PI;
   const wrap=angle=>(angle%360+360)%360;
   const length=(x,y)=>Math.hypot(x,y);
+  // Hyper-casual tailwind-first polar: bow aligned with wind-TO travels best.
+  // Real fore-and-aft sails often reach faster than a direct run; this is an
+  // intentional game design choice matching All Aboard's player expectations.
   const polarPoints=[
-    [0,.025],[25,.06],[40,.32],[60,.76],
-    [90,1],[130,.96],[155,.79],[180,.59]
+    [0,.02],[25,.07],[40,.20],[60,.42],
+    [90,.64],[130,.83],[155,.94],[180,1]
   ];
   function polarEfficiency(angleOffWind){
     const angle=limit(angleOffWind,0,180);
@@ -44,11 +47,11 @@
 
     // More speed over the rudder means more turning authority. Near-stationary
     // steering is deliberately small, not impossible (arcade concession).
-    const rudderAuthority=.08 + .92*limit(Math.abs(movingForward)/35,0,1);
+    const rudderAuthority=.025 + .975*limit(Math.abs(movingForward)/32,0,1);
     const hullResponse=modifiers.rudderFactor===undefined?1:modifiers.rudderFactor;
     const helmTarget=limit(wheel.rudder,-1,1)*settings.steerSensitivity*
-      (12+65*rudderAuthority)*hullResponse*(anchor.down?.66:1);
-    const yawResponse=settings.yawResponse||5;
+      (5+38*rudderAuthority)*hullResponse*(anchor.down?.66:1);
+    const yawResponse=settings.yawResponse||3;
     ship.angularVelocity += (helmTarget-ship.angularVelocity)*(1-Math.exp(-yawResponse*t));
     ship.heading=wrap(oldHeading+ship.angularVelocity*t);
     const fx=Math.sin(rad(ship.heading)),fy=-Math.cos(rad(ship.heading));
@@ -58,18 +61,20 @@
       (modifiers.sailFactor===undefined?1:modifiers.sailFactor);
     let rigEfficiency=wind.efficiency;
     if(modifiers.rig==="lateen"){
-      // Higher windward efficiency; a less effective dead-downwind runner.
-      rigEfficiency=limit(wind.efficiency*(wind.offWind<80?1.35:
-        wind.offWind>145?.72:1),0,1);
+      // Lateen rig trades some tailwind power for slightly better crosswind drive.
+      rigEfficiency=limit(wind.efficiency*(wind.offWind<75?1.35:
+        wind.offWind>145?.8:1.1),0,1);
     }else if(modifiers.rig==="storm"){
       // Shorter storm canvas: lower maximum thrust, improved control.
       rigEfficiency=wind.efficiency*.87;
     }
     const hullFactor=modifiers.hullFactor===undefined?1:modifiers.hullFactor;
-    // The same wind angle is used for gameplay and any displayed sail feedback.
-    const thrust=(settings.baseThrust*7+settings.windStrength*24*
-      sailArea*rigEfficiency)*hullFactor;
-    const windLateral=settings.windStrength*sailArea*(modifiers.rig==="storm"?.4:.8)*
+    // Tunable slow acceleration. No instantaneous speed set / teleportation.
+    // True "boost" comes from alignment, and fades continuously across angles.
+    const windDrive=settings.windDrive===undefined?1:settings.windDrive;
+    const thrust=(settings.baseThrust*1.4+
+      settings.windStrength*2.65*sailArea*rigEfficiency*windDrive)*hullFactor;
+    const windLateral=settings.windStrength*sailArea*(modifiers.rig==="storm"?.13:.23)*
       Math.sin(rad(ship.heading-settings.windDirection));
     const ax=fx*thrust+rx*windLateral+flow.x;
     const ay=fy*thrust+ry*windLateral+flow.y;
@@ -77,13 +82,16 @@
     // Drift relative to local boat axes; a keel rejects lateral movement.
     // Do not multiply both axes by the same friction factor ("ice-skating").
     const fv=ship.vx*fx+ship.vy*fy,lv=ship.vx*rx+ship.vy*ry;
-    const forwardDrag=(.17+.004*limit(Math.abs(fv),0,100))*hullFactor;
+    // Quadratic-speed drag approximates water resistance and limits the
+    // terminal speed naturally instead of relying on a hard arcade speed cap.
+    const waterDrag=settings.waterDrag===undefined?1:settings.waterDrag;
+    const forwardDrag=(.14+.012*limit(Math.abs(fv),0,70))*waterDrag;
     const sideDrag=(settings.lateralDrag||5.5);
     const forwardAfter=fv*Math.exp(-forwardDrag*t);
     const sideAfter=lv*Math.exp(-sideDrag*t);
     ship.vx=forwardAfter*fx+sideAfter*rx+ax*t;
     ship.vy=forwardAfter*fy+sideAfter*ry+ay*t;
-    const maxSpeed=85*hullFactor;
+    const maxSpeed=42*hullFactor;
     const speedAfter=length(ship.vx,ship.vy);
     if(speedAfter>maxSpeed){ship.vx*=maxSpeed/speedAfter;ship.vy*=maxSpeed/speedAfter;}
     ship.x+=ship.vx*t;
@@ -120,14 +128,15 @@
         anchor.point.y+=ny*dragRate*t;
         anchor.status="Dragging";
       }else anchor.status=stretch>0?"Taut":"Slack";
-      // Last-resort guard for large dt: never exceed rope length by more than
-      // 1.5 units when anchored. This is not the primary motion solver.
+      // Final exact rope-length guard after smooth force integration.
+      // Needed so the HUD never reports 142 / 140. Normal movement still
+      // uses the gradual spring/damper, not a hard position snap.
       const finalDx=ship.x-anchor.point.x,finalDy=ship.y-anchor.point.y;
       const finalDist=length(finalDx,finalDy);
-      if(finalDist>ropeLength+1.5){
+      if(finalDist>ropeLength){
         const ux=finalDx/finalDist,uy=finalDy/finalDist;
-        ship.x=anchor.point.x+ux*(ropeLength+1.5);
-        ship.y=anchor.point.y+uy*(ropeLength+1.5);
+        ship.x=anchor.point.x+ux*ropeLength;
+        ship.y=anchor.point.y+uy*ropeLength;
         const outgoing=ship.vx*ux+ship.vy*uy;
         if(outgoing>0){ship.vx-=ux*outgoing;ship.vy-=uy*outgoing;}
       }
@@ -140,8 +149,11 @@
     ship.sailEfficiency=rigEfficiency;
     ship.windAngle=wind.offWind;
     ship.turnSlip=Math.abs(ship.angularVelocity)*Math.max(0,ship.forwardSpeed)*.015;
+    ship.windBoost=rigEfficiency;
+    ship.driveAcceleration=thrust;
+    ship.waterResistance=forwardDrag;
     return {speed:length(ship.vx,ship.vy),forwardSpeed:ship.forwardSpeed,
-      sideSpeed:ship.sideSpeed,sailEfficiency:rigEfficiency,
+      sideSpeed:ship.sideSpeed,sailEfficiency:rigEfficiency,windBoost:rigEfficiency,driveAcceleration:thrust,
       windAngle:wind.offWind,tension,heading:ship.heading};
   }
   const api={step,pointOfSail,polarEfficiency};

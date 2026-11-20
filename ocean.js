@@ -11,7 +11,10 @@
     constructor(){
       this.time=0;this.splashes=[];this.foam=[];this.wakeClock=0;
       this.surfaceCanvas=null;this.surfaceCtx=null;this.lastSurface=-100;
+      this.waterMask=null;
     }
+    setWaterMask(mask){this.waterMask=typeof mask==="function"?mask:null;}
+    isWater(x,y){return !this.waterMask||this.waterMask(x,y);}
     reset(){
       this.time=0;this.splashes=[];this.foam=[];this.wakeClock=0;
       this.lastSurface=-100;
@@ -44,24 +47,29 @@
       if(vortex&&vortex.active){
         const dx=vortex.x-x,dy=vortex.y-y,d=Math.max(1,Math.hypot(dx,dy));
         const field=Math.pow(Math.max(0,1-d/275),1.55)*(settings.vortexStrength||0);
-        fx+=(dx/d)*115*field+(-dy/d)*76*field;
-        fy+=(dy/d)*115*field+(dx/d)*76*field;
+        // Arcade vortex: readable pull and swirl, without near-instant speed cap.
+        fx+=(dx/d)*42*field+(-dy/d)*31*field;
+        fy+=(dy/d)*42*field+(dx/d)*31*field;
         vortexAmount=field;
       }
       return{x:fx,y:fy,vortexAmount};
     }
     splash(x,y,size=1,kind="splash"){
+      if(!this.isWater(x,y))return false;
       this.splashes.push({x,y,size,kind,age:0});
       if(this.splashes.length>55)this.splashes.shift();
       const n=Math.min(22,Math.round(6+size*8));
       for(let i=0;i<n;i++){
         const theta=Math.random()*Math.PI*2,r=Math.random()*size*12;
-        this.foam.push({x:x+Math.cos(theta)*r,y:y+Math.sin(theta)*r,
+        const foamX=x+Math.cos(theta)*r,foamY=y+Math.sin(theta)*r;
+        if(!this.isWater(foamX,foamY))continue;
+        this.foam.push({x:foamX,y:foamY,
           dx:Math.cos(theta)*(10+Math.random()*26)*size,
           dy:Math.sin(theta)*(10+Math.random()*26)*size,
           age:0,life:.55+Math.random()*1.4,size:.7+Math.random()*2.5});
       }
       this.limitFoam();
+      return true;
     }
     limitFoam(){if(this.foam.length>350)this.foam.splice(0,this.foam.length-350);}
     emitWake(ship,settings,dt){
@@ -164,6 +172,7 @@
     drawEffects(ctx,view){
       const {project}=view;
       for(const pulse of this.splashes){
+        if(!this.isWater(pulse.x,pulse.y))continue;
         const p=project(pulse.x,pulse.y),alpha=Math.max(0,1-pulse.age/2.8)*.64;
         if(!alpha)continue;
         ctx.strokeStyle="rgba(223,250,248,"+alpha+")";
@@ -174,6 +183,7 @@
         }
       }
       for(const p of this.foam){
+        if(!this.isWater(p.x,p.y))continue;
         const point=project(p.x,p.y),opacity=clamp(1-p.age/p.life,0,1);
         if(point.x<-10||point.y<-10)continue;
         ctx.globalAlpha=opacity*.78;ctx.fillStyle="#e6fcfc";

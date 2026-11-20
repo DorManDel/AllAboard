@@ -1,0 +1,75 @@
+/* V0.6 tests — predictable tailwind acceleration, shoreline and pure map. */
+"use strict";
+const assert=require("node:assert/strict");
+const Vessel=require("../vessel.js");
+const OceanField=require("../ocean.js");
+const {WorldEngine}=require("../world.js");
+const {visibleFeatures,heatIntensity}=require("../map-explorer.js");
+const {LayoutStudio,targets}=require("../ui-layout.js");
+const makeShip=()=>({x:0,y:0,vx:0,vy:0,heading:0,angularVelocity:0});
+const blankAnchor=()=>({down:false,phase:"raised",point:{x:0,y:0},status:"Raised",overload:0,tension:0,length:0});
+const settings={sail:100,windStrength:3,windDirection:0,windDrive:1,waterDrag:1,baseThrust:0,
+steerSensitivity:1,yawResponse:3,lateralDrag:5.5,anchorLine:70,anchorGrip:185,ropeStiffness:9,ropeDamping:6};
+const empty={x:0,y:0};
+const run=(ship,settings,seconds=8,dt=1/60,turn=0)=>{
+  const anchor=blankAnchor(),wheel={rudder:turn};
+  for(let t=0;t<seconds-1e-8;t+=dt)Vessel.step(ship,anchor,wheel,settings,empty,dt);
+  return ship;
+};
+const windTo=0;
+assert(Vessel.pointOfSail(0,windTo).efficiency>.95,"Aligned with wind-TO must be strongest");
+assert(Vessel.pointOfSail(90,windTo).efficiency>.55,"Beam wind still moves vessel");
+assert(Vessel.pointOfSail(180,windTo).efficiency<.1,"Direct headwind barely moves vessel");
+const tailwind=run(makeShip(),settings);
+const headwind=run({...makeShip(),heading:180},settings);
+assert(Math.hypot(tailwind.vx,tailwind.vy)>10,"Tailwind accelerates meaningfully");
+assert(Math.hypot(tailwind.vx,tailwind.vy)>Math.hypot(headwind.vx,headwind.vy)*4,
+"Headwind must be much slower than aligned tailwind");
+assert(Math.hypot(tailwind.vx,tailwind.vy)<32,"Top speed must be slower than old 85-unit cap");
+const slow=run(makeShip(),{...settings,windDrive:.4});
+assert(Math.hypot(slow.vx,slow.vy)<Math.hypot(tailwind.vx,tailwind.vy)-2,"WindDrive slider affects speed");
+const moreDrag=run(makeShip(),{...settings,waterDrag:1.8});
+assert(Math.hypot(moreDrag.vx,moreDrag.vy)<Math.hypot(tailwind.vx,tailwind.vy)-2,"WaterDrag slider affects speed");
+const initial=run(makeShip(),settings,2);
+assert(Math.hypot(initial.vx,initial.vy)<Math.hypot(tailwind.vx,tailwind.vy),"Acceleration is gradual");
+const thirty=run(makeShip(),settings,4,1/30);
+const sixty=run(makeShip(),settings,4,1/60);
+assert(Math.abs(Math.hypot(thirty.vx,thirty.vy)-Math.hypot(sixty.vx,sixty.vy))<1.5,
+"Physics should be broadly stable across fixed 30/60Hz");
+const slowTurning=run(makeShip(),{...settings,sail:0,windStrength:0},1,1/60,1);
+const fastTurning=run({...makeShip(),vy:-22},{...settings,sail:0,windStrength:0},1,1/60,1);
+assert(Math.abs(fastTurning.angularVelocity)>Math.abs(slowTurning.angularVelocity)*2,
+"Rudder turning is strongly speed dependent");
+const world=new WorldEngine("LAND-SEA-TEST");
+world.updateNear(0,0);
+const island=world.nearbyObjects(0,0,700).find(o=>o.type==="island");
+assert(island,"Seeded world must contain islands");
+assert.equal(world.isWater(island.x,island.y),false,"Island center is land");
+assert.equal(world.isWater(island.x+island.rx*3,island.y),true,"Outside island is sea");
+const ocean=new OceanField();
+ocean.setWaterMask((x,y)=>world.isWater(x,y));
+assert.equal(ocean.splash(island.x,island.y,1,"test"),false,"No water splash on land");
+assert.equal(ocean.splashes.length,0);
+assert.equal(ocean.splash(island.x+island.rx*3,island.y,1,"test"),true,"Splash at sea");
+const calls=[];
+const ctx={beginPath(){},rect(){},moveTo(){},lineTo(){},closePath(){},clip(rule){calls.push(rule);}};
+world.clipWater(ctx,(x,y)=>({x,y}),{x:0,y:0},600,500);
+assert.deepEqual(calls,["evenodd"],"Sea effects should clip to ocean excluding island polygons");
+const cacheBefore=world.cache.size;
+const a=visibleFeatures(world,0,0,620,420,.35);
+const b=visibleFeatures(world,0,0,620,420,.35);
+assert.deepEqual(a,b,"Map view is deterministic");
+assert.equal(world.cache.size,cacheBefore,"Browsing map does not populate live chunk cache");
+const withoutTreasure=visibleFeatures(world,0,0,620,420,.35,{treasure:false});
+assert(withoutTreasure.every(x=>x.type!=="treasure"),"POI filter excludes treasure");
+const friend=a.find(x=>x.type==="ship"&&x.faction==="friendly");
+if(friend)assert(heatIntensity(world,a,friend.x,friend.y,"friendly")>0,"Ally heatmap accumulates friendly density");
+assert.equal(heatIntensity(world,a,1e9,1e9,"hostile"),0,"Heat outside all ships is zero");
+const editor=new LayoutStudio();
+assert(targets.some(([id])=>id==="wheelControl"));
+assert.equal(editor.snapshot().items.wheelControl.scale,1);
+editor.restore({format:"allaboard-ui-layout",version:1,items:{wheelControl:{x:200,y:-200,scale:6}}});
+const adjusted=editor.snapshot().items.wheelControl;
+assert.deepEqual(adjusted,{x:48,y:-48,scale:1.8},"Normalize imported controls to safe range");
+assert.throws(()=>editor.restore({items:{}}),/Unsupported/);
+console.log("PASS: tailwind-first slow motion, two tuning sliders, 30/60Hz stability, shoreline masking, pure map heat and UI layout presets.");

@@ -27,7 +27,12 @@ const catalog=[
 ["ammo-variety","Barrels / Chain Shot / Chicken Ammo","After Core","AmmoDefinition, ProjectileEffect","Different ammo creates tactical trade-offs with no extra real-time controls"],
 ["popularity","Popularity / Reputation","After Core","ReputationService, RelationshipLedger","Each unique friendship increases meaningful reputation without farming"],
 ["followers","Friendly Follower Ships","After Core","FollowerCoordinator, AllyDefenseRule","Befriended ships follow and assist without automatically winning fights"],
-["kraken-arms","Kraken Tentacle Coordination","After Core","KrakenBrain, ArmCoordinator, ArmController","Eight local arm states react with a shared controller and readable attacks"]
+["kraken-arms","Kraken Tentacle Coordination","After Core","KrakenBrain, ArmCoordinator, ArmController","Eight local arm states react with a shared controller and readable attacks"],
+["slow-sailing","Wind-Driven Sailing V0.6","Core","VesselTuning, SailPolar, VesselMotion","Slow natural acceleration, tailwind-first boost, speed-dependent rudder and measured phone feel"],
+["hud-layout","Editable HUD / Touch Layout","Core","HUDLayoutPreset, ResponsiveControlAnchors","Thumb-friendly on mobile; export normalized positions and scale for Unity"],
+["expanded-map","POI Map & Faction Heat Layers","World","WorldMapPresenter, WorldPOIQuery","Explore seeded islands and selective faction layers without changing live chunk simulation"],
+["coastline-mask","Water/Land Mask & Reactive Shoreline","Core","WorldSurfaceMask, OceanEffectClipper","Water foam and ripple paths stay off land; no visual leaks across sand"],
+["kraken-grapple","Kraken Grapple & Shoot-to-Release","After Core","KrakenBrain, ArmCoordinator, ArmState","Visible warning, bounded tentacle grab, auto-cannon release and fair escape"]
 ].map(([id,title,group,unity,criteria])=>({id,title,group,unity,criteria}));
 const values=["keep","refine","test","later","reject"];
 class MechanicsReview{

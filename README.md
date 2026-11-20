@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.5 (experimental, stacked on unmerged V0.4)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.6 (experimental, stacked on unmerged V0.5)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -14,16 +14,17 @@
 
 The web lab lives in this repository. The **real Unity project** remains in [Eilon343/AllAboard](https://github.com/Eilon343/AllAboard) and is not modified by this experiment.
 
-## Thirteen experimentation tabs
+## Fourteen experimentation tabs
 
 | Tab | Try it |
 |---|---|
 | Live Playground | Steer while adjusting sails, anchor, wind and Friendly/Aggressive mode |
+| UI Studio | Drag/scale HUD, exact X/Y values, compare three button themes, export/import JSON |
 | Helm | Centered ±1080° wheel, responsive controls, separate rudder/yaw response, **adjustable keel drag** and live forward/side speeds |
 | Sails & Wind | Tune wind TO-direction, sail area and headwind/tailwind effects |
 | Anchor | Throw with splash, soft spring-damper rope, adjustable **chain stiffness/damping**, anchoring radius and delayed dragging on sustained force |
-| Ocean | Our original procedural water-height field, speed/turn wake foam, local ripples, wave-gradient current and vortex | 
-| World | Deterministic seed, streamed infinite chunks, islands, friendly/hostile NPC ships, loot and rare test Kraken |
+| Ocean | Preserved V0.5 water baseline, shoreline clipping, clean PNG snapshot and water tuning JSON | 
+| World | Deterministic chunks, full read-only POI map, ally/hostile heatmaps and grab-release Kraken test |
 | Damage | Cannon center + splash radius, chain combos, turn-based fire/flood progression, enemy repair cost and functional disabled sails/cannons/rudder |
 | Encounters | Offer what an NPC actually needs, or choose enemy sections to disable |
 | Pimp My Ship | Original SVG parts, visible mast-mounted flag, pixel painter, local photo or animated GIF, PNG export, and rig selection |
@@ -122,3 +123,19 @@ The connected Jira project is **All Aboard!** (key SCRUM, board ID 1). The stati
 Reputation/popularity, defensive follower ships, visible cannon trajectories, custom barrel/chicken/chain ammo, intercept/rescue/escort and coordinated eight-arm Kraken are **detailed plans**, not playable V0.5 systems. Core feel, stage loop, default cannons and damage remain first.
 
 See [VISION.md](./VISION.md) for the phased design. Run node tests/stage-loop.cjs, node tests/planner.cjs and the existing test suites; verify the feel and UI on a real Android phone before merging into the web lab, and only port approved rules to Unity.
+
+## V0.6 — Core Feel, HUD Editing, Map, Water Baseline & Kraken
+
+This unmerged branch extends V0.5 without modifying the real Unity project.
+
+- **Sailing:** tailwind is now the strongest boost; slower gradual acceleration, stronger water resistance, speed-limited rudder and editable Wind Drive / Water Drag tuning.
+- **UI Studio:** move/scale game HUD components by touch, change precise X/Y values, preview classic, glass and compact button treatments, and export/import a portable JSON preset. Wheel defaults to center.
+- **Expanded Map:** inspect seeded islands, ships, treasure and Kraken points with pan/zoom and independent friendly/hostile density layers. Map browsing does not mutate the live world chunk cache.
+- **Water:** exact original V0.5 code preserved at water/v0.5-ocean.js. Export a water-only PNG or tuning JSON; reset water to V0.5 values. Ocean foam and ripples are clipped to water rather than drawn over island interiors.
+- **Kraken:** shared coordinator with eight arm records, warning → reach → short grab → recoil; limited pulling force, modest hull damage and shoot-to-release gameplay. Only one arm grabs in this test. Full boss logic remains after-core.
+- **Planning:** Mechanics Review and Roadmap include these V0.6 experiments.
+- **Notes:** REFINEMENT_V06.md documents game-feel principles, Unity C# boundaries, tests and unresolved decisions.
+
+Run node tests/core-v06.cjs and node tests/kraken-grapple.cjs alongside the existing smoke, vessel, world, stage, planner and review tests. CI checks logical behavior, not actual phone haptics, frame-time or aesthetics.
+
+No Unity source, scene or Android build setting is changed. Do not merge before Dor and Eilon playtest the mobile version.

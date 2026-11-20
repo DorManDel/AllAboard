@@ -19,8 +19,8 @@ const stepMany=(ship,anchor,config,flow,steps,modifiers={})=>{
 const headwind=vessel.pointOfSail(180,0).efficiency;
 const beamReach=vessel.pointOfSail(90,0).efficiency;
 const downwind=vessel.pointOfSail(0,0).efficiency;
-assert(beamReach>downwind,"Beam reach should outperform dead downwind");
-assert(downwind>headwind*4,"Dead headwind should have weak thrust");
+assert(downwind>beamReach,"Game design: tailwind should outperform beam reach");
+assert(beamReach>headwind*4,"Headwind should have weak thrust");
 // A keel resists sideways slip more than movement along the hull.
 const side=blankShip();side.vx=35;
 const forward=blankShip();forward.vy=-35;
@@ -41,13 +41,14 @@ const anchored=blankShip();
 const hold={down:true,phase:"set",status:"Slack",point:{x:0,y:0},tension:0,length:0,overload:0};
 stepMany(anchored,hold,{...windSettings,windDirection:0,anchorGrip:1000},zero,480);
 assert(Math.hypot(anchored.x,anchored.y)>5,"The anchored ship should move within its circle");
-assert(Math.hypot(anchored.x,anchored.y)<=72,"Stable anchor should bound excursion");
+assert(Math.hypot(anchored.x-hold.point.x,anchored.y-hold.point.y)<=70.001,"Anchor must never exceed the configured 70-unit chain length");
 assert(Math.hypot(anchored.vx,anchored.vy)<20,"Holding should not result in runaway velocity");
 // Strong sustained load can drag the seabed point, not merely snap the ship.
 const dragged=blankShip();
 const slipping={down:true,phase:"set",status:"Slack",point:{x:0,y:0},tension:0,length:0,overload:0};
 stepMany(dragged,slipping,{...settings,anchorGrip:15,anchorLine:18}, {x:220,y:10},600);
 assert(Math.hypot(slipping.point.x,slipping.point.y)>0.5,"Sustained overload should drag anchor");
+assert(Math.hypot(dragged.x-slipping.point.x,dragged.y-slipping.point.y)<=18.001,"Even dragging cannot exceed the active chain length");
 // The procedurally defined field really changes in both space and time.
 const ocean=new OceanField();
 const h1=ocean.heightAt(0,0,settings);
