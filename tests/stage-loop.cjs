@@ -59,6 +59,7 @@ assert.equal(restore.state.phase,"port","Never resume mid-hazard after browser r
 assert.equal(restore.state.pendingCoins,0,"Unbanked hazard bonuses do not carry into port");
 assert.equal(restore.state.objectiveCleared,true);
 assert.equal(restore.state.bankedCoins,risky.state.bankedCoins);
+assert(run.resume(),"Can return to a finished stage after cashout");
 assert.equal(run.nextStage(),false,"Cannot skip a stage while still sailing");
 assert.equal(run.tick(-4),false);
 assert.equal(run.tick(10),false);
