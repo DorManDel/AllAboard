@@ -226,12 +226,12 @@ class LayoutStudio{
    if(value)value.value=n.toFixed(spec.digits);
   }
   const appearance=this.appearance[this.selected]||defaultAppearance();
-  this.$("layoutVisible").checked=appearance.visible;
-  this.$("layoutBorderWidth").value=appearance.borderWidth;
-  this.$("layoutBorderValue").textContent=appearance.borderWidth+" px";
-  this.$("layoutBorderColor").value=appearance.borderColor;
-  this.$("layoutBackgroundColor").value=appearance.background;
-  this.$("layoutUseBackground").checked=appearance.useBackground;
+  if(this.$("layoutVisible"))this.$("layoutVisible").checked=appearance.visible;
+  if(this.$("layoutBorderWidth"))this.$("layoutBorderWidth").value=appearance.borderWidth;
+  if(this.$("layoutBorderValue"))this.$("layoutBorderValue").textContent=appearance.borderWidth+" px";
+  if(this.$("layoutBorderColor"))this.$("layoutBorderColor").value=appearance.borderColor;
+  if(this.$("layoutBackgroundColor"))this.$("layoutBackgroundColor").value=appearance.background;
+  if(this.$("layoutUseBackground"))this.$("layoutUseBackground").checked=appearance.useBackground;
   const svg=this.$("layoutIconPreview");
   if(svg)svg.src=iconPaths[this.selected]||"./assets/ship-wheel.svg";
   const title=this.$("layoutIconName");
