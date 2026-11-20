@@ -12,7 +12,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.3</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.4</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
     <div class="tabbar" role="tablist" aria-label="Mechanics">
@@ -20,10 +20,10 @@
       <button role="tab" aria-selected="false" class="tab" data-tab="helm">☸ Helm</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="sails">◈ Sails & Wind</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="anchor">⚓ Anchor</button>
-      <button role="tab" aria-selected="false" class="tab" data-tab="ocean">≋ Ocean</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="ocean">≋ Ocean</button><button role="tab" aria-selected="false" class="tab" data-tab="world">◎ World</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="damage">✹ Damage</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="encounter">♡ Encounters</button>
-      <button role="tab" aria-selected="false" class="tab" data-tab="shipyard">✦ Pimp My Ship</button><button role="tab" aria-selected="false" class="tab" data-tab="ideas">✧ Ideas Board</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="shipyard">✦ Pimp My Ship</button><button role="tab" aria-selected="false" class="tab" data-tab="ideas">✧ Ideas Board</button><button role="tab" aria-selected="false" class="tab" data-tab="review">✓ Mechanics Review</button>
     </div>
 
     <main class="workspace">
@@ -32,7 +32,7 @@
         <div class="stage-body">
           <div class="phone">
             <div class="phone-screen" id="phoneScreen">
-              <canvas id="seaCanvas" aria-label="Animated top-down sea showing the sailing ship"></canvas>
+              <canvas id="seaCanvas" aria-label="Animated top-down sea showing the sailing ship"></canvas><img id="flagGifOverlay" class="flag-gif-live" alt="" hidden>
               <div class="notch"></div>
               <div class="hud">
                 <div class="hud-top"><div class="coin-pill"><span>⬡</span> <strong id="coinValue">1,250</strong></div><div class="heading-pill"><span class="hud-muted">HDG</span> <strong id="headingValue">000°</strong></div></div>
@@ -44,7 +44,7 @@
                </div>
                <div class="minimap" aria-label="Mini-map: ship, chest, enemy and vortex"><canvas id="miniMapCanvas"></canvas><span>MAP</span></div>
               <div class="play-hint" id="playHint">Drag the wheel to steer · Adjust sails to catch wind</div>
-              <div class="world-action" id="chestAction"><button id="collectChest">✦ Collect treasure</button></div>
+              <div class="world-action" id="chestAction"><button id="collectChest">✦ Collect treasure</button></div><div class="world-action world-ship-action" id="worldShipAction"><button id="worldShipInteract" hidden>♡ Hail friendly ship</button></div>
               <div class="game-controls">
                 <div class="helm-control" id="wheelControl" role="slider" tabindex="0" aria-label="Ship's wheel, turn left or right" aria-valuemin="-1080" aria-valuemax="1080" aria-valuenow="0">
                   <div id="helmWheel" class="wheel-art">
@@ -129,6 +129,30 @@
           <div class="metric-note">Canvas 2D · Procedural visual approximation · Frame-rate-independent motion. The water surface is not a full fluid simulation.</div>
         </section>
 
+
+        <section class="panel" data-panel="world">
+          <div class="explain"><strong>Endless, reproducible worlds</strong>
+            <p>Generate a shareable world from a seed. Islands, friendly/hostile ships and treasures are stable per chunk. Only nearby chunks are loaded. A rare Kraken can emerge and even swallow nearby NPC ships.</p>
+          </div>
+          <div class="mini-heading">YOUR WORLD SEED</div>
+          <div class="seed-row"><input id="worldSeed" type="text" maxlength="52" value="ALL-ABOARD" aria-label="Procedural world seed" spellcheck="false" placeholder="Type a world name">
+            <button id="worldGenerate" class="wide-button">Generate</button></div>
+          <div class="button-pair"><button id="worldRandom" class="outline-button">⚄ Random seed</button><button id="worldShare" class="outline-button">⧉ Copy seed link</button></div>
+          <div class="world-counters">
+            <div><small>CHUNKS CACHED</small><strong id="worldChunks">0</strong></div>
+            <div><small>ISLANDS NEAR</small><strong id="worldIslands">0</strong></div>
+            <div><small>OTHER SHIPS</small><strong id="worldShips">0</strong></div>
+            <div><small>TREASURES</small><strong id="worldTreasures">0</strong></div>
+          </div>
+          <div class="setting"><div class="setting-head"><label for="worldIslandDensity">Island density</label><output id="worldIslandDensityValue">1.0×</output></div><input id="worldIslandDensity" type="range" min="0" max="2.5" step=".25" value="1"></div>
+          <div class="setting"><div class="setting-head"><label for="worldShipDensity">Ship density</label><output id="worldShipDensityValue">1.0×</output></div><input id="worldShipDensity" type="range" min="0" max="2.5" step=".25" value="1"></div>
+          <div class="setting"><div class="setting-head"><label for="worldTreasureDensity">Treasure density</label><output id="worldTreasureDensityValue">1.0×</output></div><input id="worldTreasureDensity" type="range" min="0" max="2.5" step=".25" value="1"></div>
+          <label class="switch-line"><input id="worldKrakenEnabled" type="checkbox" checked> Rare secret Kraken events (about 1.8% of chunks)</label>
+          <label class="switch-line"><input id="worldChunkGrid" type="checkbox"> Show chunk boundaries (debug)</label>
+          <div class="button-pair"><button id="worldExplore" class="outline-button">➤ Explore next chunk</button><button id="worldSummonKraken" class="outline-button">🐙 Test Kraken</button></div>
+          <div class="world-alert" id="worldAlert" role="status">Sail to discover islands, trade ships and hidden treasure.</div>
+          <div class="callout">Seed + generation version + coordinates reproduce placements; treasure pickup state belongs to this play session. The Kraken is deliberately uncommon. This is an arcade island generator, not real geography.</div>
+        </section>
         <section class="panel" data-panel="damage">
           <div class="explain"><strong>Which damage system feels playful?</strong><p>Switch models without committing to one design. Tap cells using an attack pattern, then compare what happens at different enemy levels.</p></div>
           <div class="segmented" role="group" aria-label="Damage model"><button class="active" data-damage-model="grid">Grid HP</button><button data-damage-model="modules">Modules</button><button data-damage-model="core">Core target</button><button data-damage-model="chain">Chain combo</button></div>
@@ -164,13 +188,35 @@
           <div class="mini-heading">SAIL SHAPE / RIG</div>
           <div class="upgrade-row" data-upgrade="rig"><button data-rig="square" class="active">Square <small>Balanced</small></button><button data-rig="lateen">Lateen <small>Better to windward</small></button><button data-rig="storm">Storm <small>Control in wind</small></button></div>
           <div class="mini-heading">SAILS</div><div class="upgrade-row" data-upgrade="sails"><button data-part="sails" data-choice="cream" class="active">Ivory <small>Classic</small></button><button data-part="sails" data-choice="scarlet">Crimson <small>Cosmetic</small></button><button data-part="sails" data-choice="azure">Azure <small>Cosmetic</small></button></div>
-          <div class="mini-heading">FLAG — COSMETIC (LOCAL PREVIEW)</div>
-          <div class="flag-editor">
-            <label for="flagCaption">Flag monogram</label><input id="flagCaption" type="text" maxlength="3" placeholder="⚓ / initials" value="AA">
-            <label for="flagColor">Flag color</label><input id="flagColor" type="color" value="#243b70">
-            <label for="flagUpload">Upload flag picture</label><input id="flagUpload" type="file" accept="image/png,image/jpeg,image/webp">
-            <button id="flagClear" class="outline-button">↺ Reset flag</button>
-            <p class="tipline">Local only, no server upload or persistent inventory. Keep uploaded art yours to use.</p>
+          <div class="mini-heading">FLAG WORKSHOP — MAST ATTACHMENT</div>
+          <div class="flag-editor flag-workshop">
+            <div class="flag-mast-select">
+              <button class="active" data-flag-mast="front" aria-pressed="false">⚑ Front mast</button>
+              <button class="active" data-flag-mast="rear" aria-pressed="true">⚑ Rear mast</button>
+            </div>
+            <div class="flag-workshop-preview">
+              <div><small>PAINT (48 × 32 PIXELS)</small><canvas id="flagPaintCanvas" width="48" height="32" aria-label="Touch to paint your flag"></canvas></div>
+              <div><small>PREVIEW</small><div class="flag-preview-stack"><canvas id="flagPreviewCanvas" width="96" height="64"></canvas><img id="flagPreviewGif" alt="Animated GIF preview" hidden></div><small id="flagMastStatus">Rear mast</small></div>
+            </div>
+            <div class="flag-tools">
+              <label for="flagBrushColor">Brush <input id="flagBrushColor" type="color" value="#f5d68b"></label>
+              <label for="flagBrushSize">Size <input id="flagBrushSize" type="range" min="1" max="8" step="1" value="1"></label>
+              <button id="flagEraser" class="outline-button" aria-pressed="false">⌫ Eraser</button>
+              <button id="flagUndo" class="outline-button">↶ Undo</button>
+              <button id="flagFill" class="outline-button">▣ Fill</button>
+              <button id="flagUsePaint" class="outline-button">✎ Use painting</button>
+            </div>
+            <div class="mini-heading">OTHER FLAG OPTIONS</div>
+            <div class="flag-form">
+              <label for="flagCaption">Monogram <input id="flagCaption" type="text" maxlength="3" placeholder="AA" value="AA"></label>
+              <label for="flagColor">Background <input id="flagColor" type="color" value="#263f80"></label>
+            </div>
+            <div class="button-pair"><button id="flagUseMonogram" class="outline-button">Use monogram</button><button id="flagClear" class="outline-button">Reset flag</button></div>
+            <label class="upload-row" for="flagUpload">Upload photo / animated GIF (max 3 MB)</label>
+            <input id="flagUpload" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+            <div class="button-pair"><button id="flagExportPng" class="outline-button">↓ Export PNG</button><div class="flag-mode-note">Using: <strong id="flagCurrentMode">Pixel painting</strong></div></div>
+            <div id="flagWorkshopStatus" class="flag-workshop-status" role="status">Your flag will follow the chosen mast as the ship turns. Use paint, initials, or upload.</div>
+            <p class="tipline">Photos are resized for the flag. GIFs animate in the browser as a DOM image attached to the mast; Unity would require a separate animation import. No uploads to a server.</p>
           </div>
           <div class="mini-heading">CANNONS</div><div class="upgrade-row" data-upgrade="cannons"><button data-part="cannons" data-choice="balanced" class="active">Standard <small>Balanced</small></button><button data-part="cannons" data-choice="rapid">Rapid <small>Fast reload</small></button><button data-part="cannons" data-choice="heavy">Heavy <small>+ impact</small></button></div>
           <div class="ship-stats"><div><span>SPEED</span><strong id="upgradeSpeed">★★★☆☆</strong></div><div><span>HULL</span><strong id="upgradeHull">★★★☆☆</strong></div><div><span>FIREPOWER</span><strong id="upgradePower">★★★☆☆</strong></div></div>
@@ -181,6 +227,23 @@
           <div class="idea-list" id="ideasList"></div>
           <div class="idea-summary"><strong id="ideaCount">0 shortlisted</strong><button class="wide-button" id="exportIdeas">↓ Export ideas for Eilon</button></div>
         </section>
+
+        <section class="panel" data-panel="review">
+          <div class="explain"><strong>Choose what really belongs in the Unity game</strong>
+            <p>Mark each mechanic as Keep, Refine, Test, Later, or Reject. Add notes from phone playtests with Eilon, then export a C# implementation brief. Everything starts unapproved; the website doesn't decide for you.</p>
+          </div>
+          <div class="review-summary">
+            <div><small>KEEP</small><strong id="reviewKeep">0</strong></div>
+            <div><small>REFINE</small><strong id="reviewRefine">0</strong></div>
+            <div><small>TEST</small><strong id="reviewTest">0</strong></div>
+            <div><small>LATER</small><strong id="reviewLater">0</strong></div>
+            <div><small>REJECT</small><strong id="reviewReject">0</strong></div>
+          </div>
+          <div class="review-hint" id="reviewUnityWarning">Select the mechanics you want to take to Unity.</div>
+          <div id="mechanicsReviewList" class="review-list"></div>
+          <div class="button-pair"><button id="reviewExport" class="wide-button">↓ Export Unity brief</button><button id="reviewReset" class="outline-button">↺ Reset decisions</button></div>
+          <div class="callout">The exported brief describes approved behavior, C# candidates, and test criteria. Browser JavaScript is not copied directly to Unity, and deferred Fleet / Rescue / Intercept remain later-phase mechanics.</div>
+        </section>
       </aside>
     </main>
 
@@ -188,6 +251,9 @@
   </div>
   <script src="./ocean.js" defer></script>
   <script src="./vessel.js" defer></script>
+  <script src="./world.js" defer></script>
+  <script src="./flag-workshop.js" defer></script>
+  <script src="./mechanics-review.js" defer></script>
   <script src="./app.js" defer></script>
 </body>
 </html>

@@ -51,6 +51,7 @@
     enemy: { x: -135, y: -275, vx: 0, vy: 0, hp: 50, reload: 0, modules: { sails:100,cannons:100,rudder:100,hull:100 } },
     modules: { sails:100,cannons:100,rudder:100,hull:100 },
     flag: { text:"AA", color:"#243b70", image:null },
+    lastWorldMessage:0, worldStatsTimer:0, worldGrid:false,
     waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60, sailVisual: .72,
     upgrades: { hull: "classic", sails: "cream", rig:"square", cannons: "balanced" },
     shipParts: { hull: true, sail_front: true, sail_rear: true, cannon_left_front: true, cannon_left_rear: true, cannon_right_front: true, cannon_right_rear: true, anchor: true },
@@ -137,16 +138,124 @@
       gallery.append(button);
     }
   }
+
+  // Seeded world: stores only nearby chunks; deterministic content does NOT
+  // consume Math.random. The current world seed may be shared as ?seed=NAME.
+  const initialSeed=(()=>{
+    try{return(new URLSearchParams(window.location?.search||"")).get("seed")||"ALL-ABOARD";}
+    catch(err){return"ALL-ABOARD";}
+  })();
+  const initialWorldOptions=(()=>{
+    try{
+      const p=new URLSearchParams(window.location?.search||"");
+      const density=(key)=>p.has(key)?clamp(Number(p.get(key))||0,0,2.5):1;
+      return {islands:density("islands"),ships:density("ships"),treasure:density("treasure"),
+        kraken:p.get("kraken")!=="0"};
+    }catch(err){return{islands:1,ships:1,treasure:1,kraken:true};}
+  })();
+  let world=window.AllAboardWorld?.WorldEngine?
+    new window.AllAboardWorld.WorldEngine(initialSeed,initialWorldOptions):null;
+  let flagWorkshop=null,mechanicsReview=null;
+  const worldStatus=msg=>{
+    const box=$("worldAlert");
+    if(box)box.textContent=msg;
+    message(msg);
+  };
+  function resetWorld(newSeed,options){
+    const chosen=String(newSeed||"ALL-ABOARD").trim().slice(0,52)||"ALL-ABOARD";
+    if(!window.AllAboardWorld?.WorldEngine)return;
+    const old=world?.options||{islands:1,ships:1,treasure:1,kraken:true};
+    world?.dispose();
+    world=new window.AllAboardWorld.WorldEngine(chosen,options||old);
+    world.updateNear(state.ship.x,state.ship.y);
+    $("worldSeed").value=chosen;
+    refreshWorldStats(true);
+    worldStatus("Generated '"+chosen+"'. Locations stay consistent while you sail.");
+  }
+  function refreshWorldStats(force=false){
+    if(!world)return;
+    if(!force&&state.time-state.worldStatsTimer<.4)return;
+    state.worldStatsTimer=state.time;
+    const n=world.countNearby(state.ship.x,state.ship.y,500);
+    $("worldChunks").textContent=n.chunks;
+    $("worldIslands").textContent=n.island;
+    $("worldShips").textContent=n.ship;
+    $("worldTreasures").textContent=n.treasure;
+  }
+  function bindWorldControls(){
+    if(!world)return;
+    $("worldSeed").value=initialSeed;
+    for(const [id,key] of [["Island","islands"],["Ship","ships"],["Treasure","treasure"]]){
+      $("world"+id+"Density").value=world.options[key];
+      $("world"+id+"DensityValue").textContent=Number(world.options[key]).toFixed(2)+"×";
+    }
+    $("worldKrakenEnabled").checked=world.options.kraken;
+    $("worldGenerate").addEventListener("click",()=>resetWorld($("worldSeed").value));
+    $("worldSeed").addEventListener("keydown",e=>{if(e.key==="Enter")resetWorld(e.target.value);});
+    $("worldRandom").addEventListener("click",()=>{
+      const seed="SEA-"+Math.floor(Math.random()*1e9).toString(36).toUpperCase();
+      resetWorld(seed);
+    });
+    $("worldShare").addEventListener("click",()=>{
+      const seed=world.seed;
+      try{
+        const base=window.location.href.split("?")[0].split("#")[0];
+        const o=world.options;
+        const link=base+"?seed="+encodeURIComponent(seed)+
+          "&islands="+o.islands+"&ships="+o.ships+
+          "&treasure="+o.treasure+"&kraken="+(o.kraken?1:0);
+        if(navigator.clipboard?.writeText)navigator.clipboard.writeText(link);
+        else{
+          const field=$("worldSeed");
+          field.focus();field.select();worldStatus("Copy the selected seed to share the world.");
+          return;
+        }
+        worldStatus("Seed link copied. Another device will generate the same placements.");
+      }catch(err){worldStatus("Share this seed: "+seed);}
+    });
+    for(const [id,key] of [["Island","islands"],["Ship","ships"],["Treasure","treasure"]]){
+      const range=$("world"+id+"Density");
+      range.addEventListener("input",e=>{
+        const val=Number(e.target.value);
+        $("world"+id+"DensityValue").textContent=val.toFixed(2)+"×";
+        world.options[key]=val;
+        world.cache.clear();world.lastCenter=null;
+        refreshWorldStats(true);
+      });
+    }
+    $("worldKrakenEnabled").addEventListener("change",e=>{
+      world.options.kraken=e.target.checked;
+      world.cache.clear();world.lastCenter=null;
+      refreshWorldStats(true);
+    });
+    $("worldChunkGrid").addEventListener("change",e=>state.worldGrid=e.target.checked);
+    $("worldExplore").addEventListener("click",()=>{
+      state.ship.x+=world.constructor.CHUNK_SIZE;
+      state.ship.vx=0;state.ship.vy=0;
+      if(state.anchor.down)toggleAnchor();
+      world.updateNear(state.ship.x,state.ship.y);
+      refreshWorldStats(true);
+      worldStatus("Moved one world chunk east. Try regenerating with the same seed.");
+    });
+    $("worldSummonKraken").addEventListener("click",()=>{
+      const summoned=world.summonKraken(state.ship.x,state.ship.y);
+      worldStatus("A Kraken has awakened at "+Math.round(summoned.x)+", "+Math.round(summoned.y)+"! Sail closer to test it.");
+      if(ocean)ocean.splash(summoned.x,summoned.y,2,"kraken");
+    });
+    refreshWorldStats(true);
+  }
   const titleMap = {
     live: ["Sailing playground", "Live Playground", "Tune the whole vessel. Every change propagates to the other experiments."],
     helm: ["Steer & feel", "Helm Lab", "One wheel, three turns either way, and an adjustable return-to-center feel."],
     sails: ["Sails & wind", "Sails & Wind", "Explore how wind direction and sail height influence propulsion."],
     anchor: ["Anchor manoeuvres", "Anchor Lab", "Hold position, drift, or drag your anchor near a current."],
     ocean: ["The living ocean", "Ocean Lab", "Procedural waves, wake trails and ripples powered by the same simulated water."],
+    world: ["Seeded infinite sea", "World Generation Lab", "Stream reproducible island, ship, treasure and rare Kraken chunks around the ship."],
     damage: ["Spatial damage", "Damage Lab", "Test three ways to turn ship damage into a tiny tactical puzzle."],
     encounter: ["Meet another vessel", "Encounter Lab", "Befriend or battle using short, meaningful interactions."],
     shipyard: ["Pimp my ship", "Shipyard", "Toggle the original Unity ship pieces and experiment with upgrades."],
-    ideas: ["The ideas workshop", "Ideas Board", "Shortlist small mechanics that create interesting player decisions."]
+    ideas: ["The ideas workshop", "Ideas Board", "Shortlist small mechanics that create interesting player decisions."],
+    review: ["Review for Unity", "Mechanics Review", "Choose Keep, Refine, Test, Later or Reject and export a Unity implementation brief."]
   };
 
   function message(text) {
@@ -338,15 +447,41 @@
     state.paused = !state.paused;
     $("pauseButton").textContent = state.paused ? "▶ Resume simulation" : "⏸ Pause simulation";
   });
-  $("collectChest").addEventListener("click", () => {
-    state.ship.coins += 75; state.ship.score += 50;
-    state.ripples.push({ x: state.chest.x, y: state.chest.y, age: 0 });
-    if(ocean)ocean.splash(state.chest.x,state.chest.y,1.1,"treasure");
-    state.chest.x = state.ship.x + random(-180, 180);
-    state.chest.y = state.ship.y - random(180, 380);
-    vibrate([20, 30, 30]); message("Treasure collected: +75 coins. Now try approaching another vessel!");
-  });
 
+  $("collectChest").addEventListener("click",()=>{
+    const treasure=world?.nearest(state.ship.x,state.ship.y,"treasure",72);
+    const tutorialDist=Math.hypot(state.ship.x-state.chest.x,state.ship.y-state.chest.y);
+    if(treasure&&(tutorialDist>64||Math.hypot(state.ship.x-treasure.x,state.ship.y-treasure.y)<tutorialDist)){
+      const coins=world.collect(treasure);
+      state.ship.coins+=coins;
+      state.ship.score+=Math.max(10,coins);
+      ocean?.splash(treasure.x,treasure.y,1.3,"treasure");
+      worldStatus("Found a seeded treasure cache: +"+coins+" coins! It stays collected in this session.");
+    }else if(tutorialDist<64){
+      state.ship.coins+=75;state.ship.score+=50;
+      if(ocean)ocean.splash(state.chest.x,state.chest.y,1.1,"treasure");
+      state.chest.x=state.ship.x+random(-180,180);
+      state.chest.y=state.ship.y-random(180,380);
+      message("Collected practice treasure: +75 coins.");
+    }
+    vibrate([20,30,25]);
+  });
+  const shipInteract=$("worldShipInteract");
+  shipInteract.addEventListener("click",()=>{
+    const npc=world?.nearest(state.ship.x,state.ship.y,"ship",95);
+    if(!npc)return;
+    const disposition=npc.faction==="friendly"?"friendly":"aggressive";
+    if(state.mode!=="friendly"){
+      worldStatus("Raise the Friendly flag to speak to "+npc.name+", or position for auto-cannon fire.");
+      return;
+    }
+    setTab("encounter");
+    state.encounter.kind="friendly";
+    all("[data-encounter]").forEach(b=>b.classList.toggle("active",b.dataset.encounter==="friendly"));
+    renderEncounter();
+    $("encounterName").textContent=npc.name;
+    worldStatus("You approached "+npc.name+". Try a friendly encounter, then return to sailing.");
+  });
   // Damage Lab: three genuinely different win conditions, sharing cell data.
   const typeForIndex = (i) => ({ 2: "sails", 5: "cannon", 9: "cannon", 12: "core", 17: "rudder", 22: "sails" })[i] || "hull";
   const iconForType = { hull: "", sails: "⛵", cannon: "✹", rudder: "☸", core: "◆", powder: "✴" };
@@ -613,44 +748,12 @@
   });
 
 
-  $("flagCaption").addEventListener("input",e=>{
-    state.flag.text=String(e.target.value).slice(0,3);
-  });
-  $("flagColor").addEventListener("input",e=>{state.flag.color=e.target.value;});
-  $("flagClear").addEventListener("click",()=>{
-    state.flag={text:"AA",color:"#243b70",image:null};
-    $("flagCaption").value="AA";$("flagColor").value="#243b70";$("flagUpload").value="";
-  });
-  $("flagUpload").addEventListener("change",e=>{
-    const file=e.target.files&&e.target.files[0];
-    if(!file)return;
-    if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024){
-      message("Flag must be a PNG/JPEG/WebP smaller than 2 MB.");return;
-    }
-    if(typeof Image!=="function"||!URL.createObjectURL)return;
-    const url=URL.createObjectURL(file);
-    const image=new Image();
-    image.onload=()=>{state.flag.image=image;URL.revokeObjectURL(url);};
-    image.onerror=()=>{URL.revokeObjectURL(url);message("Could not load flag image.");};
-    image.src=url;
-  });
-  function drawFlag(ctx){
-    const flag=state.flag;
-    ctx.save();
-    ctx.strokeStyle="#3a2620";ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(0,-51);ctx.lineTo(0,-85);ctx.stroke();
-    ctx.fillStyle=flag.color;
-    ctx.beginPath();ctx.moveTo(0,-84);ctx.lineTo(22,-81);ctx.lineTo(20,-65);ctx.lineTo(0,-69);ctx.closePath();ctx.fill();
-    if(flag.image&&flag.image.complete&&flag.image.naturalWidth){
-      ctx.save();ctx.beginPath();ctx.moveTo(0,-84);ctx.lineTo(22,-81);ctx.lineTo(20,-65);ctx.lineTo(0,-69);ctx.closePath();ctx.clip();
-      ctx.drawImage(flag.image,0,-84,22,20);ctx.restore();
-    }else{
-      ctx.fillStyle="#fff4d4";ctx.font="bold 7px Arial";ctx.textAlign="center";
-      ctx.fillText(flag.text||"⚓",11,-73);
-    }
-    ctx.restore();
-  }
 
+  // V0.4 separates the flag painter from the game simulation.
+  // This renderer runs inside the rotated ship-local drawing context.
+  function drawFlag(ctx){
+    if(flagWorkshop)flagWorkshop.drawOnShip(ctx);
+  }
   // Ship customization: visible color and simple deterministic gameplay modifiers.
   function selectPart(kind, choice) {
     state.upgrades[kind] = choice;
@@ -725,6 +828,15 @@
     };
     if(window.AllAboardVessel)window.AllAboardVessel.step(s,a,wheel,settings,flow,dt,modifier);
     if(ocean)ocean.emitWake(s,settings,dt);
+    if(world){
+      world.simulate(dt,s,ocean,settings);
+      world.collideShip(s,ocean);
+      if(world.lastEncounter&&world.lastEncounter.when>state.lastWorldMessage){
+        state.lastWorldMessage=world.lastEncounter.when;
+        worldStatus(world.lastEncounter.message);
+        vibrate([18,20,18]);
+      }
+    }
     const fwdX=Math.sin(rad(s.heading)),fwdY=-Math.cos(rad(s.heading));
     // Environmental reactions persist briefly at the same world coordinate.
     state.wakeTimer += dt;
@@ -761,6 +873,33 @@
           state.enemy.y = s.y - 320;
           state.enemy.hp = 50; state.enemy.vy=0;
           state.enemy.modules={sails:100,cannons:100,rudder:100,hull:100};
+        }
+      }
+    }
+
+    // Simple world combat: the same automatic broadside works on generated
+    // hostile vessels. This is intentionally NOT the later Perfect Broadside.
+    if(world&&state.mode==="aggressive"&&state.modules.cannons>0&&state.enemy.reload===0){
+      const targets=world.nearbyObjects(s.x,s.y,180).filter(item=>item.type==="ship"&&item.faction==="hostile");
+      let target=null,best=Infinity;
+      for(const item of targets){
+        const npc=world.shipsState.get(item.id);
+        const dx=(npc?.x??item.x)-s.x,dy=(npc?.y??item.y)-s.y;
+        const dist=Math.hypot(dx,dy);
+        const broadside=Math.abs(fwdY*dx-fwdX*dy)/Math.max(1,dist);
+        if(dist<165&&broadside>.58&&dist<best){target={item,npc,x:npc?.x??item.x,y:npc?.y??item.y};best=dist;}
+      }
+      if(target){
+        const damage=world.shipsState.get(target.item.id)||{hp:100,sails:100,phase:0};
+        const amount=(state.upgrades.cannons==="heavy"?24:16)*state.modules.cannons/100;
+        damage.hp=Math.max(0,damage.hp-amount);
+        world.shipsState.set(target.item.id,damage);
+        state.enemy.reload=state.upgrades.cannons==="rapid"?1:1.7;
+        ocean?.splash(target.x,target.y,1.1,"cannon");
+        if(damage.hp===0){
+          world.markDestroyed(target.item);
+          s.coins+=55;s.score+=65;
+          worldStatus("Defeated hostile ship: "+target.item.name+". Positioning made the hit possible.");
         }
       }
     }
@@ -1040,15 +1179,30 @@
       ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
     }
     drawVortex();
+    if(world)world.render(ctx,project,state.ship,{width:w,height:h});
+    if(state.worldGrid&&world)drawWorldChunkGrid(ctx,w,h);
     if(ocean)ocean.drawEffects(ctx,{project});
     drawRipples();
     drawAnchorChain();
     drawChest();
     drawSmallEnemy();
     drawShip();
+    if(flagWorkshop)flagWorkshop.positionGif(state.ship,{time:state.time,waveHeight:settings.waveHeight},project);
   }
-
-
+  function drawWorldChunkGrid(ctx,w,h){
+    const scale=world.constructor.CHUNK_SIZE;
+    const firstX=Math.floor((state.ship.x-w*.5)/scale)-1;
+    const firstY=Math.floor((state.ship.y-h*.4)/scale)-1;
+    ctx.save();ctx.strokeStyle="rgba(233,244,225,.30)";ctx.lineWidth=1;
+    ctx.font="11px Arial";ctx.fillStyle="#eefcfa";
+    for(let dy=0;dy<5;dy++)for(let dx=0;dx<5;dx++){
+      const cx=firstX+dx,cy=firstY+dy;
+      const pt=project(cx*scale,cy*scale);
+      ctx.strokeRect(pt.x,pt.y,scale,scale);
+      ctx.fillText(cx+","+cy,pt.x+10,pt.y+17);
+    }
+    ctx.restore();
+  }
 
   const headingTicks=[];
   function renderHeadingTape(heading){
@@ -1090,7 +1244,14 @@
     const things=[
       {x:state.chest.x,y:state.chest.y,color:"#ffda78",r:3},
       {x:state.enemy.x,y:state.enemy.y,color:"#f09889",r:4},
-      ...(state.vortex.active?[{x:state.vortex.x,y:state.vortex.y,color:"#85dcea",r:6}]:[])
+      ...(state.vortex.active?[{x:state.vortex.x,y:state.vortex.y,color:"#85dcea",r:6}]:[]),
+      ...(world?world.nearbyObjects(state.ship.x,state.ship.y,245).map(item=>({
+        x:item.x,y:item.y,r:item.type==="island"?5:item.type==="kraken"?6:3,
+        color:item.type==="island"?"#c5d0a0":
+          item.type==="kraken"?"#dc9de9":
+          item.type==="treasure"?"#ffdc78":
+          item.faction==="friendly"?"#9ee8bd":"#f29c9c"
+      })):[])
     ];
     for(const t of things){
       const x=45+(t.x-state.ship.x)*.18,y=45+(t.y-state.ship.y)*.18;
@@ -1145,7 +1306,12 @@
     $("scoreValue").textContent = String(ship.score).padStart(3, "0");
     $("hpFill").style.width = ship.hull + "%";
     const distToChest = Math.hypot(ship.x - state.chest.x, ship.y - state.chest.y);
-    $("chestAction").style.display = distToChest < 64 ? "block" : "none";
+    const proceduralTreasure=world?.nearest(ship.x,ship.y,"treasure",70);
+    $("chestAction").style.display=(distToChest<64||proceduralTreasure)?"block":"none";
+    const nearbyNPC=world?.nearest(ship.x,ship.y,"ship",85);
+    $("worldShipInteract").hidden=!(nearbyNPC&&state.mode==="friendly");
+    if(nearbyNPC)$("worldShipInteract").textContent="♡ Hail "+nearbyNPC.name;
+    refreshWorldStats();
     $("fpsValue").textContent = Math.round(state.frameRate) + " FPS";
   }
   let lastFrame = 0, lastHud = 0, physicsAccumulator = 0;
@@ -1185,6 +1351,8 @@
     $("anchorButton").classList.remove("pressed"); $("anchorButton").setAttribute("aria-pressed", "false");
     $("anchorInspector").textContent = "⚓ Drop anchor"; $("anchorLabel").textContent = "DROP"; $("anchorRopeHud").hidden = true;
     state.mode = "friendly";
+    if(world)resetWorld(world.seed,world.options);
+    if(flagWorkshop)flagWorkshop.reset();
     $("modeButton").className = "game-btn mode-btn friendly";
     $("modeLabel").textContent = "♡ FRIENDLY"; $("modeNextLabel").textContent = "✹ Aggressive ↔";
     setScenario("open"); resetDamage(); syncSettings(); updateUI();
@@ -1208,6 +1376,16 @@
   updateUpgradeStats();
   resetDamage();
   renderEncounter();
+  if(window.AllAboardFlagWorkshop?.FlagWorkshop){
+    flagWorkshop=new window.AllAboardFlagWorkshop.FlagWorkshop();
+    flagWorkshop.mount();
+    window.AllAboardFlagWorkshopInstance=flagWorkshop;
+  }
+  if(window.AllAboardMechanicsReview?.MechanicsReview){
+    mechanicsReview=new window.AllAboardMechanicsReview.MechanicsReview();
+    mechanicsReview.mount();
+  }
+  bindWorldControls();
   syncSettings();
   resizeCanvas();
   requestAnimationFrame(frame);
