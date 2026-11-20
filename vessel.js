@@ -109,7 +109,13 @@
     // The chain is slack until it approaches its defined length. A spring-
     // damper smoothly transfers momentum into the anchor instead of freezing
     // the vessel or projecting it abruptly onto the radius every frame.
-    const ropeLength=Math.max(12,settings.anchorLine||70);
+    // The chain setting is a TARGET length. Reel in/out gradually while
+    // deployed so moving the slider cannot teleport a ship to a new radius.
+    const desiredLength=Math.max(20,settings.anchorLine??70);
+    const oldLength=Number.isFinite(anchor.lineLength)?anchor.lineLength:desiredLength;
+    const reelStep=(anchor.down?12:300)*t;
+    anchor.lineLength=limit(desiredLength,oldLength-reelStep,oldLength+reelStep);
+    const ropeLength=anchor.lineLength;
     let tension=0;
     if(anchor.down&&anchor.phase==="set"){
       const dx=ship.x-anchor.point.x,dy=ship.y-anchor.point.y;
