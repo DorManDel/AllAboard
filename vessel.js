@@ -86,7 +86,6 @@
     // terminal speed naturally instead of relying on a hard arcade speed cap.
     const waterDrag=settings.waterDrag===undefined?1:settings.waterDrag;
     const forwardDrag=(.14+.012*limit(Math.abs(fv),0,70))*waterDrag;
-    const forwardRelative=Math.max(0,ship.vx*fx+ship.vy*fy);
     const sideDrag=(settings.lateralDrag||5.5);
     const forwardAfter=fv*Math.exp(-forwardDrag*t);
     const sideAfter=lv*Math.exp(-sideDrag*t);
