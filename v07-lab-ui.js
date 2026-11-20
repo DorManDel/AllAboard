@@ -16,6 +16,19 @@ const updateLog=()=>{
   entries.map(e=>new Date(e.at).toLocaleTimeString()+" · "+e.id).join("\n"):"No events yet.";
 };
 const moodRoot=$("audioMoods"),sfxRoot=$("audioSfxList");
+function productionPrompt(){
+ const m=audioData.moods.find(x=>x.id===lab.musicId);
+ return [
+ "Create an ORIGINAL instrumental pirate game soundtrack loop named "+m.name+".",
+ "Mood: "+m.description+". Approximate tempo: "+m.bpm+" BPM.",
+ "Warm hand-played fiddle, nautical wooden flute, pizzicato strings, soft hand drum, occasional brass; light-hearted mobile game timbre.",
+ "Aim for a clean 45–70 second loop with consistent beats and a loopable ending.",
+ "No vocals, no lyrics, no recognizable melodies, no references to existing copyrighted songs or game soundtracks.",
+ "Keep dynamics moderate and leave space for cannons, wind and user-interface sound effects.",
+ "Produce high-quality instrumental WAV and, if supported, separate music stems for calm/danger layering."
+ ].join("\n");
+}
+function renderPrompt(){$("audioGenerationPrompt").value=productionPrompt();}
 if(!moodRoot||!sfxRoot)return;
 function renderMoods(){
  moodRoot.innerHTML="";
@@ -27,7 +40,7 @@ function renderMoods(){
   const info=document.createElement("small");info.textContent=mood.bpm+" BPM · "+mood.description;
   b.append(top,info);
   b.addEventListener("click",()=>{
-    lab.setMood(mood.id);renderMoods();
+    lab.setMood(mood.id);renderMoods();renderPrompt();
     if(lab.playing)lab.playMusic();
     status("Mood: "+mood.name+". These are original preview motifs, not finished song files.");
   });
@@ -76,7 +89,14 @@ root.AllAboardPlaySfx=gameSound;
 $("audioAutoEvents").addEventListener("change",e=>{
  status(e.target.checked?"Live event audio enabled (only after manually enabling audio).":"Live event audio disabled.");
 });
-renderMoods();renderSfx();
+renderMoods();renderSfx();renderPrompt();
+$("audioCopyPrompt").addEventListener("click",()=>{
+ const value=productionPrompt();
+ if(navigator.clipboard?.writeText)
+  navigator.clipboard.writeText(value).then(()=>status("Original music brief copied. Check generation/download/license terms before using it in Unity."))
+    .catch(()=>status("Clipboard blocked; select and copy the prompt text manually."));
+ else status("Select the prompt text to copy it manually.");
+});
 $("unityAssetUpload").addEventListener("change",async e=>{
  const file=e.target.files?.[0];if(!file)return;
  if(file.size>2_000_000){$("unityAuditStatus").textContent="Maximum file size 2 MB. Scan large projects in Unity Editor.";return;}
