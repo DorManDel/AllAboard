@@ -12,13 +12,16 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.6</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.7</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
     <div class="tabbar" role="tablist" aria-label="Mechanics">
       <button role="tab" aria-selected="true" class="tab active" data-tab="live">◉ Live Playground</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="helm">☸ Helm</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="layout">✥ UI Studio</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="feel">✹ FX &amp; Sail Trim</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="audio">♫ Music &amp; SFX</button>
+      <button role="tab" aria-selected="false" class="tab" data-tab="unity">▣ Unity Checks</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="sails">◈ Sails & Wind</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="anchor">⚓ Anchor</button>
       <button role="tab" aria-selected="false" class="tab" data-tab="ocean">≋ Ocean</button><button role="tab" aria-selected="false" class="tab" data-tab="world">◎ World</button>
@@ -112,6 +115,65 @@
           <div class="button-pair"><button id="layoutExport" class="wide-button">↓ Export UI preset (.json)</button><label class="outline-button import-label" for="layoutImport">↑ Import preset</label><input id="layoutImport" type="file" accept="application/json,.json" hidden></div>
           <div class="world-alert" id="layoutStatus" role="status">Enable editing and drag a highlighted UI component by touch. The layout is saved locally on this device.</div>
           <div class="callout">These offsets are normalized to the phone preview so they can later guide Unity RectTransforms. They are not yet production anchors/safe-area rules. Validate both tall and 16:9 screens.</div>
+        </section>
+
+        <section class="panel" data-panel="feel">
+          <div class="explain"><strong>One event, readable physical feedback</strong>
+            <p>Cannon fire should trigger a short recoil, a water splash and a sound event. Waves drive the ship's visual roll/bob using real samples of OceanField. No gameplay-position teleports.</p>
+          </div>
+          <div class="mini-heading">CANNON &amp; CAMERA FEEL</div>
+          <div class="setting"><div class="setting-head"><label for="recoilStrength">Cannon recoil</label><output data-value="recoilStrength">0.8</output></div><input id="recoilStrength" type="range" min="0" max="2" step=".1" value=".8" data-setting="recoilStrength"></div>
+          <div class="setting"><div class="setting-head"><label for="cameraShake">Camera shake</label><output data-value="cameraShake">0.5</output></div><input id="cameraShake" type="range" min="0" max="2" step=".1" value=".5" data-setting="cameraShake"></div>
+          <div class="setting"><div class="setting-head"><label for="waveRoll">Wave-induced ship tilt</label><output data-value="waveRoll">1.0</output></div><input id="waveRoll" type="range" min="0" max="2" step=".1" value="1" data-setting="waveRoll"></div>
+          <div class="button-pair"><button class="wide-button" id="feelTestShot">✹ Fire test broadside</button><button class="outline-button" id="feelTestHit">✦ Test hull impact</button></div>
+          <div class="mini-heading">SAIL TRIM (OPTIONAL ONE-THUMB SKILL)</div>
+          <div class="explain"><strong>Tilt the yard to catch wind</strong><p>Auto-trim stays enabled by default. Manual trim adds a small skill advantage but is not a new mandatory game button. A visual yard rotation follows the selected trim.</p></div>
+          <div class="setting"><div class="setting-head"><label for="sailTrim">Sail tilt / yard angle</label><output data-value="sailTrim">0°</output></div><input id="sailTrim" type="range" min="-45" max="45" step="1" value="0" data-setting="sailTrim"></div>
+          <label class="fx-toggle"><input id="sailAutoTrim" type="checkbox" checked> Automatic sail trim (recommended)</label>
+          <div class="physics-readout">IDEAL TILT <strong id="trimIdeal">0°</strong> · SAIL TRIM BONUS <strong id="trimBonus">100%</strong></div>
+          <div class="mini-heading">WIND &amp; OCEAN VISUALS</div>
+          <div class="setting"><div class="setting-head"><label for="windFX">Wind streak intensity</label><output data-value="windFX">0.6</output></div><input id="windFX" type="range" min="0" max="2" step=".1" value=".6" data-setting="windFX"></div>
+          <label class="fx-toggle"><input id="reduceMotion"> Reduce motion / visual shake</label>
+          <div class="physics-readout" id="feelReadout">Sail trim, ship pitch and sound events stay decoupled from world physics.</div>
+          <div class="callout">Unity integration candidate: ShipPosePresenter for waves, BroadsideFeedback for recoil, SailTrimController for rigging, OceanEffectBus for water FX. Only real shots should trigger automatic feedback.</div>
+        </section>
+        <section class="panel" data-panel="audio">
+          <div class="explain"><strong>Original pirate soundtrack &amp; event audio</strong>
+            <p>Preview original generated-in-code musical sketches and short synthetic effects. Real soundtrack files can later be generated, edited and licensed separately. Browser audio begins only after you press Enable Audio.</p>
+          </div>
+          <button class="wide-button" id="audioEnable">♪ Enable sound (tap once)</button>
+          <div class="setting"><div class="setting-head"><label for="audioVolume">Master volume</label><output id="audioVolumeValue">32%</output></div><input id="audioVolume" type="range" min="0" max="100" value="32"></div>
+          <div class="setting"><div class="setting-head"><label for="musicVolume">Music level</label><output id="musicVolumeValue">27%</output></div><input id="musicVolume" type="range" min="0" max="100" value="27"></div>
+          <div class="mini-heading">MUSIC MOOD TESTS</div>
+          <div class="audio-mood-list" id="audioMoods"></div>
+          <div class="button-pair"><button class="wide-button" id="audioPlayMusic">▶ Play current mood</button><button class="outline-button" id="audioStopMusic">■ Stop</button></div>
+          <div class="mini-heading">SFX EVENT LIBRARY</div>
+          <div class="audio-sfx-list" id="audioSfxList"></div>
+          <div class="setting"><label class="fx-toggle"><input id="audioAutoEvents" type="checkbox"> Play live in-game sound events (after enabling audio)</label></div>
+          <div class="world-alert" id="audioStatus">Audio is off until enabled. Game remains playable without sound.</div>
+          <div class="mini-heading">AUDIO EVENT LOG</div>
+          <div id="audioEventLog" class="audio-event-log" aria-live="polite">No events yet.</div>
+          <div class="callout">Unity plan: one AudioDirector and AudioMixer. Mechanic scripts publish event IDs (shot, anchor, friendship, etc.). A mood controller crossfades between layers. Avoid shipping third-party material without confirming license records.</div>
+        </section>
+        <section class="panel" data-panel="unity">
+          <div class="explain"><strong>Validate a mechanic before converting it into Unity</strong><p>This is a checklist plus an advisory static text scan—not a replacement for Unity Test Framework, actual prefabs, scene checks or Android builds.</p></div>
+          <div class="mini-heading">PREFAB / SCENE TEXT SCANNER</div>
+          <label for="unityAssetUpload" class="outline-button import-label">↑ Upload one .prefab, .unity or .asset (text YAML)</label>
+          <input id="unityAssetUpload" type="file" accept=".prefab,.unity,.asset,.txt">
+          <div class="world-alert" id="unityAuditStatus">No file selected. A text YAML scan can flag common issues; Unity Editor must verify GUIDs and actual links.</div>
+          <div id="unityAuditResults" class="unity-audit-results"></div>
+          <div class="mini-heading">UNITY VERIFICATION ROADMAP</div>
+          <div class="unity-checklist" id="unityChecklist">
+            <label><input type="checkbox"> EditMode: wind polar, chain bounds, damage rules</label>
+            <label><input type="checkbox"> PlayMode: steering, auto cannons, anchor, scene flow</label>
+            <label><input type="checkbox"> Prefab: required components, missing scripts, links</label>
+            <label><input type="checkbox"> HUD: Safe Area, portrait anchors, minimum tap size</label>
+            <label><input type="checkbox"> Build Profiles: scenes, Android IL2CPP + ARM64</label>
+            <label><input type="checkbox"> Performance: Profiler 30/60 FPS + allocations on phone</label>
+          </div>
+          <div class="button-pair"><button id="unityExportChecklist" class="wide-button">↓ Export Unity QA checklist</button></div>
+          <div class="mini-heading">TECHNICAL HANDOFF FROM THE KANBAN</div>
+          <p class="tipline">Open Roadmap &amp; Kanban → select a mechanic → view the architecture, test contract and copyable Codex prompt below its full plan.</p>
         </section>
         <section class="panel" data-panel="helm">
           <div class="explain"><strong>1080° left / right</strong><p>Grab the wheel and rotate it up to three turns in either direction. Release it to spring back to center while the ship keeps its momentum.</p></div>
@@ -363,6 +425,11 @@
             <div class="planner-detail-sub"><strong>Acceptance tests</strong><ul id="plannerDetailAcceptance"></ul></div>
             <div class="planner-detail-sub"><strong>Dependencies</strong><p id="plannerDetailDependencies"></p></div>
             <div class="planner-detail-sub"><strong>Proposed Unity classes</strong><p id="plannerDetailUnity"></p></div>
+            <div class="planner-detail-sub"><strong>Architecture &amp; Implementation Review</strong>
+              <p>Algorithm, dependencies, Unity entry points, acceptance tests and a ready-to-use prompt.</p>
+              <pre id="plannerArchitectureText" class="planner-code-block"></pre>
+              <button id="plannerCopyHandoff" class="outline-button">⧉ Copy Unity implementation brief</button>
+            </div>
             <div class="button-pair"><button id="plannerAdd" class="wide-button">＋ Add to Kanban</button><button id="plannerCopyJira" class="outline-button">⧉ Copy Jira ticket</button></div>
           </div>
           <div class="mini-heading">LOCAL KANBAN — PLANNING ONLY</div>
@@ -408,6 +475,9 @@
   </div>
   <script src="./ocean.js" defer></script>
   <script src="./vessel.js" defer></script>
+  <script src="./game-feel.js" defer></script>
+  <script src="./audio-lab.js" defer></script>
+  <script src="./unity-readiness.js" defer></script>
   <script src="./world.js" defer></script>
   <script src="./kraken-grapple.js" defer></script>
   <script src="./flag-workshop.js" defer></script>
@@ -418,5 +488,6 @@
   <script src="./mechanic-catalog.js" defer></script>
   <script src="./stage-loop.js" defer></script>
   <script src="./roadmap-board.js" defer></script>
+  <script src="./v07-lab-ui.js" defer></script>
 </body>
 </html>
