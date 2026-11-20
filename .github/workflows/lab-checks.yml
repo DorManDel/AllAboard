@@ -40,3 +40,5 @@ jobs:
         run: node tests/kraken-grapple.cjs
       - name: Test V0.7 feel, music and Unity QA
         run: node tests/game-feel-audio.cjs
+      - name: Test V0.8 HUD advanced editor and rope reeling
+        run: node tests/hud-v08.cjs
