@@ -51,6 +51,7 @@
     enemy: { x: -135, y: -275, vx: 0, vy: 0, hp: 50, reload: 0, modules: { sails:100,cannons:100,rudder:100,hull:100 } },
     modules: { sails:100,cannons:100,rudder:100,hull:100 },
     flag: { text:"AA", color:"#243b70", image:null },
+    lastWorldMessage:0, worldStatsTimer:0, worldGrid:false,
     waves: [], ripples: [], wakeTimer: 0, time: 0, hudTimer: 0, frameRate: 60, sailVisual: .72,
     upgrades: { hull: "classic", sails: "cream", rig:"square", cannons: "balanced" },
     shipParts: { hull: true, sail_front: true, sail_rear: true, cannon_left_front: true, cannon_left_rear: true, cannon_right_front: true, cannon_right_rear: true, anchor: true },
@@ -137,16 +138,107 @@
       gallery.append(button);
     }
   }
+
+  // Seeded world: stores only nearby chunks; deterministic content does NOT
+  // consume Math.random. The current world seed may be shared as ?seed=NAME.
+  const initialSeed=(()=>{
+    try{return(new URLSearchParams(window.location?.search||"")).get("seed")||"ALL-ABOARD";}
+    catch(err){return"ALL-ABOARD";}
+  })();
+  let world=window.AllAboardWorld?.WorldEngine?new window.AllAboardWorld.WorldEngine(initialSeed):null;
+  let flagWorkshop=null,mechanicsReview=null;
+  const worldStatus=msg=>{
+    const box=$("worldAlert");
+    if(box)box.textContent=msg;
+    message(msg);
+  };
+  function resetWorld(newSeed,options){
+    const chosen=String(newSeed||"ALL-ABOARD").trim().slice(0,52)||"ALL-ABOARD";
+    if(!window.AllAboardWorld?.WorldEngine)return;
+    const old=world?.options||{islands:1,ships:1,treasure:1,kraken:true};
+    world?.dispose();
+    world=new window.AllAboardWorld.WorldEngine(chosen,options||old);
+    world.updateNear(state.ship.x,state.ship.y);
+    $("worldSeed").value=chosen;
+    refreshWorldStats(true);
+    worldStatus("Generated '"+chosen+"'. Locations stay consistent while you sail.");
+  }
+  function refreshWorldStats(force=false){
+    if(!world)return;
+    if(!force&&state.time-state.worldStatsTimer<.4)return;
+    state.worldStatsTimer=state.time;
+    const n=world.countNearby(state.ship.x,state.ship.y,500);
+    $("worldChunks").textContent=n.chunks;
+    $("worldIslands").textContent=n.island;
+    $("worldShips").textContent=n.ship;
+    $("worldTreasures").textContent=n.treasure;
+  }
+  function bindWorldControls(){
+    if(!world)return;
+    $("worldSeed").value=initialSeed;
+    $("worldGenerate").addEventListener("click",()=>resetWorld($("worldSeed").value));
+    $("worldSeed").addEventListener("keydown",e=>{if(e.key==="Enter")resetWorld(e.target.value);});
+    $("worldRandom").addEventListener("click",()=>{
+      const seed="SEA-"+Math.floor(Math.random()*1e9).toString(36).toUpperCase();
+      resetWorld(seed);
+    });
+    $("worldShare").addEventListener("click",()=>{
+      const seed=world.seed;
+      try{
+        const base=window.location.href.split("?")[0].split("#")[0];
+        const link=base+"?seed="+encodeURIComponent(seed);
+        if(navigator.clipboard?.writeText)navigator.clipboard.writeText(link);
+        else{
+          const field=$("worldSeed");
+          field.focus();field.select();worldStatus("Copy the selected seed to share the world.");
+          return;
+        }
+        worldStatus("Seed link copied. Another device will generate the same placements.");
+      }catch(err){worldStatus("Share this seed: "+seed);}
+    });
+    for(const [id,key] of [["Island","islands"],["Ship","ships"],["Treasure","treasure"]]){
+      const range=$("world"+id+"Density");
+      range.addEventListener("input",e=>{
+        const val=Number(e.target.value);
+        $("world"+id+"DensityValue").textContent=val.toFixed(2)+"×";
+        world.options[key]=val;
+        world.cache.clear();world.lastCenter=null;
+        refreshWorldStats(true);
+      });
+    }
+    $("worldKrakenEnabled").addEventListener("change",e=>{
+      world.options.kraken=e.target.checked;
+      world.cache.clear();world.lastCenter=null;
+      refreshWorldStats(true);
+    });
+    $("worldChunkGrid").addEventListener("change",e=>state.worldGrid=e.target.checked);
+    $("worldExplore").addEventListener("click",()=>{
+      state.ship.x+=world.constructor.CHUNK_SIZE;
+      state.ship.vx=0;state.ship.vy=0;
+      if(state.anchor.down)toggleAnchor();
+      world.updateNear(state.ship.x,state.ship.y);
+      refreshWorldStats(true);
+      worldStatus("Moved one world chunk east. Try regenerating with the same seed.");
+    });
+    $("worldSummonKraken").addEventListener("click",()=>{
+      const summoned=world.summonKraken(state.ship.x,state.ship.y);
+      worldStatus("A Kraken has awakened at "+Math.round(summoned.x)+", "+Math.round(summoned.y)+"! Sail closer to test it.");
+      if(ocean)ocean.splash(summoned.x,summoned.y,2,"kraken");
+    });
+    refreshWorldStats(true);
+  }
   const titleMap = {
     live: ["Sailing playground", "Live Playground", "Tune the whole vessel. Every change propagates to the other experiments."],
     helm: ["Steer & feel", "Helm Lab", "One wheel, three turns either way, and an adjustable return-to-center feel."],
     sails: ["Sails & wind", "Sails & Wind", "Explore how wind direction and sail height influence propulsion."],
     anchor: ["Anchor manoeuvres", "Anchor Lab", "Hold position, drift, or drag your anchor near a current."],
     ocean: ["The living ocean", "Ocean Lab", "Procedural waves, wake trails and ripples powered by the same simulated water."],
+    world: ["Seeded infinite sea", "World Generation Lab", "Stream reproducible island, ship, treasure and rare Kraken chunks around the ship."],
     damage: ["Spatial damage", "Damage Lab", "Test three ways to turn ship damage into a tiny tactical puzzle."],
     encounter: ["Meet another vessel", "Encounter Lab", "Befriend or battle using short, meaningful interactions."],
     shipyard: ["Pimp my ship", "Shipyard", "Toggle the original Unity ship pieces and experiment with upgrades."],
-    ideas: ["The ideas workshop", "Ideas Board", "Shortlist small mechanics that create interesting player decisions."]
+    ideas: ["The ideas workshop", "Ideas Board", "Shortlist small mechanics that create interesting player decisions."],
+    review: ["Review for Unity", "Mechanics Review", "Choose Keep, Refine, Test, Later or Reject and export a Unity implementation brief."]
   };
 
   function message(text) {
