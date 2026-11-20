@@ -19,8 +19,8 @@ const stepMany=(ship,anchor,config,flow,steps,modifiers={})=>{
 const headwind=vessel.pointOfSail(180,0).efficiency;
 const beamReach=vessel.pointOfSail(90,0).efficiency;
 const downwind=vessel.pointOfSail(0,0).efficiency;
-assert(beamReach>downwind,"Beam reach should outperform dead downwind");
-assert(downwind>headwind*4,"Dead headwind should have weak thrust");
+assert(downwind>beamReach,"Game design: tailwind should outperform beam reach");
+assert(beamReach>headwind*4,"Headwind should have weak thrust");
 // A keel resists sideways slip more than movement along the hull.
 const side=blankShip();side.vx=35;
 const forward=blankShip();forward.vy=-35;
