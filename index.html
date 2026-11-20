@@ -12,7 +12,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.7</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.8</span><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
     <div class="tabbar" role="tablist" aria-label="Mechanics">
@@ -60,10 +60,34 @@
                   </div>
                   <div class="wheel-crosshair">+</div>
                 </div>
-                <div class="sail-control" id="sailControl"><div class="control-caption">SAILS</div><input id="sailSlider" type="range" min="0" max="100" step="1" value="72" orient="vertical" aria-label="Sail height"><div class="sail-percent" id="sailPercent">72%</div></div>
-                <div class="side-controls"><button class="game-btn anchor-btn" id="anchorButton" aria-pressed="false" title="Drop or raise anchor"><span class="anchor-glyph">⚓</span><span id="anchorLabel">DROP</span></button><button class="game-btn mode-btn friendly" id="modeButton" title="Toggle Friendly and Aggressive"><span class="mode-main" id="modeLabel">♡ FRIENDLY</span><span class="mode-alternative" id="modeNextLabel">✹ Aggressive ↔</span></button></div>
+                <div class="sail-control" id="sailControl">
+                  <div class="control-caption">SAILS</div>
+                  <input id="sailSlider" type="range" min="0" max="100" step="1" value="72" orient="vertical" aria-label="Sail height">
+                  <div class="sail-percent" id="sailPercent">72%</div>
+                  <button type="button" class="sail-trim-toggle" id="sailTrimToggle" aria-expanded="false" aria-controls="sailTrimQuick">↪ AUTO</button>
+                  <div class="sail-trim-popup" id="sailTrimQuick" hidden>
+                    <div class="quick-title">⛵ SAIL YARD TILT</div>
+                    <label class="quick-auto"><input type="checkbox" id="sailQuickAuto" checked> Automatic wind trim</label>
+                    <input id="sailTrimQuickSlider" type="range" min="-45" max="45" step=".5" value="0" aria-label="Manual sail tilt in degrees">
+                    <span id="sailQuickTrimValue">0° / ideal 0°</span>
+                  </div>
+                </div>
+                <div class="side-controls">
+                  <div class="anchor-control" id="anchorControl">
+                    <button class="game-btn anchor-btn" id="anchorButton" aria-pressed="false" title="Drop or raise anchor"><span class="anchor-glyph">⚓</span><span id="anchorLabel">DROP</span></button>
+                    <button class="anchor-chain-toggle" type="button" id="anchorChainToggle" aria-expanded="false" aria-controls="anchorChainEditor" title="Set the anchor chain length">⛓ <strong id="anchorChainQuickValue">70</strong>u <span>⌄</span></button>
+                    <div class="anchor-rope-hud" id="anchorRopeHud" hidden><span>CHAIN</span><strong id="anchorDistance">0 / 70</strong><div class="chain-meter"><i id="chainFill"></i></div><small id="anchorCondition">Slack</small></div>
+                    <div class="anchor-chain-editor" id="anchorChainEditor" hidden>
+                      <label for="anchorChainQuickSlider">Chain length <strong id="anchorChainEditValue">70</strong>u</label>
+                      <input id="anchorChainQuickSlider" type="range" min="20" max="180" step="1" value="70" aria-label="Anchor chain maximum length">
+                      <div class="chain-help">Short = tight turning circle · Long = more drift</div>
+                      <button type="button" id="anchorChainClose">✓ Apply &amp; close</button>
+                    </div>
+                  </div>
+                  <button class="game-btn mode-btn friendly" id="modeButton" title="Toggle Friendly and Aggressive"><span class="mode-main" id="modeLabel">♡ FRIENDLY</span><span class="mode-alternative" id="modeNextLabel">✹ Aggressive ↔</span></button>
+                </div>
               </div>
-              <div class="phone-bottomline"><span id="speedValue">0.0</span> speed <span class="separator">·</span> <span id="rudderValue">0%</span> rudder</div><div class="anchor-rope-hud" id="anchorRopeHud" hidden><span>⛓ CHAIN</span><strong id="anchorDistance">0 / 24</strong><div class="chain-meter"><i id="chainFill"></i></div><small id="anchorCondition">Slack</small></div>
+              <div class="phone-bottomline"><span id="speedValue">0.0</span> speed <span class="separator">·</span> <span id="rudderValue">0%</span> rudder</div>
             </div>
           </div>
           <div class="telemetry"><div class="telemetry-title">LIVE TELEMETRY <span id="fpsValue">-- FPS</span></div>
@@ -94,7 +118,7 @@
 
         <section class="panel" data-panel="layout">
           <div class="explain"><strong>Touch-edit the real game HUD</strong>
-            <p>Move and scale controls directly inside the phone preview, or type exact X/Y percentages. The ship and the control behavior stay the same. Switch off editing to test how the new layout feels.</p>
+            <p>Drag the HUD by touch, enter precise X/Y values, independently scale its width/height, rotate it, set opacity and adjust layer priority. Switch editing off to test the real controls.</p>
           </div>
           <div class="setting"><label for="layoutTheme">Game button visual theme (prototype)</label>
             <select id="layoutTheme" class="layout-select">
@@ -104,17 +128,35 @@
             </select>
           </div>
           <button id="layoutEditToggle" class="wide-button" aria-pressed="false">✥ Enable touch editing</button>
+          <button id="layoutApplyDor" class="outline-button">★ Apply Dor's uploaded V0.7 layout</button>
+          <div class="layout-preset-caption">Current preset: <strong id="layoutPresetName">Default</strong> · V0.8 supports legacy V0.7 JSON imports.</div>
           <div class="setting"><label for="layoutElement">Select UI component</label><select id="layoutElement" class="layout-select"></select></div>
           <div class="layout-controls">
-            <div class="setting"><div class="setting-head"><label for="layoutXRange">X offset (% of phone)</label><input id="layoutXValue" type="number" min="-48" max="48" step=".5" value="0"></div><input id="layoutXRange" type="range" min="-48" max="48" step=".5" value="0"></div>
-            <div class="setting"><div class="setting-head"><label for="layoutYRange">Y offset (% of phone)</label><input id="layoutYValue" type="number" min="-48" max="48" step=".5" value="0"></div><input id="layoutYRange" type="range" min="-48" max="48" step=".5" value="0"></div>
-            <div class="setting"><div class="setting-head"><label for="layoutScaleRange">Component scale</label><input id="layoutScaleValue" type="number" min=".55" max="1.8" step=".05" value="1"></div><input id="layoutScaleRange" type="range" min=".55" max="1.8" step=".05" value="1"></div>
+            <div class="layout-fine-step"><span>Fine movement · 0.1%</span><div><button id="layoutXMinus">X −</button><button id="layoutXPlus">X +</button><button id="layoutYMinus">Y −</button><button id="layoutYPlus">Y +</button></div></div>
+            
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutXRange">X position · phone width</label><input id="layoutXValue" type="number" min="-48" max="48" step=".1" value="0" aria-label="X position · phone width numeric value"></div><input id="layoutXRange" type="range" min="-48" max="48" step=".1" value="0" aria-label="X position · phone width"></div>
+
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutYRange">Y position · phone height</label><input id="layoutYValue" type="number" min="-48" max="48" step=".1" value="0" aria-label="Y position · phone height numeric value"></div><input id="layoutYRange" type="range" min="-48" max="48" step=".1" value="0" aria-label="Y position · phone height"></div>
+
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutScaleRange">Uniform scale</label><input id="layoutScaleValue" type="number" min=".3" max="2.5" step=".01" value="1" aria-label="Uniform scale numeric value"></div><input id="layoutScaleRange" type="range" min=".3" max="2.5" step=".01" value="1" aria-label="Uniform scale"></div>
+
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutScaleXRange">Horizontal scale X</label><input id="layoutScaleXValue" type="number" min=".3" max="2.5" step=".01" value="1" aria-label="Horizontal scale X numeric value"></div><input id="layoutScaleXRange" type="range" min=".3" max="2.5" step=".01" value="1" aria-label="Horizontal scale X"></div>
+
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutScaleYRange">Vertical scale Y</label><input id="layoutScaleYValue" type="number" min=".3" max="2.5" step=".01" value="1" aria-label="Vertical scale Y numeric value"></div><input id="layoutScaleYRange" type="range" min=".3" max="2.5" step=".01" value="1" aria-label="Vertical scale Y"></div>
+
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutRotationRange">Rotation / tilt</label><input id="layoutRotationValue" type="number" min="-180" max="180" step=".5" value="0" aria-label="Rotation / tilt numeric value"></div><input id="layoutRotationRange" type="range" min="-180" max="180" step=".5" value="0" aria-label="Rotation / tilt"></div>
+
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutOpacityRange">Opacity / transparency</label><input id="layoutOpacityValue" type="number" min=".15" max="1" step=".01" value="1" aria-label="Opacity / transparency numeric value"></div><input id="layoutOpacityRange" type="range" min=".15" max="1" step=".01" value="1" aria-label="Opacity / transparency"></div>
+
+            <div class="setting layout-setting"><div class="setting-head"><label for="layoutLayerRange">Layer order (front ↔ back)</label><input id="layoutLayerValue" type="number" min="1" max="30" step="1" value="5" aria-label="Layer order (front ↔ back) numeric value"></div><input id="layoutLayerRange" type="range" min="1" max="30" step="1" value="5" aria-label="Layer order (front ↔ back)"></div>
+            <label class="fx-toggle"><input id="layoutRatioLock" type="checkbox" checked> Lock X/Y scale together</label>
+            <div class="layout-fine-step"><span>Layer order within HUD groups</span><div><button id="layoutLayerBack">Send back −</button><button id="layoutLayerFront">Bring forward +</button></div></div>
           </div>
-          <div class="layout-value-readout" id="layoutOutput">Helm wheel · x 0% · y 0% · 1×</div>
+          <div class="layout-value-readout" id="layoutOutput">Helm wheel · X 0% · Y 0% · 1×1 · 0° · 100% opacity · layer 5</div>
           <div class="button-pair"><button id="layoutResetItem" class="outline-button">↺ Reset selected</button><button id="layoutResetAll" class="outline-button">↺ Reset all UI</button></div>
           <div class="button-pair"><button id="layoutExport" class="wide-button">↓ Export UI preset (.json)</button><label class="outline-button import-label" for="layoutImport">↑ Import preset</label><input id="layoutImport" type="file" accept="application/json,.json" hidden></div>
           <div class="world-alert" id="layoutStatus" role="status">Enable editing and drag a highlighted UI component by touch. The layout is saved locally on this device.</div>
-          <div class="callout">These offsets are normalized to the phone preview so they can later guide Unity RectTransforms. They are not yet production anchors/safe-area rules. Validate both tall and 16:9 screens.</div>
+          <div class="callout">Coordinates are relative to the phone preview; layer order applies within HUD stacking groups. Rotation, independent scaling and transparency are design-only transforms, not finished Unity RectTransforms or accessibility validation. Test all thumb targets and safe areas.</div>
         </section>
 
         <section class="panel" data-panel="feel">
