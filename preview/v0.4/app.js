@@ -145,7 +145,16 @@
     try{return(new URLSearchParams(window.location?.search||"")).get("seed")||"ALL-ABOARD";}
     catch(err){return"ALL-ABOARD";}
   })();
-  let world=window.AllAboardWorld?.WorldEngine?new window.AllAboardWorld.WorldEngine(initialSeed):null;
+  const initialWorldOptions=(()=>{
+    try{
+      const p=new URLSearchParams(window.location?.search||"");
+      const density=(key)=>p.has(key)?clamp(Number(p.get(key))||0,0,2.5):1;
+      return {islands:density("islands"),ships:density("ships"),treasure:density("treasure"),
+        kraken:p.get("kraken")!=="0"};
+    }catch(err){return{islands:1,ships:1,treasure:1,kraken:true};}
+  })();
+  let world=window.AllAboardWorld?.WorldEngine?
+    new window.AllAboardWorld.WorldEngine(initialSeed,initialWorldOptions):null;
   let flagWorkshop=null,mechanicsReview=null;
   const worldStatus=msg=>{
     const box=$("worldAlert");
@@ -176,6 +185,11 @@
   function bindWorldControls(){
     if(!world)return;
     $("worldSeed").value=initialSeed;
+    for(const [id,key] of [["Island","islands"],["Ship","ships"],["Treasure","treasure"]]){
+      $("world"+id+"Density").value=world.options[key];
+      $("world"+id+"DensityValue").textContent=Number(world.options[key]).toFixed(2)+"×";
+    }
+    $("worldKrakenEnabled").checked=world.options.kraken;
     $("worldGenerate").addEventListener("click",()=>resetWorld($("worldSeed").value));
     $("worldSeed").addEventListener("keydown",e=>{if(e.key==="Enter")resetWorld(e.target.value);});
     $("worldRandom").addEventListener("click",()=>{
@@ -186,7 +200,10 @@
       const seed=world.seed;
       try{
         const base=window.location.href.split("?")[0].split("#")[0];
-        const link=base+"?seed="+encodeURIComponent(seed);
+        const o=world.options;
+        const link=base+"?seed="+encodeURIComponent(seed)+
+          "&islands="+o.islands+"&ships="+o.ships+
+          "&treasure="+o.treasure+"&kraken="+(o.kraken?1:0);
         if(navigator.clipboard?.writeText)navigator.clipboard.writeText(link);
         else{
           const field=$("worldSeed");
