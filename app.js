@@ -859,6 +859,33 @@
         }
       }
     }
+
+    // Simple world combat: the same automatic broadside works on generated
+    // hostile vessels. This is intentionally NOT the later Perfect Broadside.
+    if(world&&state.mode==="aggressive"&&state.modules.cannons>0&&state.enemy.reload===0){
+      const targets=world.nearbyObjects(s.x,s.y,180).filter(item=>item.type==="ship"&&item.faction==="hostile");
+      let target=null,best=Infinity;
+      for(const item of targets){
+        const npc=world.shipsState.get(item.id);
+        const dx=(npc?.x??item.x)-s.x,dy=(npc?.y??item.y)-s.y;
+        const dist=Math.hypot(dx,dy);
+        const broadside=Math.abs(fwdY*dx-fwdX*dy)/Math.max(1,dist);
+        if(dist<165&&broadside>.58&&dist<best){target={item,npc,x:npc?.x??item.x,y:npc?.y??item.y};best=dist;}
+      }
+      if(target){
+        const damage=world.shipsState.get(target.item.id)||{hp:100,sails:100,phase:0};
+        const amount=(state.upgrades.cannons==="heavy"?24:16)*state.modules.cannons/100;
+        damage.hp=Math.max(0,damage.hp-amount);
+        world.shipsState.set(target.item.id,damage);
+        state.enemy.reload=state.upgrades.cannons==="rapid"?1:1.7;
+        ocean?.splash(target.x,target.y,1.1,"cannon");
+        if(damage.hp===0){
+          world.markDestroyed(target.item);
+          s.coins+=55;s.score+=65;
+          worldStatus("Defeated hostile ship: "+target.item.name+". Positioning made the hit possible.");
+        }
+      }
+    }
   }
 
   // Ocean renderer: light 2D procedural waves + localized visuals. No heavy dependencies.
