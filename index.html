@@ -79,7 +79,7 @@
                     <div class="anchor-rope-hud" id="anchorRopeHud" hidden><span>CHAIN</span><strong id="anchorDistance">0 / 70</strong><div class="chain-meter"><i id="chainFill"></i></div><small id="anchorCondition">Slack</small></div>
                     <div class="anchor-chain-editor" id="anchorChainEditor" hidden>
                       <label for="anchorChainQuickSlider">Chain length <strong id="anchorChainEditValue">70</strong>u</label>
-                      <input id="anchorChainQuickSlider" type="range" min="20" max="180" step="1" value="70" aria-label="Anchor chain maximum length">
+                      <input id="anchorChainQuickSlider" type="range" min="12" max="180" step="1" value="70" aria-label="Anchor chain maximum length">
                       <div class="chain-help">Short = tight turning circle · Long = more drift</div>
                       <button type="button" id="anchorChainClose">✓ Apply &amp; close</button>
                     </div>
@@ -250,7 +250,7 @@
           <div class="explain"><strong>A chain with a real maximum length</strong><p>Throw the anchor, watch it splash, then drift freely while the chain is slack. Once the chain is fully extended it holds you within a circle. Excessive force makes the anchor drag across the seabed.</p></div><div class="chain-explainer"><span>⚓ Seabed anchor</span><span>⛓ Adjustable chain</span><span>⛵ Ship</span></div><div class="rope-live">Chain distance: <strong id="anchorDistanceInspector">0 / 70</strong> · Tension: <strong id="anchorTension">0%</strong></div>
           <button id="anchorInspector" class="wide-button">⚓ Drop / raise anchor</button>
           <div class="setting"><div class="setting-head"><label for="anchorGrip">Anchor holding force</label><output data-value="anchorGrip">185</output></div><input id="anchorGrip" type="range" min="50" max="400" step="5" data-setting="anchorGrip"></div>
-          <div class="setting"><div class="setting-head"><label for="anchorLine">Anchor chain length</label><output data-value="anchorLine">70</output></div><input id="anchorLine" type="range" min="12" max="140" step="1" data-setting="anchorLine"></div>
+          <div class="setting"><div class="setting-head"><label for="anchorLine">Anchor chain length</label><output data-value="anchorLine">70</output></div><input id="anchorLine" type="range" min="12" max="180" step="1" data-setting="anchorLine"></div>
           <div class="setting"><div class="setting-head"><label for="ropeStiffness">Chain stiffness</label><output data-value="ropeStiffness">9.0</output></div><input id="ropeStiffness" type="range" min="3" max="20" step="1" data-setting="ropeStiffness"></div>
           <div class="setting"><div class="setting-head"><label for="ropeDamping">Chain damping</label><output data-value="ropeDamping">6.0</output></div><input id="ropeDamping" type="range" min="1" max="18" step="1" data-setting="ropeDamping"></div>
           <div class="setting"><div class="setting-head"><label for="vortexStrength">Vortex pull</label><output data-value="vortexStrength">1.0</output></div><input id="vortexStrength" type="range" min="0" max="3" step=".1" data-setting="vortexStrength"></div>
