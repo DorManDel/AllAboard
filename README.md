@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.4 (experimental, stacked on unmerged V0.3)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.5 (experimental, stacked on unmerged V0.4)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -14,7 +14,7 @@
 
 The web lab lives in this repository. The **real Unity project** remains in [Eilon343/AllAboard](https://github.com/Eilon343/AllAboard) and is not modified by this experiment.
 
-## Eleven experimentation tabs
+## Thirteen experimentation tabs
 
 | Tab | Try it |
 |---|---|
@@ -29,6 +29,8 @@ The web lab lives in this repository. The **real Unity project** remains in [Eil
 | Pimp My Ship | Original SVG parts, visible mast-mounted flag, pixel painter, local photo or animated GIF, PNG export, and rig selection |
 | Ideas Board | Shortlist six smart-play concepts for Eilon |
 | Mechanics Review | Keep / Refine / Test / Later / Reject each mechanic, take notes, export a Unity C# handoff brief |
+| Stage Loop | Playtest Eilon's stage + endless Stay/Leave rewards, same-stage checkpoints and a 10-second tutorial |
+| Roadmap & Kanban | Search mechanic specs and add approved candidates to a local planning board |
 
 ### Suggested first playtest
 
@@ -49,6 +51,9 @@ The web lab lives in this repository. The **real Unity project** remains in [Eil
 - world.js — deterministically generated chunked islands, NPC ships, treasure and Kraken events
 - flag-workshop.js — pixel painter, source image/GIF overlay attached to the selected mast
 - mechanics-review.js — local decision/notes tracker with Markdown Unity export
+- mechanic-catalog.js — detailed specs for stage progression, popularity, allies, ammo, Kraken arms
+- stage-loop.js — stage objective, optional risk wave, cashout/checkpoint simulation and tutorial
+- roadmap-board.js — searchable plans, local Kanban, JSON import/export and Jira-ready issue text
 - assets/ship-wheel.svg — vector tracing of the supplied wooden wheel silhouette
 - assets/ship-parts/*.svg — original hull, sails, cannon pieces and anchor copied from the team's Unity repository
 - DESIGN.md — specifications, test questions, limits and Unity implementation plan
@@ -56,6 +61,9 @@ The web lab lives in this repository. The **real Unity project** remains in [Eil
 - tests/vessel.cjs — deterministic sailing/anchor/water behavior tests
 - tests/world.cjs — determinism, negative coordinates, bounded cache, collected treasure and monster tests
 - WORLD.md — world model, ocean decision, flag behavior, acceptance criteria and C# integration contracts
+- VISION.md — game vision, prioritized workstreams and implementation tracking
+- tests/stage-loop.cjs — risk/checkpoint behavior and ten-second tutorial
+- tests/planner.cjs — catalog integrity and Jira-ready Kanban export
 - .github/workflows/lab-checks.yml — CI checking syntax, controls, vessel physics and ocean
 
 ## Limits and next steps
@@ -101,3 +109,16 @@ This branch extends **V0.3 without merging PR #2**. PR #3 will target the V0.3 b
 - Please **do not merge** until Dor and Eilon test this on their target Android device. Automated CI checks syntax and logical behavior, not visual fidelity, smoothness or phone battery impact.
 
 See [WORLD.md](./WORLD.md) and [PHYSICS.md](./PHYSICS.md).
+
+## V0.5 — Fused Stage Loop + Roadmap
+
+This branch extends V0.4 with two inspector tabs:
+
+- **Stage Loop:** test a stage objective, then Leave to bank and save or Stay for escalating difficulty and optional bonus loot. Defeat forfeits unbanked bonuses, not the already-cleared objective and guaranteed stage reward. Replay the same-stage checkpoint, then deliberately advance to the next stage. The ten-second tutorial storyboard is skippable.
+- **Roadmap & Kanban:** select a mechanic, inspect its full MVP/acceptance/dependencies/Unity plan, add to Backlog, then move through Ready, In Progress, Testing, Done. Save owner and notes; export JSON for Eilon and Jira-ready Markdown for the All Aboard! project.
+
+The connected Jira project is **All Aboard!** (key SCRUM, board ID 1). The static website stores Kanban selections locally; it does not directly create Jira issues because public Pages must not contain Atlassian access tokens.
+
+Reputation/popularity, defensive follower ships, visible cannon trajectories, custom barrel/chicken/chain ammo, intercept/rescue/escort and coordinated eight-arm Kraken are **detailed plans**, not playable V0.5 systems. Core feel, stage loop, default cannons and damage remain first.
+
+See [VISION.md](./VISION.md) for the phased design. Run node tests/stage-loop.cjs, node tests/planner.cjs and the existing test suites; verify the feel and UI on a real Android phone before merging into the web lab, and only port approved rules to Unity.
