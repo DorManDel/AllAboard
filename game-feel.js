@@ -23,10 +23,11 @@ function trimEfficiency(heading,windTo,trimDegrees,manual=true){
   const relative=((windTo-heading+540)%360)-180;
   // Simple arcade trim target: sail turns towards incoming relative wind.
   // Player may choose auto trim; tiny impact to keep controls optional.
-  const desired=clamp(relative*.38,-42,42);
-  const angle=manual?clamp(trimDegrees,-45,45):desired;
+  // Mirror the authoritative Vessel.step yard-tilt contract (±90°).
+  const desired=clamp(relative*.5,-90,90);
+  const angle=manual?clamp(trimDegrees,-90,90):desired;
   const error=Math.abs(angle-desired);
-  const bonus=clamp(1-.14*(error/45),.86,1);
+  const bonus=clamp(1-.14*(error/90),.86,1);
   return{desired,angle,bonus,error};
 }
 class FeelEngine{
