@@ -32,10 +32,11 @@ class HapticController{
  play(key="tick"){
   if(!this.enabled){this.lastResult="Disabled by the player.";return false;}
   if(!this.supported){this.lastResult="Unavailable: browser vibration is unsupported.";return false;}
-  const now=this.clock(),last=this.last.get(key);
-  if(last!==undefined&&now-last<(cooldown[key]||75))return false;
-  this.last.set(key,now);
-  const raw=patterns[key]||patterns.tick;
+  const kind=typeof key==="string"?key:"legacy";
+  const now=this.clock(),last=this.last.get(kind);
+  if(last!==undefined&&now-last<(cooldown[kind]||75))return false;
+  this.last.set(kind,now);
+  const raw=Array.isArray(key)?key:typeof key==="number"?[key]:(patterns[key]||patterns.tick);
   const scaled=raw.map((n,i)=>Math.round(n*(i%2===0?this.scale:1)));
   try{
    const accepted=this.nav.vibrate(scaled);
