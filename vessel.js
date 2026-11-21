@@ -60,10 +60,12 @@
     const sailArea=limit(settings.sail/100,0,1)*
       (modifiers.sailFactor===undefined?1:modifiers.sailFactor);
     const windRelative=((settings.windDirection-ship.heading+540)%360)-180;
-    const desiredTrim=limit(windRelative*.38,-42,42);
+    // Extended yard-angle lab range: a full +/-90 degree alignment.
+    // The simplified wind polar and force model remain arcade approximations.
+    const desiredTrim=limit(windRelative*.5,-90,90);
     const actualTrim=settings.sailAutoTrim===false?
-      limit(settings.sailTrim||0,-45,45):desiredTrim;
-    const trimFactor=limit(1-.14*Math.abs(actualTrim-desiredTrim)/45,.86,1);
+      limit(settings.sailTrim||0,-90,90):desiredTrim;
+    const trimFactor=limit(1-.14*Math.abs(actualTrim-desiredTrim)/90,.86,1);
     ship.sailTrim=actualTrim;
     ship.idealTrim=desiredTrim;
     ship.trimFactor=trimFactor;

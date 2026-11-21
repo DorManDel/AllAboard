@@ -246,7 +246,7 @@
         motion(ship.heading,settings.windDirection,settings.windStrength,time,t):
         {x:25*t,y:Math.sin(time*4-t*8)*2*t,scaleX:1,reach:25};
       const originY=poleY-25;
-      const base=sample(1),direction=base.scaleX||1;
+      const base=sample(1),direction=base.scaleX<0?-1:1;
       const height=17;
       // Seven adjacent textured strips: fixed mast edge, fluttering free edge.
       ctx.save();ctx.translate(2,originY);ctx.scale(direction,1);
@@ -275,7 +275,7 @@
       this.liveGif.style.top=y.toFixed(2)+"px";
       const wind=root.AllAboardFlagMotion?.flagPose?.(
         ship.heading,sea.windDirection??0,sea.windStrength??0,sea.time,1);
-      const sign=wind?.scaleX||1,flutter=wind?.flutter||0;
+      const sign=wind?.scaleX??1,flutter=wind?.flutter||0;
       this.liveGif.style.transform="translate(-50%,-50%) rotate("+
         angle+"rad) scaleX("+sign+") skewY("+(flutter*1.4)+"deg)";
       this.liveGif.hidden=false;

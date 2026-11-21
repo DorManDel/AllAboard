@@ -12,7 +12,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.10</span><button class="subtle-button" id="loadFavoritePreset" title="Restore saved favorite water/ship tuning">★ Favorite</button><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="importMechanicsPresetButton" title="Import a saved mechanics and flag preset">↑ Import</button><input type="file" id="importMechanicsPreset" accept=".json,application/json" hidden><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.11</span><button class="subtle-button" id="loadFavoritePreset" title="Restore saved favorite water/ship tuning">★ Favorite</button><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="importMechanicsPresetButton" title="Import a saved mechanics and flag preset">↑ Import</button><input type="file" id="importMechanicsPreset" accept=".json,application/json" hidden><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
     <nav class="nav-shell" aria-label="Mechanics navigation">
@@ -38,10 +38,16 @@
 
     <main class="workspace">
       <section class="stage" aria-label="Live portrait game preview">
-        <div class="stage-heading"><div><span class="eyebrow">INTERACTIVE PHONE PREVIEW</span><h1 id="stageTitle">Sailing playground</h1></div><div class="live-chip"><span class="dot"></span> LIVE SIM</div></div>
+        <div class="stage-heading"><div><span class="eyebrow">INTERACTIVE PHONE PREVIEW</span><h1 id="stageTitle">Sailing playground</h1></div>
+          <div class="playtest-launch">
+            <button class="playtest-fullscreen-button" id="playtestFullscreen" type="button" aria-pressed="false">⛶ Play Fullscreen</button>
+            <div class="live-chip"><span class="dot"></span> LIVE SIM</div>
+          </div></div>
+        <p class="playtest-status" id="playtestStatus" role="status">Mobile: fullscreen where supported · safe viewport focus fallback</p>
         <div class="stage-body">
           <div class="phone">
             <div class="phone-screen" id="phoneScreen">
+              <button type="button" class="playtest-exit" id="playtestExit" hidden aria-label="Exit game fullscreen">↙ Exit</button>
               <canvas id="seaCanvas" aria-label="Animated top-down sea showing the sailing ship"></canvas>
               <div class="quick-tutorial" id="quickTutorial" hidden aria-live="polite">
                 <span class="quick-tutorial-progress" id="quickTutorialStep">1 / 5</span>
@@ -81,7 +87,7 @@
                   <div class="sail-trim-popup" id="sailTrimQuick" hidden>
                     <div class="quick-title" id="sailQuickTitle">YARD TILT</div>
                     <label class="quick-auto" id="sailQuickAutoLabel" hidden><input type="checkbox" id="sailQuickAuto"> Automatic wind trim</label>
-                    <input id="sailTrimQuickSlider" type="range" min="-45" max="45" step=".5" value="0" orient="vertical" aria-label="Sail yard tilt, standing vertical slider that holds its position">
+                    <input id="sailTrimQuickSlider" type="range" min="-90" max="90" step=".5" value="0" orient="vertical" aria-label="Sail yard tilt, standing vertical slider that holds its position">
                     <span id="sailQuickTrimValue">0°</span>
                   </div>
                 </div>
@@ -210,7 +216,7 @@
           </div>
           <div class="mini-heading">SAIL TRIM (OPTIONAL ONE-THUMB SKILL)</div>
           <div class="explain"><strong>One vertical slider, two control assignments</strong><p>Default: tap Raise/Lower, and drag the standing tilt slider up/down. It stays exactly where released. Alternative: standing sail-area slider with automatic tilt. Both share one vessel model; switching modes never resets angle or sail area. The default manual tilt is an intentionally optional advanced strategy.</p></div>
-          <div class="setting"><div class="setting-head"><label for="sailTrim">Sail tilt / yard angle</label><output data-value="sailTrim">0°</output></div><input id="sailTrim" type="range" min="-45" max="45" step="1" value="0" data-setting="sailTrim"></div>
+          <div class="setting"><div class="setting-head"><label for="sailTrim">Sail tilt / yard angle</label><output data-value="sailTrim">0°</output></div><input id="sailTrim" type="range" min="-90" max="90" step=".5" value="0" data-setting="sailTrim"></div>
           <label class="fx-toggle"><input id="sailAutoTrim" type="checkbox" checked> Automatic sail trim (recommended)</label>
           <div class="physics-readout">IDEAL TILT <strong id="trimIdeal">0°</strong> · SAIL TRIM BONUS <strong id="trimBonus">100%</strong></div>
           <div class="mini-heading">WIND &amp; OCEAN VISUALS</div>
@@ -275,6 +281,15 @@
           <div class="reading">WHEEL ROTATION <strong id="wheelReading">0°</strong><div class="reading-track"><i id="wheelReadingBar"></i></div>ACTUAL RUDDER <strong id="rudderReading">0%</strong></div>
           <p class="tipline">Keyboard: ← / → to steer, ↑ / ↓ for sails. Optional vibration feedback on compatible Android browsers.</p>
           <label class="switch-line"><input type="checkbox" id="hapticToggle" checked> Enable haptics where available</label>
+          <div class="haptic-lab" aria-label="Haptic feedback tester">
+            <div class="mini-heading">HAPTIC TEST · PHONE</div>
+            <div id="hapticCapability" class="physics-readout" role="status">Checking vibration support...</div>
+            <div class="setting"><div class="setting-head"><label for="hapticDuration">Pulse duration multiplier</label><output id="hapticDurationValue">1.0×</output></div>
+              <input type="range" id="hapticDuration" min="0.5" max="2" step=".1" value="1" aria-label="Haptic pulse duration multiplier"></div>
+            <div class="button-pair"><button id="hapticTest" class="wide-button" type="button">📳 Test vibration</button>
+              <button id="hapticStop" class="outline-button" type="button">Stop</button></div>
+            <p class="tipline">Use Test directly on your phone. Duration can change; web browsers do not expose vibration motor amplitude. A reported request is not proof that the device physically vibrated.</p>
+          </div>
         </section>
 
         <section class="panel" data-panel="sails">
@@ -579,8 +594,10 @@
   <script src="./flag-motion.js" defer></script>
   <script src="./flag-workshop.js" defer></script>
   <script src="./mechanics-review.js" defer></script>
+  <script src="./haptics.js" defer></script>
   <script src="./app.js" defer></script>
   <script src="./ui-layout.js" defer></script>
+  <script src="./fullscreen-play.js" defer></script>
   <script src="./nav-ui.js" defer></script>
   <script src="./quick-tutorial.js" defer></script>
   <script src="./repair-mini.js" defer></script>

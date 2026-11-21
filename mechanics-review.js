@@ -13,6 +13,8 @@ const catalog=[
 ["reactive-water-impulses","Reactive Procedural Water","Core","OceanField, OceanImpulse","Local splash/wake height ripple; land masked; baseline preserved"],
 ["guided-quick-tutorial","10-second Live Control Tutorial","Core","TutorialCoach, ControlHighlight","Five glowing live controls, wheel arrows, skip/replay"],
 ["quick-rivet-repair","Interactive Repair Test","After Core","RepairMiniGame, ModuleHealth","Three ordered rivets, 20 coins, actual condition recovery"],
+["mobile-fullscreen","True Mobile Fullscreen","Core","FullScreenGameView, SafeAreaFitter","Native browser fullscreen if supported, else viewport focus; visible exit and phone safe areas"],
+["tactile-haptics","Tactile Control & Combat Feedback","Core","HapticFeedback","Confirm on physical phone: wheel, sails, anchor, shot and hit distinct; disable supported"],
 ["ocean","Procedural Water Engine","Core","OceanField, SplashEmitter","Reactive water and speed-dependent wake at phone frame rates"],
 ["world","Seeded Endless World","Core","WorldGenerator, ChunkStreamer","Same seed and location generate same island/ship/treasure contents"],
 ["friend","Friendly / Aggressive Toggle","Core","EncounterCoordinator","Mode has clear meaning and affects actions"],

@@ -1,6 +1,6 @@
 # ⚓ All Aboard — Mechanics Lab
 
-**V0.10 (experimental, stacked on unmerged V0.9)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
+**V0.11 (experimental, stacked on unmerged V0.10)** — A self-contained, interactive web playground for testing ideas before adding them to the **All Aboard** Unity mobile game.
 
 **Design principle:** Easy to control, hard to master. One-thumb, portrait gameplay with meaningful choices.
 
@@ -202,3 +202,16 @@ Run node tests/v09-experiments.cjs alongside the existing smoke/V0.6–V0.8 regr
 - **Tests & Unity handoff:** `tests/sail-hud-v010.cjs`, expanded DOM smoke tests and `REFINEMENT_V010.md`.
 
 Review touch reach, slider stay-in-place, both modes, border/background toggles, independent resets and save/load on a real phone before merging.
+
+## V0.11 — Fullscreen + Wide Sail Rope + Wind Flag Fix + Browser Haptics
+
+**Status:** browser-only experimentation. No files changed in Eilon343/AllAboard Unity repository and no main-branch merge.
+
+- **Play Fullscreen (P0):** launch button beside Live preview heading; native Element Fullscreen API after user gesture, with CSS viewport-focus fallback if unsupported or rejected. One in-game **Exit** button and Escape support. Keeps the same phoneScreen, ship physics, HUD layout and saved settings. Use Chrome on the actual phone to test native fullscreen separately.
+- **Wider standing sail rope:** ±90° vertical manual tilt and matching FX inspector slider. Sail-yard visual rotation and vessel physics share the extended ±90° range. Fat draggable rope-like thumb for easier one-thumb play. This is a functional prototype, not a finished sailing simulation.
+- **Flag flip continuity:** wind-side projection narrows toward zero before changing side, instead of an abrupt full-width sign flip; verify on phone when the wind crosses ahead/behind the hull.
+- **Haptic feedback test (P1):** new opt-in `haptics.js` adapter and explicit **Helm → Test vibration** UI, with separate event patterns (wheel/sail detent, anchor, cannon shot, hull hit, etc.), rate limiting, duration multiplier and support/result status. The browser API cannot tune motor strength, and accepted requests do not certify perceptible vibration.
+- **Unity comparison:** `UNITY_MECHANICS_HANDOFF_V011.md` contains mechanics algorithms, formulas, example C# and a comparison to the real Unity `CoinCounter`, `Services.Save`, `Home`, `Level`, `ScreenFlow` and `SafeAreaFitter` before porting anything.
+- **QA:** `tests/fullscreen-haptic-v011.cjs` and DOM smoke cases. QA Feedback `FB-0002` tracks the user's missing haptics report as **In Progress / Not tested on phone**, not solved by CI alone.
+
+**Review on actual phone:** tap Play Fullscreen, exit, check all thumb targets and safe areas; compare ±90° sail endpoint and grip; rotate against wind to verify flag no longer snaps; tap Helm → Test vibration, use anchor, sail and shot/hit tests, then report whether physical vibration was felt. If unsupported, the status should state so.
