@@ -1147,7 +1147,7 @@
         const w=part[4]*scale,h=part[5]*scale;
         // Rotate around the sail yard, preserving original SVG image and furling.
         // This is an artistic arcade tilt, not 3D aerodynamic cloth simulation.
-        const tilt=rad((state.ship.sailTrim||0)*.24);
+        const tilt=rad(state.ship.sailTrim||0);
         ctx.translate(x+w/2,y+h);ctx.rotate(tilt);ctx.translate(-(x+w/2),-(y+h));
         const damage=clamp(state.modules.sails/100,0,1);
         const open=clamp(state.sailVisual,0,1)*damage;
