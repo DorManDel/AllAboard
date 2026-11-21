@@ -87,7 +87,7 @@
                   <div class="sail-trim-popup" id="sailTrimQuick" hidden>
                     <div class="quick-title" id="sailQuickTitle">YARD TILT</div>
                     <label class="quick-auto" id="sailQuickAutoLabel" hidden><input type="checkbox" id="sailQuickAuto"> Automatic wind trim</label>
-                    <input id="sailTrimQuickSlider" type="range" min="-45" max="45" step=".5" value="0" orient="vertical" aria-label="Sail yard tilt, standing vertical slider that holds its position">
+                    <input id="sailTrimQuickSlider" type="range" min="-90" max="90" step=".5" value="0" orient="vertical" aria-label="Sail yard tilt, standing vertical slider that holds its position">
                     <span id="sailQuickTrimValue">0°</span>
                   </div>
                 </div>
@@ -216,7 +216,7 @@
           </div>
           <div class="mini-heading">SAIL TRIM (OPTIONAL ONE-THUMB SKILL)</div>
           <div class="explain"><strong>One vertical slider, two control assignments</strong><p>Default: tap Raise/Lower, and drag the standing tilt slider up/down. It stays exactly where released. Alternative: standing sail-area slider with automatic tilt. Both share one vessel model; switching modes never resets angle or sail area. The default manual tilt is an intentionally optional advanced strategy.</p></div>
-          <div class="setting"><div class="setting-head"><label for="sailTrim">Sail tilt / yard angle</label><output data-value="sailTrim">0°</output></div><input id="sailTrim" type="range" min="-45" max="45" step="1" value="0" data-setting="sailTrim"></div>
+          <div class="setting"><div class="setting-head"><label for="sailTrim">Sail tilt / yard angle</label><output data-value="sailTrim">0°</output></div><input id="sailTrim" type="range" min="-90" max="90" step=".5" value="0" data-setting="sailTrim"></div>
           <label class="fx-toggle"><input id="sailAutoTrim" type="checkbox" checked> Automatic sail trim (recommended)</label>
           <div class="physics-readout">IDEAL TILT <strong id="trimIdeal">0°</strong> · SAIL TRIM BONUS <strong id="trimBonus">100%</strong></div>
           <div class="mini-heading">WIND &amp; OCEAN VISUALS</div>
