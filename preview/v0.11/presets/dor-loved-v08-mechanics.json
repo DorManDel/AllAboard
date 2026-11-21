@@ -1,0 +1,99 @@
+{
+  "title": "All Aboard Mechanics Lab tuning",
+  "version": 3,
+  "settings": {
+    "sail": 100,
+    "windStrength": 2.7,
+    "windDirection": 35,
+    "baseThrust": 0.1,
+    "steerSensitivity": 1,
+    "wheelReturn": 4.8,
+    "rudderResponse": 6,
+    "yawResponse": 3,
+    "deadzone": 2,
+    "windDrive": 1,
+    "waterDrag": 1,
+    "sailTrim": 0,
+    "sailAutoTrim": true,
+    "recoilStrength": 0.8,
+    "cameraShake": 0.5,
+    "waveRoll": 1,
+    "windFX": 0.6,
+    "anchorGrip": 185,
+    "anchorLine": 140,
+    "ropeStiffness": 9,
+    "ropeDamping": 6,
+    "lateralDrag": 5.5,
+    "wavePush": 1.7,
+    "vortexStrength": 1,
+    "currentStrength": 0.3,
+    "waveHeight": 1.3,
+    "waveDetail": 36,
+    "wakeStrength": 1.4
+  },
+  "upgrades": {
+    "hull": "classic",
+    "sails": "cream",
+    "rig": "square",
+    "cannons": "balanced"
+  },
+  "hudLayout": {
+    "format": "allaboard-ui-layout",
+    "version": 1,
+    "coordinateSpace": "phone-percent",
+    "theme": "classic",
+    "items": {
+      "wheelControl": {
+        "x": 0,
+        "y": 0,
+        "scale": 1
+      },
+      "sailControl": {
+        "x": 2.5,
+        "y": -4,
+        "scale": 1
+      },
+      "anchorButton": {
+        "x": 1,
+        "y": 0,
+        "scale": 1
+      },
+      "modeButton": {
+        "x": 1.5,
+        "y": 0,
+        "scale": 1
+      },
+      "headingHud": {
+        "x": -12,
+        "y": -12.5,
+        "scale": 0.65
+      },
+      "miniMap": {
+        "x": -1.5,
+        "y": -13,
+        "scale": 1.05
+      },
+      "coinHud": {
+        "x": -2.5,
+        "y": -1,
+        "scale": 1
+      },
+      "healthHud": {
+        "x": 0,
+        "y": -3,
+        "scale": 1
+      },
+      "scoreHud": {
+        "x": 0,
+        "y": -1.5,
+        "scale": 1
+      },
+      "anchorRopeHud": {
+        "x": 6.5,
+        "y": 20.5,
+        "scale": 0.75
+      }
+    }
+  },
+  "note": "Concept parameters, not physically measured units"
+}

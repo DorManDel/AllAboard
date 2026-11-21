@@ -1,0 +1,58 @@
+{
+  "format": "allaboard-ui-layout",
+  "version": 1,
+  "coordinateSpace": "phone-percent",
+  "theme": "classic",
+  "items": {
+    "wheelControl": {
+      "x": 0,
+      "y": 0,
+      "scale": 1
+    },
+    "sailControl": {
+      "x": 2.5,
+      "y": -4,
+      "scale": 1
+    },
+    "anchorButton": {
+      "x": 1,
+      "y": 0,
+      "scale": 1
+    },
+    "modeButton": {
+      "x": 1.5,
+      "y": 0,
+      "scale": 1
+    },
+    "headingHud": {
+      "x": -12,
+      "y": -12.5,
+      "scale": 0.65
+    },
+    "miniMap": {
+      "x": -1.5,
+      "y": -13,
+      "scale": 1.05
+    },
+    "coinHud": {
+      "x": -2.5,
+      "y": -1,
+      "scale": 1
+    },
+    "healthHud": {
+      "x": 0,
+      "y": -3,
+      "scale": 1
+    },
+    "scoreHud": {
+      "x": 0,
+      "y": -1.5,
+      "scale": 1
+    },
+    "anchorRopeHud": {
+      "x": 6.5,
+      "y": 20.5,
+      "scale": 0.75
+    }
+  }
+}
