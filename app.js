@@ -30,6 +30,7 @@
   const fireFeedback=(power=1)=>{
     feel?.fire(power*settings.recoilStrength);
     playSfx("shot");
+    window.AllAboardHapticInstance?.play("shot");
   };
   // Original Unity ship artwork, copied as SVGs with their original viewBox coordinates.
   // Each is an independently selectable part in the Shipyard tab.
@@ -298,8 +299,17 @@
     const hint = $("systemTip");
     hint.textContent = text;
   }
-  function vibrate(pattern) {
-    if (state.haptics && navigator.vibrate) navigator.vibrate(pattern);
+  const haptic=new window.AllAboardHaptics.HapticController(navigator);
+  haptic.setEnabled(state.haptics);
+  window.AllAboardHapticInstance=haptic;
+  function updateHapticStatus(){
+    const label=$("hapticCapability");
+    if(label)label.textContent=haptic.status();
+  }
+  function vibrate(pattern){
+    const result=haptic.play(pattern);
+    updateHapticStatus();
+    return result;
   }
   function setTab(name) {
     if (!titleMap[name]) return;
@@ -358,6 +368,8 @@
     const min=range?Number(range.min):NaN,max=range?Number(range.max):NaN;
     settings[name]=Number.isFinite(min)&&Number.isFinite(max)?clamp(input,min,max):input;
     if(name==="sail"&&settings.sail>0)lastRaisedSailArea=settings.sail;
+    if(name==="sailTrim"&&Math.round(settings.sailTrim/10)!==Math.round(input/10))haptic.play("sail");
+    if(name==="sail"&&Math.round(settings.sail/15)!==Math.round(input/15))haptic.play("sail");
     if(name==="sailTrim"){
       settings.sailAutoTrim=false;
       if(sailControlMode!=="toggle-tilt")setSailControlStyle("toggle-tilt");
@@ -411,12 +423,12 @@
     const ship=state.ship,heading=rad(ship.heading);
     const x=ship.x+Math.cos(heading)*40,y=ship.y+Math.sin(heading)*40;
     ocean?.splash(x,y,.8,"cannon-test");
-    vibrate(12);
+    haptic.play("shot");
     message("Test shot: recoil + water FX; no damage applied and no projectile physics simulated.");
   });
   $("feelTestHit").addEventListener("click",()=>{
     feel?.hit(1.1*settings.cameraShake);
-    playSfx("damage");vibrate([13,14,16]);
+    playSfx("damage");haptic.play("hit");
     message("Test hull hit: visual shake only, real hull health unchanged.");
   });
 
@@ -450,13 +462,13 @@
       a.point = { x: ship.x - fwdX * 20, y: ship.y - fwdY * 20 };
       a.status = "Dropping"; a.phase = "falling"; a.fallTime = 0; a.overload = 0;
       a.tension = 0; a.length = 20; a.lineLength=settings.anchorLine;
-      vibrate([18, 45, 26]);
+      haptic.play("anchorDrop");
       playSfx("anchor");
       message("Anchor thrown! Watch the splash, then the ship can drift until the chain is taut.");
     } else {
       a.status = "Raised"; a.phase = "raised"; a.tension = 0; a.length = 0;
       if (ocean) ocean.splash(a.point.x, a.point.y, .6, "raise");
-      vibrate(14);
+      haptic.play("anchorRaise");
       message("Anchor raised. The ship can accelerate and turn freely.");
     }
     $("anchorButton").classList.toggle("pressed", a.down);
@@ -540,7 +552,24 @@
       e.preventDefault();
     }
   });
-  $("hapticToggle").addEventListener("change", (e) => state.haptics = e.target.checked);
+  $("hapticToggle").addEventListener("change",e=>{
+    state.haptics=!!e.target.checked;
+    haptic.setEnabled(state.haptics);
+    updateHapticStatus();
+  });
+  $("hapticDuration").addEventListener("input",e=>{
+    haptic.setScale(e.target.value);
+    $("hapticDurationValue").textContent=haptic.scale.toFixed(1)+"×";
+  });
+  $("hapticTest").addEventListener("click",()=>{
+    haptic.play("test");
+    updateHapticStatus();
+  });
+  $("hapticStop").addEventListener("click",()=>{
+    haptic.stop();
+    $("hapticCapability").textContent="Vibration stopped.";
+  });
+  updateHapticStatus();
 
   $("spawnVortex").addEventListener("click", () => {
     state.vortex.active = true;
