@@ -799,3 +799,53 @@ body.allaboard-play-focus #phoneScreen #sailControl,#phoneScreen:fullscreen #sai
  .playtest-fullscreen-button{flex:1}
  .playtest-status{margin-bottom:10px}
 }
+
+
+/* V0.11: tactile, accessible standing sail rope/haul control.
+ * Wider thumb is deliberate (one thumb on a real phone).
+ */
+#sailControl #sailTrimQuickSlider,#sailControl #sailSlider{
+  -webkit-appearance:none!important;appearance:none!important;
+  writing-mode:vertical-lr!important;direction:rtl!important;
+  width:54px!important;height:148px!important;min-height:148px!important;
+  background:transparent!important;touch-action:none;cursor:grab;
+  accent-color:#e9c88c;outline-offset:4px
+}
+#sailControl #sailTrimQuickSlider::-webkit-slider-runnable-track,
+#sailControl #sailSlider::-webkit-slider-runnable-track{
+  width:12px;height:100%;border:2px solid #4d2f1e;border-radius:10px;
+  background:repeating-linear-gradient(180deg,#e4b678 0px,#e4b678 5px,#7d5030 6px,#7d5030 10px);
+  box-shadow:inset 0 0 6px #45281888,0 0 0 2px #eacb8d55
+}
+#sailControl #sailTrimQuickSlider::-webkit-slider-thumb,
+#sailControl #sailSlider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:48px;height:32px;border:3px solid #ffe0a4;border-radius:12px;
+  background:linear-gradient(140deg,#db9651,#86502a 53%,#cf8b46);
+  box-shadow:0 4px 8px #002b3e77,inset 0 2px 2px #ffdb9e88;
+  cursor:grab
+}
+#sailControl #sailTrimQuickSlider::-moz-range-track,
+#sailControl #sailSlider::-moz-range-track{
+  width:12px;border-radius:10px;border:2px solid #4d2f1e;
+  background:repeating-linear-gradient(180deg,#e4b678 0 5px,#7d5030 6px 10px)
+}
+#sailControl #sailTrimQuickSlider::-moz-range-thumb,
+#sailControl #sailSlider::-moz-range-thumb{
+  width:43px;height:28px;border:3px solid #ffe0a4;border-radius:12px;
+  background:#b97638;box-shadow:0 4px 8px #002b3e77;cursor:grab
+}
+#sailControl .sail-trim-popup{overflow:visible}
+#sailControl.sail-toggle-mode{width:92px}
+#sailControl.sail-area-mode{width:90px}
+.haptic-lab{border:1px solid #4f8291;border-radius:14px;padding:13px;
+  background:#103448a5;margin:12px 0}
+.haptic-lab .mini-heading{margin:0 0 7px}
+.haptic-lab .physics-readout{line-height:1.5}
+.haptic-lab .setting{margin:9px 0}
+.haptic-lab input[type=range]{width:100%;accent-color:#e6c38c}
+.haptic-lab .button-pair button{min-height:44px}
+@media(max-width:400px){
+ #sailControl.sail-toggle-mode{width:86px}
+ #sailControl.sail-area-mode{width:84px}
+}
