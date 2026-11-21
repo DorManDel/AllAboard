@@ -746,3 +746,56 @@
  border-radius:8px;color:#ebf6f4;background:#0d3245;padding:7px 6px;
  text-align:center;font:inherit;font-size:11px;font-variant-numeric:tabular-nums}
 .feel-number:focus-visible{outline:2px solid #9bf7d6}
+
+
+/* V0.11: real mobile fullscreen, with a CSS viewport-focus fallback.
+ * Keep one authoritative phoneScreen; never clone the ship or HUD.
+ */
+.playtest-launch{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.playtest-fullscreen-button{border:1px solid #ffe5af;background:linear-gradient(135deg,#e8a84d,#c9822e);color:#14273b;
+  font-size:12px;font-weight:900;padding:11px 15px;min-height:45px;border-radius:12px;
+  box-shadow:0 4px 13px #85532255}
+.playtest-fullscreen-button:hover{filter:brightness(1.08)}
+.playtest-fullscreen-button:focus-visible,.playtest-exit:focus-visible{outline:3px solid #9df9e5;outline-offset:3px}
+.playtest-status{font-size:10px;color:#accfd2;line-height:1.5;margin:2px 0 8px}
+.playtest-exit{position:absolute;left:max(12px,env(safe-area-inset-left));
+  top:max(10px,env(safe-area-inset-top));z-index:1000;border:1px solid #d2fcdb;
+  border-radius:9px;background:#092d40e8;color:#edfcf2;font-size:12px;
+  font-weight:900;padding:10px 13px;min-height:44px;min-width:70px;
+  box-shadow:0 5px 18px #001a2e99}
+.playtest-exit[hidden]{display:none!important}
+body.allaboard-play-focus{overflow:hidden!important;height:100dvh;overscroll-behavior:none}
+body.allaboard-play-focus .app-shell{position:relative}
+body.allaboard-play-focus #phoneScreen,
+#phoneScreen:fullscreen,#phoneScreen:-webkit-full-screen{
+ position:fixed!important;inset:0!important;top:0!important;left:0!important;
+ width:100vw!important;width:100dvw!important;height:100vh!important;height:100dvh!important;
+ max-width:none!important;max-height:none!important;min-width:0!important;min-height:0!important;
+ margin:0!important;border:none!important;border-radius:0!important;
+ box-shadow:none!important;z-index:2147483646!important;
+ background:#0d537d!important;overflow:hidden;touch-action:manipulation
+}
+body.allaboard-play-focus .notch,#phoneScreen:fullscreen .notch{display:none!important}
+body.allaboard-play-focus .hud,#phoneScreen:fullscreen .hud{
+ top:max(58px,calc(env(safe-area-inset-top) + 45px));left:max(12px,env(safe-area-inset-left));
+ right:max(12px,env(safe-area-inset-right))
+}
+body.allaboard-play-focus #phoneScreen .quick-tutorial-replay,
+#phoneScreen:fullscreen .quick-tutorial-replay{bottom:max(14px,env(safe-area-inset-bottom))}
+body.allaboard-play-focus #phoneScreen #wheelControl,#phoneScreen:fullscreen #wheelControl{
+ bottom:max(20px,calc(env(safe-area-inset-bottom) + 12px))
+}
+body.allaboard-play-focus #phoneScreen .side-controls,#phoneScreen:fullscreen .side-controls{
+ bottom:max(48px,calc(env(safe-area-inset-bottom) + 38px))
+}
+body.allaboard-play-focus #phoneScreen #sailControl,#phoneScreen:fullscreen #sailControl{
+ bottom:max(238px,calc(env(safe-area-inset-bottom) + 205px))
+}
+@supports(height:100svh){
+ body.allaboard-play-focus #phoneScreen{height:100dvh!important}
+}
+@media(max-width:600px){
+ .playtest-launch{width:100%;justify-content:space-between}
+ .playtest-fullscreen-button{flex:1}
+ .playtest-status{margin-bottom:10px}
+}
