@@ -12,7 +12,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">⚓</span><div><strong>ALL ABOARD <span class="brand-light">/ MECHANICS LAB</span></strong><small>From simple controls to clever sailing.</small></div></div>
-      <div class="top-actions"><span class="build-tag">CONCEPT V0.10</span><button class="subtle-button" id="loadFavoritePreset" title="Restore saved favorite water/ship tuning">★ Favorite</button><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="importMechanicsPresetButton" title="Import a saved mechanics and flag preset">↑ Import</button><input type="file" id="importMechanicsPreset" accept=".json,application/json" hidden><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
+      <div class="top-actions"><span class="build-tag">CONCEPT V0.11</span><button class="subtle-button" id="loadFavoritePreset" title="Restore saved favorite water/ship tuning">★ Favorite</button><button class="subtle-button" id="savePreset" title="Download current tuning as JSON">↓ Export preset</button><button class="subtle-button" id="importMechanicsPresetButton" title="Import a saved mechanics and flag preset">↑ Import</button><input type="file" id="importMechanicsPreset" accept=".json,application/json" hidden><button class="subtle-button" id="resetAll" title="Reset simulation and parameters">↺ Reset</button></div>
     </header>
 
     <nav class="nav-shell" aria-label="Mechanics navigation">
@@ -38,10 +38,16 @@
 
     <main class="workspace">
       <section class="stage" aria-label="Live portrait game preview">
-        <div class="stage-heading"><div><span class="eyebrow">INTERACTIVE PHONE PREVIEW</span><h1 id="stageTitle">Sailing playground</h1></div><div class="live-chip"><span class="dot"></span> LIVE SIM</div></div>
+        <div class="stage-heading"><div><span class="eyebrow">INTERACTIVE PHONE PREVIEW</span><h1 id="stageTitle">Sailing playground</h1></div>
+          <div class="playtest-launch">
+            <button class="playtest-fullscreen-button" id="playtestFullscreen" type="button" aria-pressed="false">⛶ Play Fullscreen</button>
+            <div class="live-chip"><span class="dot"></span> LIVE SIM</div>
+          </div></div>
+        <p class="playtest-status" id="playtestStatus" role="status">Mobile: fullscreen where supported · safe viewport focus fallback</p>
         <div class="stage-body">
           <div class="phone">
             <div class="phone-screen" id="phoneScreen">
+              <button type="button" class="playtest-exit" id="playtestExit" hidden aria-label="Exit game fullscreen">↙ Exit</button>
               <canvas id="seaCanvas" aria-label="Animated top-down sea showing the sailing ship"></canvas>
               <div class="quick-tutorial" id="quickTutorial" hidden aria-live="polite">
                 <span class="quick-tutorial-progress" id="quickTutorialStep">1 / 5</span>
@@ -581,6 +587,7 @@
   <script src="./mechanics-review.js" defer></script>
   <script src="./app.js" defer></script>
   <script src="./ui-layout.js" defer></script>
+  <script src="./fullscreen-play.js" defer></script>
   <script src="./nav-ui.js" defer></script>
   <script src="./quick-tutorial.js" defer></script>
   <script src="./repair-mini.js" defer></script>
