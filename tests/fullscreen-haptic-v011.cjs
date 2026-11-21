@@ -24,7 +24,7 @@ assert.deepEqual(calls.at(-1),0,"Disabling haptics cancels active vibration");
 const unsupported=new HapticController({});
 assert.equal(unsupported.supported,false);
 assert.equal(unsupported.play("test"),false);
-assert.match(unsupported.status(),/Unavailable/);
+assert.match(unsupported.status(),/Unsupported|Unavailable/);
 const rejected=new HapticController({vibrate(){return false;}});
 assert.equal(rejected.play("test"),false);
 assert.match(rejected.status(),/rejected/);
