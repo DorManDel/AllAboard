@@ -281,6 +281,15 @@
           <div class="reading">WHEEL ROTATION <strong id="wheelReading">0°</strong><div class="reading-track"><i id="wheelReadingBar"></i></div>ACTUAL RUDDER <strong id="rudderReading">0%</strong></div>
           <p class="tipline">Keyboard: ← / → to steer, ↑ / ↓ for sails. Optional vibration feedback on compatible Android browsers.</p>
           <label class="switch-line"><input type="checkbox" id="hapticToggle" checked> Enable haptics where available</label>
+          <div class="haptic-lab" aria-label="Haptic feedback tester">
+            <div class="mini-heading">HAPTIC TEST · PHONE</div>
+            <div id="hapticCapability" class="physics-readout" role="status">Checking vibration support...</div>
+            <div class="setting"><div class="setting-head"><label for="hapticDuration">Pulse duration multiplier</label><output id="hapticDurationValue">1.0×</output></div>
+              <input type="range" id="hapticDuration" min="0.5" max="2" step=".1" value="1" aria-label="Haptic pulse duration multiplier"></div>
+            <div class="button-pair"><button id="hapticTest" class="wide-button" type="button">📳 Test vibration</button>
+              <button id="hapticStop" class="outline-button" type="button">Stop</button></div>
+            <p class="tipline">Use Test directly on your phone. Duration can change; web browsers do not expose vibration motor amplitude. A reported request is not proof that the device physically vibrated.</p>
+          </div>
         </section>
 
         <section class="panel" data-panel="sails">
@@ -586,6 +595,7 @@
   <script src="./flag-workshop.js" defer></script>
   <script src="./mechanics-review.js" defer></script>
   <script src="./app.js" defer></script>
+  <script src="./haptics.js" defer></script>
   <script src="./ui-layout.js" defer></script>
   <script src="./fullscreen-play.js" defer></script>
   <script src="./nav-ui.js" defer></script>
