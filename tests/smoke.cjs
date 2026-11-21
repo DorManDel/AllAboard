@@ -25,15 +25,17 @@ const feelJs=fs.readFileSync(path.join(root,"game-feel.js"),"utf8");
 const audioJs=fs.readFileSync(path.join(root,"audio-lab.js"),"utf8");
 const qualityJs=fs.readFileSync(path.join(root,"unity-readiness.js"),"utf8");
 const audioUIJs=fs.readFileSync(path.join(root,"v07-lab-ui.js"),"utf8");
+const hapticJs=fs.readFileSync(path.join(root,"haptics.js"),"utf8");
+const fullscreenJs=fs.readFileSync(path.join(root,"fullscreen-play.js"),"utf8");
 
 assert.doesNotThrow(() => new vm.Script(js), "JavaScript must parse");
 assert.doesNotThrow(() => new vm.Script(oceanJs), "Ocean engine must parse");
 assert.doesNotThrow(() => new vm.Script(vesselJs), "Vessel physics must parse");
-for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"],[layoutJs,"UI Studio"],[mapJs,"World Map"],[krakenJs,"Kraken Grapple"],[feelJs,"Game Feel"],[audioJs,"Audio Lab"],[qualityJs,"Unity Readiness"],[audioUIJs,"V0.7 UI"]])
+for(const [source,name] of [[worldJs,"World"],[flagJs,"Flag"],[reviewJs,"Review"],[catalogJs,"Catalog"],[loopJs,"Stage Loop"],[roadmapJs,"Roadmap"],[layoutJs,"UI Studio"],[mapJs,"World Map"],[krakenJs,"Kraken Grapple"],[feelJs,"Game Feel"],[audioJs,"Audio Lab"],[qualityJs,"Unity Readiness"],[audioUIJs,"V0.7 UI"],[hapticJs,"Haptics"],[fullscreenJs,"Fullscreen Play"]])
   assert.doesNotThrow(()=>new vm.Script(source),name+" engine must parse");
 assert.match(html, /<script src="\.\/ocean\.js" defer>/);
 assert.match(html, /<script src="\.\/vessel\.js" defer>/);
-for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js","ui-layout.js","map-explorer.js","kraken-grapple.js","game-feel.js","audio-lab.js","unity-readiness.js","v07-lab-ui.js"])
+for(const name of ["world.js","flag-workshop.js","mechanics-review.js","mechanic-catalog.js","stage-loop.js","roadmap-board.js","ui-layout.js","map-explorer.js","kraken-grapple.js","game-feel.js","audio-lab.js","unity-readiness.js","v07-lab-ui.js","haptics.js","fullscreen-play.js"])
   assert(html.includes('<script src="./'+name+'" defer></script>'));
 for (const part of ["hull","sail_front","sail_rear","anchor","cannon_left_front","cannon_left_rear","cannon_right_front","cannon_right_rear"]) assert(fs.existsSync(path.join(root,"assets","ship-parts",part+".svg")), "Missing ship part "+part);
 assert.match(html, /<meta name="viewport"/);
@@ -116,6 +118,7 @@ new Function("window",vesselJs)(window);
 new Function("window",feelJs)(window);
 new Function("window",audioJs)(window);
 new Function("window",qualityJs)(window);
+new Function("window",hapticJs)(window);
 new Function("window",worldJs)(window);
 new Function("window",krakenJs)(window);
 new Function("window","document","URL","Image",flagJs)(window,document,URL,undefined);
@@ -128,6 +131,7 @@ const frame = (cb) => frameCallbacks.push(cb);
 function step(time) { assert(frameCallbacks.length>0, "Animation frame should be scheduled"); frameCallbacks.shift()(time); }
 const boot = new Function("document", "window", "navigator", "ResizeObserver", "requestAnimationFrame", js);
 assert.doesNotThrow(() => boot(document, window, navigator, ResizeObserver, frame), "App must initialize using all required DOM elements");
+new Function("window","document",fullscreenJs)(window,document);
 new Function("window","document","localStorage","URL",layoutJs)(window,document,localStorage,URL);
 assert.equal(window.AllAboardUILayoutInstance.snapshot().version,2,"V0.8 layout studio must mount and migrate presets");
 new Function("window","document","localStorage",loopJs)(window,document,localStorage);
@@ -183,6 +187,18 @@ assert.equal(window.AllAboardUILayoutInstance.snapshot().items.wheelControl.x,0)
 fire("recoilStrengthNumber","input",{target:{value:"2.55"}});
 assert.equal(window.AllAboardLiveBridge.getSettings().recoilStrength,2.55,"FX numeric control must tune actual model");
 
+fire("hapticTest","click");
+assert(byId.get("hapticCapability").textContent.includes("Request sent"),"Haptic test must report request acceptance");
+fire("hapticDuration","input",{target:{value:"1.6"}});
+assert.equal(byId.get("hapticDurationValue").textContent,"1.6×");
+fire("hapticToggle","change",{target:{checked:false}});
+assert.equal(window.AllAboardHapticInstance.enabled,false);
+fire("hapticToggle","change",{target:{checked:true}});
+assert.equal(window.AllAboardHapticInstance.enabled,true);
+fire("playtestFullscreen","click");
+assert.equal(byId.get("playtestExit").hidden,false,"Fullscreen focus exit should appear");
+fire("playtestExit","click");
+assert.equal(byId.get("playtestExit").hidden,true,"Exit returns to lab");
 fire("anchorButton", "click");
 assert.equal(byId.get("anchorButton").attributes["aria-pressed"], "true");
 fire("anchorButton", "click");
