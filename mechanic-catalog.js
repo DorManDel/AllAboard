@@ -305,6 +305,24 @@ const plans=[
     mvp:["Pick damaged target module","Three ordered taps","20 coin material cost","Fast +35%, slower +25% condition","Repair SFX and consistent HUD telemetry"],
     acceptance:["Wrong tap doesn't grant repair","Cannot repeat free repair without materials","Repair changes movement or fire authority"],
     dependencies:["damage"],unity:["RepairMiniGame","ModuleHealth"],jiraType:"Story",postCore:true
+  },
+  {
+    id:"mobile-fullscreen",title:"True Mobile Fullscreen & Focus Fallback",category:"Game Loop",phase:"Core",priority:"P0",effort:"S",
+    summary:"A prominent Play Fullscreen action on phone and PC requests true fullscreen where supported; otherwise occupies the viewport and always provides an exit control.",
+    player:"Play without the Mechanics Lab chrome and test the real mobile HUD at full phone size.",
+    prototype:"V0.11 fullscreen-play.js: original phoneScreen becomes fullscreen without cloning the simulation or losing preset values.",
+    mvp:["One-tap launch and exit","Safe-area-aware responsive portrait controls","Native browser fullscreen with CSS focus fallback","Exit also works with Escape","No impact on save state or wheel/sail dynamics"],
+    acceptance:["HUD remains fully visible on portrait phone","Can always exit to the lab","Does not claim native fullscreen if browser denied API","No overlapping system insets"],
+    dependencies:["hud-layout"],unity:["FullScreenGameView","SafeAreaFitter","ScreenFlow"],jiraType:"Story",postCore:false
+  },
+  {
+    id:"tactile-haptics",title:"Meaningful Haptic Feedback for Controls and Combat",category:"Game Loop",phase:"Core",priority:"P1",effort:"S",
+    summary:"Separate haptic effects for ship wheel detents, sail settings, cannon shot, hull hit, anchor deployment, coins and friendship, with browser support diagnostics.",
+    player:"Feel meaningful ship actions while keeping the game quiet and accessible, with a simple on/off switch.",
+    prototype:"V0.11 haptics.js adapter, explicit Test vibration button and live device capability status in Helm.",
+    mvp:["Name distinct event patterns","Throttle rapid sail/wheel events","Never vibrate without user consent","Report unsupported or rejected browser calls","Test on real Android Chrome"],
+    acceptance:["A physical device test confirms vibration when supported","Shot and hit feel distinct","Haptics can be stopped and disabled","UI never claims request acceptance proves actual vibration"],
+    dependencies:["sailing-feel","cannons"],unity:["HapticFeedback","CombatFeedback"],jiraType:"Task",postCore:false
   }
 ];
 const byId=Object.freeze(Object.fromEntries(plans.map(plan=>[plan.id,plan])));
