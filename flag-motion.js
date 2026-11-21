@@ -11,15 +11,17 @@ function flagPose(heading,windDirection,windStrength,time,segment=1){
  const side=Math.sin(relative),forward=-Math.cos(relative);
  // Preserve visible cloth even when wind points along the ship.
  const reach=9+14*breeze;
- const direction=side>=0?1:-1;
+ // Continuous lateral projection: near a head/tail-wind crossing the
+ // cloth visually narrows before reversing, instead of flipping full width.
+ const lateral=clamp(side*2.4,-1,1);
  const t=clamp(segment,0,1);
  const flutter=Math.sin(time*(3.1+windStrength*.9)-t*8.2)*
    (1.2+3.6*breeze)*t*t;
  const billow=Math.sin(time*(2+windStrength*.4)-t*5.1)*1.4*t;
  return{
-  x:direction*reach*t*(.52+.48*Math.abs(side)),
+  x:lateral*reach*t,
   y:forward*reach*.22*t+flutter+billow,
-  scaleX:direction,
+  scaleX:lateral,
   flutter,relative,reach,breeze
  };
 }
