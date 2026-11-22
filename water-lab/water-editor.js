@@ -152,13 +152,13 @@ $("exportCode").addEventListener("click",async()=>{
   const source=await response.text();
   if(!source.includes("AllAboardWaterLab"))throw Error("Unexpected engine source");
   const profile=JSON.stringify(snapshot,null,2);
-  const usage=String.raw"
+  const usage=String.raw`
 /* Example:
    const field=AllAboardWaterProfile;
    const height=AllAboardSampleWater(100,200,field.time).height;
    // All values are in arbitrary LAB UNITS, not meters.
 */
-";
+`;
   const extra="\n;(()=>{\n"+
    "const preset="+profile+";\n"+
    "const root=typeof window!==\"undefined\"?window:globalThis;\n"+
