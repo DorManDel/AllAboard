@@ -47,6 +47,38 @@ function rippleAt(x,y,time,events,strength=1){
  }
  return clamp(sum*strength,-1.5,1.5);
 }
+/* Editor v0.2: explicit, portable layer contract. Eyes/solo/opacity affect
+ * the height field; blend modes are artistic, not fluid equations.
+ * Wake + foam are renderer-only layers.
+ */
+const layerKeys=["coarse","fine","wave","rain","ripple","wake","foam"];
+function defaultLayers(){
+ return Object.fromEntries(layerKeys.map(key=>[key,{enabled:true,opacity:1,solo:false,blend:"add"}]));
+}
+function layerAmount(name,layers,solo=false){
+ if(!layers)return 1;
+ const item=layers[name];
+ if(!item)return solo?0:1;
+ if(item.enabled===false||(solo&&!item.solo))return 0;
+ return clamp(Number.isFinite(item.opacity)?item.opacity:1,0,1);
+}
+function hasSolo(layers){
+ return Boolean(layers&&layerKeys.some(key=>layers[key]&&layers[key].solo&&layers[key].enabled!==false));
+}
+function composeHeight(values,layers){
+ const solo=hasSolo(layers);
+ let total=0;
+ for(const key of ["coarse","fine","wave","rain","ripple"]){
+  const amount=layerAmount(key,layers,solo);
+  if(!amount)continue;
+  const delta=values[key]*amount;
+  const blend=layers&&layers[key]&&layers[key].blend;
+  if(blend==="replace")total=delta;
+  else if(blend==="multiply")total=total*(1+delta);
+  else total+=delta;
+ }
+ return total;
+}
 function sample(x,y,time,opts=defaults,events=[],out=null){
  // UI renderer caches the wind vector and reuses a result object per pixel.
  const wind=opts._wind||windVector(opts.windDeg??defaults.windDeg);
@@ -66,8 +98,14 @@ function sample(x,y,time,opts=defaults,events=[],out=null){
  const ripple=rippleAt(x,y,time,events,opts.rippleStrength??1);
  const target=out||{};
  target.coarse=coarse;target.fine=fine;target.wave=wave;
- target.ripple=ripple;target.base=base;
- target.height=base*(opts.waveHeight??.8)+ripple;
+ target.rain=rain;target.ripple=ripple;target.base=base;
+ const height=opts.waveHeight??.8;
+ // With no editor layers this is the original V0.1 additive result.
+ target.height=composeHeight({
+   coarse:coarse*(opts.coarseMix??.65)*.72*height,
+   fine:fine*(opts.detailMix??.35)*.72*height,
+   wave:wave*.28*height,rain:rain*height,ripple
+ },opts.layers);
  return target;
 }
 function current(x,y,time,opts=defaults){
@@ -81,8 +119,7 @@ function createEvent(type,x,y,time,power=1){
   cannon:{speed:52,width:11,life:2.3},
   anchor:{speed:33,width:10,life:2.5},
   wake:{speed:21,width:10,life:1.5},
-  sink:{speed:37,width:19,life:4.0},
-  tap:{speed:43,width:10,life:2.2}
+  sink:{speed:37,width:19,life:4.0}
  };
  const c=types[type]||types.tap;
  return {type,x,y,time,power:clamp(power,0,3),...c};
@@ -98,7 +135,8 @@ function pruneEvents(events,time){
   if(time-events[i].time>events[i].life)events.splice(i,1);
  return events;
 }
-const api={defaults,clamp,hash,valueNoise,windVector,rippleAt,sample,current,
+const api={defaults,layerKeys,defaultLayers,layerAmount,hasSolo,composeHeight,
+ clamp,hash,valueNoise,windVector,rippleAt,sample,current,
  createEvent,addEvent,pruneEvents};
 root.AllAboardWaterLab=api;
 if(typeof module!=="undefined"&&module.exports)module.exports=api;
