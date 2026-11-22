@@ -48,3 +48,5 @@ jobs:
         run: node tests/sail-hud-v010.cjs
       - name: Test V0.11 fullscreen and haptic controls
         run: node tests/fullscreen-haptic-v011.cjs
+      - name: Test V0.11.1 sail direction and thrust response
+        run: node tests/sail-response-v0111.cjs
