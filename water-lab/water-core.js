@@ -121,7 +121,8 @@ function createEvent(type,x,y,time,power=1){
   wake:{speed:21,width:10,life:1.5},
   sink:{speed:37,width:19,life:4.0}
  };
- const c=types[type]||types.tap;
+ const c=types[type];
+ if(!c)return null; // Invalid / UI-only interaction is not a water impulse.
  return {type,x,y,time,power:clamp(power,0,3),...c};
 }
 function addEvent(events,e,max=28){
