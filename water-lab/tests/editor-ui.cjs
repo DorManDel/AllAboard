@@ -3,7 +3,7 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
 const core=require("../water-core.js");
 const nodes=new Map(),blobs=[],timers=[];
-function node(){const listeners={};const n={children:[],textContent:"",value:"",style:{},classList:{add(){},remove(){}},
+function node(){const listeners={};const n={children:[],textContent:"",value:"",style:{},dataset:{},classList:{add(){},remove(){}},
 append(...items){this.children.push(...items)},appendChild(item){this.children.push(item)},prepend(item){this.children.unshift(item)},
 replaceChildren(...items){this.children=[...items]},removeChild(item){this.children.splice(this.children.indexOf(item),1)},
 get lastElementChild(){return this.children[this.children.length-1]},remove(){},setAttribute(k,v){this[k]=v},
