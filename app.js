@@ -366,10 +366,11 @@
     const input=Number(value);if(!Number.isFinite(input))return;
     const range=$((name==="sail"?"sailSlider":name==="sailTrim"?"sailTrim":name));
     const min=range?Number(range.min):NaN,max=range?Number(range.max):NaN;
+    const previous=settings[name];
     settings[name]=Number.isFinite(min)&&Number.isFinite(max)?clamp(input,min,max):input;
     if(name==="sail"&&settings.sail>0)lastRaisedSailArea=settings.sail;
-    if(name==="sailTrim"&&Math.round(settings.sailTrim/10)!==Math.round(input/10))haptic.play("sail");
-    if(name==="sail"&&Math.round(settings.sail/15)!==Math.round(input/15))haptic.play("sail");
+    if(name==="sailTrim"&&Math.round(previous/10)!==Math.round(settings.sailTrim/10))haptic.play("sail");
+    if(name==="sail"&&Math.round(previous/15)!==Math.round(settings.sail/15))haptic.play("sail");
     if(name==="sailTrim"){
       settings.sailAutoTrim=false;
       if(sailControlMode!=="toggle-tilt")setSailControlStyle("toggle-tilt");
@@ -1176,7 +1177,10 @@
         const w=part[4]*scale,h=part[5]*scale;
         // Rotate around the sail yard, preserving original SVG image and furling.
         // This is an artistic arcade tilt, not 3D aerodynamic cloth simulation.
-        const tilt=rad(state.ship.sailTrim||0);
+        // Canvas rotates clockwise for positive angles. Mirror the original
+        // top-down sail art so upward/positive rope travel turns the yard
+        // in the intuitive on-screen direction (without changing physics).
+        const tilt=-rad(state.ship.sailTrim||0);
         ctx.translate(x+w/2,y+h);ctx.rotate(tilt);ctx.translate(-(x+w/2),-(y+h));
         const damage=clamp(state.modules.sails/100,0,1);
         const open=clamp(state.sailVisual,0,1)*damage;
