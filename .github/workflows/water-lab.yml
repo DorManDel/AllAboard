@@ -22,3 +22,4 @@ jobs:
           node --check water-lab/water-editor.js
           node water-lab/tests/water-core.cjs
           node water-lab/tests/runtime-smoke.cjs
+          node water-lab/tests/editor-ui.cjs
