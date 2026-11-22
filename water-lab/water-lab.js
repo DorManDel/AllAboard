@@ -364,6 +364,8 @@ function setSnapshot(snapshot){
   events.length=0;
   for(const e of safe.events.slice(-28))Core.addEvent(events,e,28);
  }
+ trail.length=0;
+ if(Array.isArray(safe.trail))for(const e of safe.trail.slice(-35))trail.push({...e});
  if(safe.preset&&palettes[safe.preset])preset=safe.preset;
  if(safe.quality&&qualities[safe.quality])quality=safe.quality;
  if(safe.view&&explanations[safe.view])layer=safe.view;
@@ -382,6 +384,7 @@ window.AllAboardWaterLabUI={
   settings:Object.fromEntries(Object.entries(settings).filter(([key])=>key!=="_wind"&&key!=="layers")),
   layers:settings.layers,preset,quality,view:layer,time,
   boat:{...boat},events:events.map(e=>({...e})),
+  trail:trail.map(e=>({...e})),
   reference:"Arbitrary lab units; same seed + time + event list + world coordinates"
  }),
  setSnapshot,setLayers(layers){settings.layers=layers;dirty=true;},
