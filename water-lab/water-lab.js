@@ -20,7 +20,7 @@ const sliderSpecs=[
  ["coarseMix","Noise A contribution",0,1,.05,"","Broad low-frequency patches. We do not normalize A and B automatically."],
  ["detailScale","Noise B scale",9,95,2,"","Small patterns layered over the broad noise."],
  ["detailMix","Noise B contribution",0,1,.05,"","Higher frequency visual detail."],
- ["rippleStrength","Interaction strength",0,2,.05,"×","Cannon, anchor, sinking, touch and wake disturbances."],
+ ["rippleStrength","Interaction strength",0,2,.05,"×","Cannon, anchor, sinking and wake disturbances, never touchscreen input."],
  ["rain","Rain surface noise",0,1,.05,"","Adds faint short-lived surface texture."]
 ];
 const explanations={
@@ -28,7 +28,7 @@ const explanations={
  coarse:"NOISE A: seeded, smooth value noise. Large cells produce broad organic patches; wind moves the sampling coordinates over time.",
  fine:"NOISE B: a second seeded value-noise layer at a smaller spatial scale. This adds fine texture without using a new water simulation.",
  wave:"DIRECTIONAL WAVES: sinusoids aligned to the same wind vector used for noise drift and the boat's simplified current.",
- ripple:"LOCAL IMPULSES: damped, expanding rings, emitted by a cannon, anchor, sinking, wake or tap. The event buffer is bounded to 28.",
+ ripple:"LOCAL IMPULSES: damped expanding rings from cannon, anchor, sinking and wake. Touch input samples values only. Event capacity: 28.",
  height:"HEIGHT FIELD: the signed sum of both noise layers, directional waves and event ripples. Sample the same field for the visual and ship response."
 };
 const qualities={eco:{cell:10,rate:12},balanced:{cell:7,rate:18},high:{cell:5,rate:24}};
@@ -38,11 +38,15 @@ const palettes={
  calm:{deep:[16,71,110],shallow:[35,123,157],glint:[153,202,214]},
  storm:{deep:[9,28,48],shallow:[42,82,102],glint:[117,145,157]}
 };
-let settings={...Core.defaults},time=0,last=0,lastWater=-1e8,dirty=true;
+let settings={...Core.defaults,layers:Core.defaultLayers()},time=0,last=0,lastWater=-1e8,dirty=true;
 let paused=false,layer="beauty",preset="classic",quality="balanced";
 let events=[],temp={},imageData=null,pointerSample=null;
 const boat={x:0,y:0,heading:20,speed:28,moving:true,sunk:false,sinkTime:0};
 const trail=[],keys=new Set();
+const notify=(kind,detail)=>{
+ if(window.AllAboardWaterLabUI&&typeof window.AllAboardWaterLabUI.log==="function")
+  window.AllAboardWaterLabUI.log(kind,detail);
+};
 let wakeClock=0,displayFPS=0,waterCpuMS=0,measureAt=0;
 function makeSlider(spec){
  const [key,label,min,max,step,unit,hint]=spec;
@@ -59,6 +63,7 @@ function makeSlider(spec){
   settings._wind=Core.windVector(settings.windDeg);
   dirty=true;
  });
+ range.addEventListener("change",()=>notify("TUNE",key+" = "+settings[key]));
  const help=document.createElement("p");help.className="param-tip";help.textContent=hint;
  item.append(top,range,help);return item;
 }
@@ -85,11 +90,12 @@ function selectPreset(value){
  $("weather").value=value==="storm"?"squall":"clear";
  syncSliders();
 }
-$("preset").addEventListener("change",e=>selectPreset(e.target.value));
-$("quality").addEventListener("change",e=>{quality=e.target.value;imageData=null;lastWater=-1e8;dirty=true;});
+$("preset").addEventListener("change",e=>{selectPreset(e.target.value);notify("PRESET",e.target.value);});
+$("quality").addEventListener("change",e=>{quality=e.target.value;imageData=null;lastWater=-1e8;dirty=true;notify("QUALITY",quality);});
 $("weather").addEventListener("change",e=>{
  const w=e.target.value;
  settings.rain=w==="squall"?1:w==="rain"?.55:0;
+ notify("WEATHER",w);
  $("param-rain").value=settings.rain;
  $("value-rain").textContent=settings.rain.toFixed(2);
  dirty=true;
@@ -100,11 +106,13 @@ for(const btn of document.querySelectorAll("[data-layer]")){
   for(const b of document.querySelectorAll("[data-layer]"))
    b.classList.toggle("selected",b===btn);
   $("layerInfo").textContent=explanations[layer];
+  notify("INSPECT",layer);
  });
 }
 function eventAt(type,x=boat.x,y=boat.y,power=1){
  Core.addEvent(events,Core.createEvent(type,x,y,time,power));
  dirty=true;
+ if(type!=="wake")notify("EVENT",type+" @ ("+Math.round(x)+", "+Math.round(y)+")");
 }
 for(const btn of document.querySelectorAll("[data-event]")){
  btn.addEventListener("click",()=>{
@@ -127,22 +135,15 @@ $("toggleBoat").addEventListener("click",()=>{
  else boat.moving=!boat.moving;
  $("toggleBoat").textContent=boat.sunk?"⛵ Boat: sunk":boat.moving?"⛵ Boat: moving":"⛵ Boat: stopped";
  dirty=true;
+ notify("BOAT",boat.sunk?"sunk":boat.moving?"moving":"stopped");
 });
-$("pause").addEventListener("click",()=>{paused=!paused;$("pause").textContent=paused?"▶ Resume":"Ⅱ Pause";dirty=true;});
+$("pause").addEventListener("click",()=>{paused=!paused;$("pause").textContent=paused?"▶ Resume":"Ⅱ Pause";dirty=true;notify("TIME",paused?"paused":"resumed");});
 function reset(){
  time=0;lastWater=-1e8;events.length=0;trail.length=0;wakeClock=0;
  Object.assign(boat,{x:0,y:0,heading:20,speed:28,moving:true,sunk:false,sinkTime:0});
  $("toggleBoat").textContent="⛵ Boat: moving";dirty=true;
 }
-$("reset").addEventListener("click",reset);
-$("export").addEventListener("click",()=>{
- const data=JSON.stringify({format:"allaboard-water-lab",version:1,settings:{...settings,_wind:undefined},
-  quality,preset,view:layer,eventCapacity:28},null,2);
- const blob=new Blob([data],{type:"application/json"});
- const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;
- a.download="allaboard-water-lab-v01.json";a.click();
- setTimeout(()=>URL.revokeObjectURL(url),3000);
-});
+$("reset").addEventListener("click",()=>{reset();notify("RESET","boat, timeline and 28-slot event pool");});
 function resize(){
  const rect=canvas.getBoundingClientRect();
  const dpr=Math.min(window.devicePixelRatio||1,1.5);
@@ -171,7 +172,7 @@ canvas.addEventListener("pointerdown",e=>{
  const p=viewPoint(e.clientX,e.clientY);
  if(Math.hypot(p.x-boat.x,p.y-boat.y)<36&&!boat.sunk){
   dragging=true;dragLast={x:p.sx,y:p.sy};canvas.setPointerCapture(e.pointerId);
- }else eventAt("tap",p.x,p.y,1.4);
+ } // Touch is inspection only. Never create water impulses from UI taps.
  inspect(p);
 });
 canvas.addEventListener("pointermove",e=>{
@@ -298,11 +299,11 @@ function drawBoat(){
  ctx.restore();
 }
 function drawTrails(){
- if(layer!=="beauty")return;
+ if(layer!=="beauty"||!Core.layerAmount("wake",settings.layers,Core.hasSolo(settings.layers)))return;
  ctx.save();ctx.lineWidth=2;ctx.lineCap="round";
  for(let i=1;i<trail.length;i++){
   const a=trail[i-1],b=trail[i],age=time-b.time;
-  const opacity=Math.max(0,(1-age/6)*.5);
+  const opacity=Math.max(0,(1-age/6)*.5)*Core.layerAmount("wake",settings.layers,Core.hasSolo(settings.layers));
   if(opacity===0)continue;
   ctx.strokeStyle="rgba(221,251,245,"+opacity+")";
   ctx.beginPath();ctx.moveTo(canvas.width/2+a.x-boat.x,canvas.height/2+a.y-boat.y);
@@ -311,12 +312,12 @@ function drawTrails(){
  ctx.restore();
 }
 function drawRipples(){
- if(layer!=="beauty")return;
+ if(layer!=="beauty"||!Core.layerAmount("foam",settings.layers,Core.hasSolo(settings.layers)))return;
  ctx.save();
  for(const e of events){
   if(e.type==="wake")continue;
   const age=time-e.time;if(age<0||age>e.life)continue;
-  const opacity=Math.max(0,1-age/e.life)*.35;
+  const opacity=Math.max(0,1-age/e.life)*.35*Core.layerAmount("foam",settings.layers,Core.hasSolo(settings.layers));
   ctx.strokeStyle="rgba(235,251,242,"+opacity+")";
   ctx.lineWidth=1.6;
   ctx.beginPath();
@@ -351,6 +352,45 @@ function frame(ts){
  }
  requestAnimationFrame(frame);
 }
+// Narrow explicit bridge for the layer editor. No hidden duplicate simulation.
+function setSnapshot(snapshot){
+ const safe=snapshot||{};
+ if(safe.settings)Object.assign(settings,safe.settings);
+ if(safe.layers)settings.layers=safe.layers;
+ settings._wind=Core.windVector(settings.windDeg);
+ if(Number.isFinite(safe.time))time=Math.max(0,safe.time);
+ if(safe.boat)Object.assign(boat,safe.boat);
+ if(Array.isArray(safe.events)){
+  events.length=0;
+  for(const e of safe.events.slice(-28))Core.addEvent(events,e,28);
+ }
+ if(safe.preset&&palettes[safe.preset])preset=safe.preset;
+ if(safe.quality&&qualities[safe.quality])quality=safe.quality;
+ if(safe.view&&explanations[safe.view])layer=safe.view;
+ $("preset").value=preset;$("quality").value=quality;
+ $("weather").value=settings.rain>=.8?"squall":settings.rain>0?"rain":"clear";
+ $("pause").textContent="▶ Resume";paused=true;
+ $("toggleBoat").textContent=boat.sunk?"⛵ Boat: sunk":boat.moving?"⛵ Boat: moving":"⛵ Boat: stopped";
+ for(const b of document.querySelectorAll("[data-layer]"))
+  b.classList.toggle("selected",b.dataset.layer===layer);
+ $("layerInfo").textContent=explanations[layer];
+ syncSliders();dirty=true;lastWater=-1e8;imageData=null;
+}
+window.AllAboardWaterLabUI={
+ getSnapshot:()=>({
+  format:"allaboard-water-lab",version:2,
+  settings:Object.fromEntries(Object.entries(settings).filter(([key])=>key!=="_wind"&&key!=="layers")),
+  layers:settings.layers,preset,quality,view:layer,time,
+  boat:{...boat},events:events.map(e=>({...e})),
+  reference:"Arbitrary lab units; same seed + time + event list + world coordinates"
+ }),
+ setSnapshot,setLayers(layers){settings.layers=layers;dirty=true;},
+ setSeed(seed){settings.seed=seed|0;dirty=true;},
+ getSample:(x,y)=>Core.sample(x,y,time,settings,events),
+ getTime:()=>time,
+ refresh(){dirty=true;lastWater=-1e8;},
+ log:null
+};
 settings._wind=Core.windVector(settings.windDeg);
 selectPreset("classic");
 if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){
