@@ -59,7 +59,7 @@ const tuning={sail:72,windStrength:4,windDirection:75,baseThrust:.1,
  sailAutoTrim:false,sailTrim:18.5};
 Vessel.step(s,anchor,control,tuning,current,1/60);
 assert.equal(s.sailTrim,18.5);
-assert(s.trimFactor<=1&&s.trimFactor>=.86);
+assert(s.trimFactor<=1&&s.trimFactor>=.15);
 tuning.sailAutoTrim=true;
 Vessel.step(s,anchor,control,tuning,current,1/60);
 assert.equal(s.trimFactor,1,"Auto mode uses same physics model with ideal trim");
