@@ -65,10 +65,14 @@
     const desiredTrim=limit(windRelative*.5,-90,90);
     const actualTrim=settings.sailAutoTrim===false?
       limit(settings.sailTrim||0,-90,90):desiredTrim;
-    const trimFactor=limit(1-.14*Math.abs(actualTrim-desiredTrim)/90,.86,1);
+    // A wrong trim must be visibly weaker: 100% aligned, 57.5% at 90° error,
+    // 15% at 180° error. Arcade tuning, not calibrated sail aerodynamics.
+    const trimError=Math.abs(actualTrim-desiredTrim);
+    const trimFactor=.15+.85*Math.pow(Math.cos(rad(trimError*.5)),2);
     ship.sailTrim=actualTrim;
     ship.idealTrim=desiredTrim;
     ship.trimFactor=trimFactor;
+    ship.trimError=trimError;
     let rigEfficiency=wind.efficiency;
     if(modifiers.rig==="lateen"){
       // Lateen rig trades some tailwind power for slightly better crosswind drive.
