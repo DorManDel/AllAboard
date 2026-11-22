@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#081b30">
-<title>All Aboard · Water Lab V0.1</title>
+<title>All Aboard · Water Layer Editor V0.2</title>
 <link rel="stylesheet" href="./water-lab.css">
 </head>
 <body>
 <div class="shell">
 <header class="top">
  <div><a class="breadcrumb" href="../preview/v0.11.1/">← All Aboard · Mechanics Lab</a>
- <h1>🌊 Water Lab <span>V0.1</span></h1>
- <p>Build the ocean from first principles. Inspect every layer, test water events, and measure your phone.</p></div>
+ <h1>🌊 Water Layer Editor <span>V0.2</span></h1>
+ <p>Layers, eyes, solo, blending, reproducible seeds, code export and live debug logs. Designed for your phone.</p></div>
  <div class="top-links"><a href="../preview/v0.11.1/">Play V0.11.1</a><a href="https://github.com/DorManDel/AllAboard" target="_blank" rel="noopener">GitHub</a></div>
 </header>
 <div class="layout">
@@ -21,15 +21,15 @@
   <div class="kicker">LIVE WATER FIELD · WORLD-ANCHORED</div>
   <div class="viewer-actions"><button id="pause" type="button">Ⅱ Pause</button><button id="reset" type="button">↺ Reset</button></div>
  </div>
- <canvas id="waterCanvas" width="720" height="540" tabindex="0" aria-label="Interactive top-down ocean. Tap to create ripples; arrows steer the boat."></canvas>
- <p class="hint">👆 Tap water to make a ripple · Drag the boat to move it · ←/→ rotate · ↑ accelerate · Water is a stylized simulation, not real ocean physics.</p>
+ <canvas id="waterCanvas" width="720" height="540" tabindex="0" aria-label="Top-down ocean. Touch inspects water values, never generates ripples. Drag the boat to move it."></canvas>
+ <p class="hint">👆 Tap / hover: inspect field values only (NO water reaction). Drag the boat to move it. Arrow keys steer on desktop. Wind and simulated events create waves.</p>
  <div class="kpi-grid">
   <div class="kpi"><span>Actual display FPS</span><strong id="fps">—</strong></div>
   <div class="kpi"><span>Water CPU update (ms)</span><strong id="cpu">—</strong></div>
   <div class="kpi"><span>Field resolution</span><strong id="resolution">—</strong></div>
   <div class="kpi"><span>Active impulses</span><strong id="events">0 / 28</strong></div>
  </div>
- <div class="section-head"><strong>Inspect the water pipeline</strong><small>The same seed and clock are used for each stage</small></div>
+ <div class="section-head"><strong>Layer inspector</strong><small>Choose a diagnostic view without modifying the composite</small></div>
  <div class="stage-tabs" role="group" aria-label="Water layer inspector">
   <button data-layer="beauty" class="selected">Final</button>
   <button data-layer="coarse">Noise A</button>
@@ -43,17 +43,34 @@
   <strong>Field Inspector</strong>
   <p id="sample">Tap or hover the water. Values are in normalized lab units, not physical meters.</p>
  </div>
- <div class="section-head"><strong>Trigger an interaction</strong><small>Each event has a finite lifetime</small></div>
+ <div class="section-head"><strong>Game event simulator</strong><small>Waves are triggered by gameplay, not touch</small></div>
  <div class="events-grid">
   <button data-event="cannon">💥 Cannon impact</button>
   <button data-event="anchor">⚓ Drop anchor</button>
   <button data-event="sink">🛟 Sinking ship</button>
   <button id="toggleBoat">⛵ Boat: moving</button>
  </div>
- <div class="reference">The boat, visual field and ripples share one world-coordinate model. Dragging the boat generates a wake; sinking is a simplified event demo, not a buoyancy solver.</div>
+ <div class="reference">Touch inspects the field without modifying it. Boat/wind/weather changes are simulation inputs; cannon, anchor and sinking create bounded impulses. This is not a fluid solver.</div>
+ <section class="logger" aria-label="Live water debug logs">
+  <div class="section-head"><strong>Live event log</strong><div class="viewer-actions"><button id="logExport" type="button">↓ TXT</button><button id="logClear" type="button">Clear</button></div></div>
+  <div class="log-status"><span id="logCount">0 entries</span><span>Rolling log · capped at 200</span></div>
+  <div id="liveLog" class="log-list" role="log" aria-live="off" aria-label="Simulation events and performance"></div>
+ </section>
 </section>
 <aside class="controls pane">
- <div class="section-head"><strong>Water Designer</strong><button id="export" type="button">↓ Export JSON</button></div>
+ <div class="section-head"><strong>Water Designer</strong><span class="kicker">REPRODUCIBLE FIELD</span></div>
+ <div class="seed-field"><label for="waterSeed">Seed</label><div class="seed-row"><input id="waterSeed" type="number" min="-2147483648" max="2147483647" step="1" value="2026"><button id="randomSeed" type="button" title="Generate a new deterministic seed">⟳ Random</button></div></div>
+ <div class="export-grid">
+  <button id="export" type="button">↓ Export JSON</button>
+  <button id="exportCode" type="button">⌘ Export JS + Engine</button>
+  <button id="importConfigButton" type="button">↑ Import JSON</button>
+  <input id="importConfig" type="file" accept=".json,application/json" hidden>
+ </div>
+ <div class="tips compact"><strong>Recreate your ocean</strong><p>JSON stores seed, numeric tuning, layer visibility, blends, world time, boat position and active events. Export JS bundles the water sampling engine and your profile; no external dependency. Imported snapshots pause so you can inspect the same frame before resuming.</p></div>
+ <div class="section-head"><strong>Layer stack</strong><small>Top = visual overlays · eye / solo / opacity / blend</small></div>
+ <div id="layerStack" class="layer-stack" aria-label="Editable water layers"></div>
+ <div class="layer-toolbar"><button id="showAllLayers" type="button">Show all</button><button id="resetLayers" type="button">Reset layers</button></div>
+ <p class="hint">Solo isolates one or more layers in the final composite. Eye/opacity/blend change the actual height-field composition. Wake and foam are visual overlays; base color is a renderer palette.</p>
  <label class="field">Visual preset<select id="preset">
    <option value="classic">Classic • readable blue</option>
    <option value="tropical">Tropical • turquoise</option>
@@ -74,6 +91,6 @@
 </div>
 <footer>ALL ABOARD · RESEARCH PROTOTYPE · <a href="../preview/v0.11.1/">Back to sailing preview</a></footer>
 </div>
-<script src="./water-core.js"></script><script src="./water-lab.js"></script>
+<script src="./water-core.js"></script><script src="./water-lab.js"></script><script src="./water-editor.js"></script>
 </body>
 </html>
