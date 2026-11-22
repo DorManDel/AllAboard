@@ -1,0 +1,71 @@
+# All Aboard static Pages deployment.
+# Runs only from main. Tests and deployment are separate jobs.
+name: Deploy All Aboard Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: allaboard-pages
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate water editor and core
+        run: |
+          node --check water-lab/water-core.js
+          node --check water-lab/water-lab.js
+          node --check water-lab/water-editor.js
+          node water-lab/tests/water-core.cjs
+          node water-lab/tests/runtime-smoke.cjs
+      - name: Validate root game preview
+        run: node tests/smoke.cjs
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Stage static files
+        run: |
+          mkdir -p _site
+          rsync -a --exclude=.git --exclude=.github --exclude=_site \
+            --exclude=node_modules ./ _site/
+          touch _site/.nojekyll
+          test -f _site/index.html
+          test -f _site/preview/v0.11.1/index.html
+          test -f _site/water-lab/index.html
+          test -f _site/water-lab/water-editor.js
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish site
+        id: deployment
+        uses: actions/deploy-pages@v4
