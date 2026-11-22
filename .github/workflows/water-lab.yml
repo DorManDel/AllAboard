@@ -20,3 +20,4 @@ jobs:
           node --check water-lab/water-core.js
           node --check water-lab/water-lab.js
           node water-lab/tests/water-core.cjs
+          node water-lab/tests/runtime-smoke.cjs
