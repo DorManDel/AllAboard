@@ -166,18 +166,19 @@ function inspect(point){
   +" · Wave "+p.wave.toFixed(3)+" · Ripple "+p.ripple.toFixed(3)
   +" · Height "+p.height.toFixed(3);
 }
-let dragging=false;
+let dragging=false,dragLast=null;
 canvas.addEventListener("pointerdown",e=>{
  const p=viewPoint(e.clientX,e.clientY);
  if(Math.hypot(p.x-boat.x,p.y-boat.y)<36&&!boat.sunk){
-  dragging=true;canvas.setPointerCapture(e.pointerId);
+  dragging=true;dragLast={x:p.sx,y:p.sy};canvas.setPointerCapture(e.pointerId);
  }else eventAt("tap",p.x,p.y,1.4);
  inspect(p);
 });
 canvas.addEventListener("pointermove",e=>{
  const p=viewPoint(e.clientX,e.clientY);
  if(dragging){
-  const dx=p.x-boat.x,dy=p.y-boat.y;
+  const dx=p.sx-dragLast.x,dy=p.sy-dragLast.y;
+  dragLast={x:p.sx,y:p.sy};
   boat.x+=dx;boat.y+=dy;
   if(Math.hypot(dx,dy)>2){boat.heading=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;}
   boat.speed=Math.min(55,Math.hypot(dx,dy)*6);
@@ -185,8 +186,8 @@ canvas.addEventListener("pointermove",e=>{
  }
  inspect(p);
 });
-canvas.addEventListener("pointerup",()=>{dragging=false;});
-canvas.addEventListener("pointercancel",()=>{dragging=false;});
+canvas.addEventListener("pointerup",()=>{dragging=false;dragLast=null;});
+canvas.addEventListener("pointercancel",()=>{dragging=false;dragLast=null;});
 window.addEventListener("keydown",e=>{
  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)&&
  (document.activeElement===canvas||document.activeElement===document.body)){
@@ -336,8 +337,9 @@ function render(){
 function frame(ts){
  resize();
  if(last){
-  const dt=Math.min(.05,(ts-last)/1000);
-  if(dt>0)displayFPS=displayFPS?displayFPS*.91+(1/dt)*.09:1/dt;
+  const frameSeconds=Math.max(.0001,(ts-last)/1000);
+  const dt=Math.min(.05,frameSeconds);
+  if(frameSeconds>0)displayFPS=displayFPS?displayFPS*.91+(1/frameSeconds)*.09:1/frameSeconds;
   step(dt);
  }
  last=ts;
