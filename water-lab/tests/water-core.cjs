@@ -26,6 +26,31 @@ m.pruneEvents(events,10);assert.equal(events.length,0);
 const scratch={},opts={...base,_wind:m.windVector(base.windDeg)};
 assert.strictEqual(m.sample(10,11,5,opts,[],scratch),scratch,"Reuse output avoids garbage");
 assert(Math.abs(m.sample(10,11,5,opts,[]).height-scratch.height)<1e-12);
+// v0.2 deterministic layer editing: eye, solo, opacity and blend affect samples.
+const origin=m.sample(4,6,1.2,base,[]);
+const layers=m.defaultLayers();
+assert.equal(m.layerKeys.length,7);
+assert.equal(m.createEvent("tap",5,9,0),null,"Touch must not produce a water event");
+const noNoise={...base,layers};
+layers.coarse.enabled=false;
+assert.notEqual(m.sample(4,6,1.2,noNoise,[]).height,origin.height,"Eye removes a layer");
+layers.coarse.enabled=true;
+layers.coarse.opacity=0;
+assert.notEqual(m.sample(4,6,1.2,noNoise,[]).height,origin.height,"Opacity alters sampled water");
+layers.coarse.opacity=1;
+assert(Math.abs(m.sample(4,6,1.2,noNoise,[]).height-origin.height)<1e-12,
+ "Default visible additive layer stack reproduces legacy field");
+layers.wave.solo=true;
+const waveOnly=m.sample(4,6,1.2,noNoise,[]);
+const expectedWave=origin.wave*.28*base.waveHeight;
+assert(Math.abs(waveOnly.height-expectedWave)<1e-12,"Solo isolates one layer in the final field");
+layers.wave.solo=false;
+layers.fine.blend="replace";
+assert.notEqual(m.sample(4,6,1.2,noNoise,[]).height,origin.height,"Replace blend changes composition");
+layers.fine.blend="multiply";
+assert.notEqual(m.sample(4,6,1.2,noNoise,[]).height,origin.height,"Multiply blend changes composition");
+layers.fine.blend="add";
+assert(Math.abs(m.sample(4,6,1.2,noNoise,[]).height-origin.height)<1e-12);
 const root=path.join(__dirname,"..");
 const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const ui=fs.readFileSync(path.join(root,"water-lab.js"),"utf8");
@@ -33,7 +58,11 @@ const css=fs.readFileSync(path.join(root,"water-lab.css"),"utf8");
 for(const id of ["waterCanvas","sliders","preset","quality","weather","fps","cpu","events","resolution","layerInfo","sample","pause","reset","export"]){
  assert(html.includes('id="'+id+'"'),"Missing control: "+id);
 }
-assert(html.includes("water-core.js")&&html.includes("water-lab.js"));
+assert(html.includes("water-core.js")&&html.includes("water-lab.js")&&html.includes("water-editor.js"));
+for(const id of ["waterSeed","layerStack","randomSeed","exportCode","importConfig","liveLog","logExport"])
+ assert(html.includes('id="'+id+'"'),"Missing V0.2 editor control "+id);
+assert(!ui.includes('eventAt("tap"'),"Touch must never trigger wave ripples");
+new Function(fs.readFileSync(path.join(root,"water-editor.js"),"utf8"));
 assert(html.includes('data-event="cannon"')&&html.includes('data-event="anchor"')&&html.includes('data-event="sink"'));
 assert(ui.includes("requestAnimationFrame")&&ui.includes("renderWater"));
 assert(css.includes("max-width:490px"),"Phone responsive layout missing");
