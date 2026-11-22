@@ -47,8 +47,9 @@ function rippleAt(x,y,time,events,strength=1){
  }
  return clamp(sum*strength,-1.5,1.5);
 }
-function sample(x,y,time,opts=defaults,events=[]){
- const wind=windVector(opts.windDeg??defaults.windDeg);
+function sample(x,y,time,opts=defaults,events=[],out=null){
+ // UI renderer caches the wind vector and reuses a result object per pixel.
+ const wind=opts._wind||windVector(opts.windDeg??defaults.windDeg);
  const speed=(opts.waveSpeed??1)*(.45+(opts.windStrength??4)*.13);
  const s0=Math.max(14,opts.coarseScale??defaults.coarseScale);
  const s1=Math.max(9,opts.detailScale??defaults.detailScale);
@@ -63,8 +64,11 @@ function sample(x,y,time,opts=defaults,events=[]){
  const rain=(opts.rain||0)*valueNoise(x*.2+time*3,y*.2-time*2,(opts.seed|0)+101)*.14;
  const base=(coarse*(opts.coarseMix??.65)+fine*(opts.detailMix??.35))*.72+wave*.28+rain;
  const ripple=rippleAt(x,y,time,events,opts.rippleStrength??1);
- return {coarse,fine,wave,ripple,base,
-  height:base*(opts.waveHeight??.8)+ripple};
+ const target=out||{};
+ target.coarse=coarse;target.fine=fine;target.wave=wave;
+ target.ripple=ripple;target.base=base;
+ target.height=base*(opts.waveHeight??.8)+ripple;
+ return target;
 }
 function current(x,y,time,opts=defaults){
  const wind=windVector(opts.windDeg??defaults.windDeg);
