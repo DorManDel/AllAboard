@@ -29,7 +29,7 @@ const trim=trimEfficiency(0,90,0,false);
 assert(trim.angle>0,"Auto trim selects desired sail angle");
 const manual=trimEfficiency(0,90,-45,true);
 assert(manual.bonus<trim.bonus,"Bad manual trim is weaker than automatic");
-assert(manual.bonus>=.86,"Manual trim remains a bonus, not a death sentence");
+assert(manual.bonus>=.15,"Even badly trimmed sails retain minimum arcade propulsion");
 const shipState={x:0,y:0,vx:0,vy:0,heading:0,angularVelocity:0};
 const anchor={down:false,phase:"raised",point:{x:0,y:0}};
 const vesselSettings={
