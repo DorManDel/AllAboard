@@ -53,7 +53,7 @@ fire(get("pause"),"click",{});
 assert(get("pause").textContent.includes("Resume"));
 // A finger on empty water must never generate a game-water impulse.
 const beforeTap=window.AllAboardWaterLabUI.getSnapshot().events.length;
-const canvas=byId("waterCanvas");
+const canvas=get("waterCanvas");
 for(const cb of canvas._listeners.pointerdown||[])cb({clientX:3,clientY:3,pointerId:1});
 assert.equal(window.AllAboardWaterLabUI.getSnapshot().events.length,beforeTap,
  "Pointer inspection must not create tap ripples");
