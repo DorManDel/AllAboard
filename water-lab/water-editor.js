@@ -207,7 +207,10 @@ function safeSnapshot(input){
   preset:["classic","tropical","calm","storm"].includes(input.preset)?input.preset:"classic",
   quality:["eco","balanced","high"].includes(input.quality)?input.quality:"balanced",
   view:["beauty","coarse","fine","wave","ripple","height"].includes(input.view)?input.view:"beauty",
-  time:maxTime,boat:safeBoat,events:validEvents
+  time:maxTime,boat:safeBoat,events:validEvents,
+  trail:Array.isArray(input.trail)?input.trail.slice(-35).filter(e=>e&&typeof e==="object")
+   .map(e=>({x:numeric(e.x,-1000000,1000000,0),y:numeric(e.y,-1000000,1000000,0),
+      time:numeric(e.time,0,maxTime,0)})):[]
  };
 }
 $("importConfigButton").addEventListener("click",()=>$("importConfig").click());
