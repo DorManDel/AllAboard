@@ -1,0 +1,23 @@
+name: Water Lab Contracts
+on:
+  push:
+    branches: [main, "feature/**"]
+    paths: ["water-lab/**", ".github/workflows/water-lab.yml"]
+  pull_request:
+    paths: ["water-lab/**", ".github/workflows/water-lab.yml"]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax + deterministic water lab tests
+        run: |
+          node --check water-lab/water-core.js
+          node --check water-lab/water-lab.js
+          node water-lab/tests/water-core.cjs
+          node water-lab/tests/runtime-smoke.cjs

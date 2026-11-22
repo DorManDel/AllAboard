@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#081b30">
+<title>All Aboard · Water Lab V0.1</title>
+<link rel="stylesheet" href="./water-lab.css">
+</head>
+<body>
+<div class="shell">
+<header class="top">
+ <div><a class="breadcrumb" href="../preview/v0.11.1/">← All Aboard · Mechanics Lab</a>
+ <h1>🌊 Water Lab <span>V0.1</span></h1>
+ <p>Build the ocean from first principles. Inspect every layer, test water events, and measure your phone.</p></div>
+ <div class="top-links"><a href="../preview/v0.11.1/">Play V0.11.1</a><a href="https://github.com/DorManDel/AllAboard" target="_blank" rel="noopener">GitHub</a></div>
+</header>
+<div class="layout">
+<section class="viewer pane">
+ <div class="viewer-top">
+  <div class="kicker">LIVE WATER FIELD · WORLD-ANCHORED</div>
+  <div class="viewer-actions"><button id="pause" type="button">Ⅱ Pause</button><button id="reset" type="button">↺ Reset</button></div>
+ </div>
+ <canvas id="waterCanvas" width="720" height="540" tabindex="0" aria-label="Interactive top-down ocean. Tap to create ripples; arrows steer the boat."></canvas>
+ <p class="hint">👆 Tap water to make a ripple · Drag the boat to move it · ←/→ rotate · ↑ accelerate · Water is a stylized simulation, not real ocean physics.</p>
+ <div class="kpi-grid">
+  <div class="kpi"><span>Actual display FPS</span><strong id="fps">—</strong></div>
+  <div class="kpi"><span>Water CPU update (ms)</span><strong id="cpu">—</strong></div>
+  <div class="kpi"><span>Field resolution</span><strong id="resolution">—</strong></div>
+  <div class="kpi"><span>Active impulses</span><strong id="events">0 / 28</strong></div>
+ </div>
+ <div class="section-head"><strong>Inspect the water pipeline</strong><small>The same seed and clock are used for each stage</small></div>
+ <div class="stage-tabs" role="group" aria-label="Water layer inspector">
+  <button data-layer="beauty" class="selected">Final</button>
+  <button data-layer="coarse">Noise A</button>
+  <button data-layer="fine">Noise B</button>
+  <button data-layer="wave">Waves</button>
+  <button data-layer="ripple">Ripples</button>
+  <button data-layer="height">Height</button>
+ </div>
+ <p id="layerInfo" class="info" role="status">FINAL: two noise layers + wind-aligned waves + event ripples. The colors are a stylized visualization of height.</p>
+ <div class="sample-box">
+  <strong>Field Inspector</strong>
+  <p id="sample">Tap or hover the water. Values are in normalized lab units, not physical meters.</p>
+ </div>
+ <div class="section-head"><strong>Trigger an interaction</strong><small>Each event has a finite lifetime</small></div>
+ <div class="events-grid">
+  <button data-event="cannon">💥 Cannon impact</button>
+  <button data-event="anchor">⚓ Drop anchor</button>
+  <button data-event="sink">🛟 Sinking ship</button>
+  <button id="toggleBoat">⛵ Boat: moving</button>
+ </div>
+ <div class="reference">The boat, visual field and ripples share one world-coordinate model. Dragging the boat generates a wake; sinking is a simplified event demo, not a buoyancy solver.</div>
+</section>
+<aside class="controls pane">
+ <div class="section-head"><strong>Water Designer</strong><button id="export" type="button">↓ Export JSON</button></div>
+ <label class="field">Visual preset<select id="preset">
+   <option value="classic">Classic • readable blue</option>
+   <option value="tropical">Tropical • turquoise</option>
+   <option value="calm">Calm • soft movement</option>
+   <option value="storm">Storm • dark & choppy</option>
+ </select></label>
+ <label class="field">Preview quality<select id="quality">
+   <option value="eco">Eco · 12 FPS water · 10px cells</option>
+   <option value="balanced" selected>Balanced · 18 FPS water · 7px cells</option>
+   <option value="high">High · 24 FPS water · 5px cells</option>
+ </select></label>
+ <div class="section-head"><strong>Wind &amp; weather</strong><small>Winds move the noise and wave crests</small></div>
+ <label class="field">Weather<select id="weather"><option value="clear">Clear</option><option value="rain">Rain</option><option value="squall">Squall</option></select></label>
+ <div id="sliders"></div>
+ <div class="tips"><strong>Why these controls?</strong><p><b>Scale</b> changes the size of noise patches, not the screen pixels. <b>Mix</b> controls how much each layer contributes. <b>Wind direction</b> uses All Aboard's wind-TO convention (0° points north/up).</p></div>
+ <div class="tips"><strong>Performance contract</strong><p>CPU canvas is deliberately low-resolution and throttled in this web lab. For Unity, move the full-screen color field to one simple GPU shader; keep CPU sampling only for ship motion and gameplay. FPS is browser display FPS, not GPU timing or Unity FPS.</p></div>
+</aside>
+</div>
+<footer>ALL ABOARD · RESEARCH PROTOTYPE · <a href="../preview/v0.11.1/">Back to sailing preview</a></footer>
+</div>
+<script src="./water-core.js"></script><script src="./water-lab.js"></script>
+</body>
+</html>

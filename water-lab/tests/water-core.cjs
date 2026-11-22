@@ -1,0 +1,42 @@
+/* All Aboard Water Lab v0.1 — deterministic mathematical contracts */
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs"),path=require("node:path");
+const m=require("../water-core.js");
+const base={...m.defaults};
+const a=m.sample(20,-14,2.1,base,[]);
+const b=m.sample(20,-14,2.1,{...base},[]);
+assert.deepEqual(a,b,"Identical seed/settings/time must return identical field");
+assert.notDeepEqual(a,m.sample(50,-14,2.1,base,[]),"World position influences water");
+assert.notDeepEqual(a,m.sample(20,-14,3.2,base,[]),"Time influences water");
+assert.notDeepEqual(a,m.sample(20,-14,2.1,{...base,seed:base.seed+1},[]),"Seed influences surface");
+assert(m.valueNoise(.21,.92,15)>=-1 && m.valueNoise(.21,.92,15)<=1);
+assert(Math.abs(m.windVector(0).x)<1e-12,"North wind-to has no X component");
+assert(m.windVector(0).y<-.99);
+assert(m.windVector(90).x>.99,"90 degrees points east");
+const ring=m.createEvent("cannon",0,0,0,2);
+const eventAtFront=m.sample(0,40,.7,base,[ring]);
+const clean=m.sample(0,40,.7,base,[]);
+assert.notEqual(eventAtFront.ripple,clean.ripple,"Cannon event disturbs local surface");
+assert.equal(m.sample(0,40,5,base,[ring]).ripple,0,"Expired event must not affect water");
+const events=[];
+for(let i=0;i<500;i++)m.addEvent(events,m.createEvent("anchor",i,0,0,1));
+assert.equal(events.length,28,"Bounded ripple pool avoids growth");
+m.pruneEvents(events,10);assert.equal(events.length,0);
+const scratch={},opts={...base,_wind:m.windVector(base.windDeg)};
+assert.strictEqual(m.sample(10,11,5,opts,[],scratch),scratch,"Reuse output avoids garbage");
+assert(Math.abs(m.sample(10,11,5,opts,[]).height-scratch.height)<1e-12);
+const root=path.join(__dirname,"..");
+const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
+const ui=fs.readFileSync(path.join(root,"water-lab.js"),"utf8");
+const css=fs.readFileSync(path.join(root,"water-lab.css"),"utf8");
+for(const id of ["waterCanvas","sliders","preset","quality","weather","fps","cpu","events","resolution","layerInfo","sample","pause","reset","export"]){
+ assert(html.includes('id="'+id+'"'),"Missing control: "+id);
+}
+assert(html.includes("water-core.js")&&html.includes("water-lab.js"));
+assert(html.includes('data-event="cannon"')&&html.includes('data-event="anchor"')&&html.includes('data-event="sink"'));
+assert(ui.includes("requestAnimationFrame")&&ui.includes("renderWater"));
+assert(css.includes("max-width:490px"),"Phone responsive layout missing");
+new Function(fs.readFileSync(path.join(root,"water-core.js"),"utf8"));
+new Function(ui);
+console.log("PASS: seeded noise, wind, shared water sample, impulse lifetime/cap, phone UI and syntax.");
